@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analisis Bisnis Digital & Metrik KPI - Panggung Lokal</title>
+  <meta name="description" content="Dashboard analitik bisnis digital, rasio konversi platform, analisis funnel musisi-penyelenggara, dan metrik performa Panggung Lokal.">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="navbar">
+    <div class="container navbar__inner">
+      <a href="/" class="navbar__logo">
+        <img src="/images/logo.jpeg" alt="Panggung Lokal Logo" class="navbar__logo-img">
+        <span>PANGGUNG</span>
+        <span class="navbar__logo-badge">LOKAL</span>
+      </a>
+
+      <button class="navbar__toggle" aria-label="Toggle Menu">☰</button>
+
+      <nav>
+        <ul class="navbar__menu">
+          <li><a href="/" class="navbar__link">Beranda</a></li>
+          <li><a href="/search.html" class="navbar__link">Cari Band</a></li>
+          <li><a href="/admin.html" class="navbar__link active">Analisis Bisnis</a></li>
+        </ul>
+      </nav>
+
+      <div id="navbar-auth-container" class="navbar__auth"></div>
+    </div>
+  </header>
+
+  <main class="container section">
+    <div class="section-header">
+      <div>
+        <div class="hero__eyebrow" style="margin-bottom: 8px;">
+          🎓 TUGAS BISNIS DIGITAL • SEMESTER 3
+        </div>
+        <h1 class="section-header__title">DASHBOARD ANALITIK & METRIK BISNIS</h1>
+        <p class="section-header__subtitle">
+          Evaluasi performa model bisnis platform <em>two-sided marketplace</em> penghubung musisi dan penyelenggara acara
+        </p>
+      </div>
+      <div>
+        <button class="btn btn--secondary" onclick="loadMetrics()">
+          <span>🔄 Segarkan Data</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Metric Cards Grid -->
+    <div class="dashboard-stats" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="metric-card metric-card--cyan">
+        <div class="metric-card__label">TOTAL PENGGUNA TERDAFTAR</div>
+        <div id="kpi-users" class="metric-card__number">-</div>
+        <div id="kpi-user-breakdown" style="font-size: 0.8rem; color: var(--neon-cyan);">Memuat...</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-card__label">TOTAL INTERAKSI / VIEWS</div>
+        <div id="kpi-views" class="metric-card__number">-</div>
+        <div style="font-size: 0.8rem; color: var(--electric-crimson);">Kunjungan ke halaman profil band</div>
+      </div>
+
+      <div class="metric-card metric-card--orange">
+        <div class="metric-card__label">KONEKSI / BOOKING LEAD</div>
+        <div id="kpi-connections" class="metric-card__number">-</div>
+        <div style="font-size: 0.8rem; color: var(--amp-orange);">Kontak langsung yang terjalin</div>
+      </div>
+
+      <div class="metric-card metric-card--gold">
+        <div class="metric-card__label">CONVERSION RATE (CVR)</div>
+        <div id="kpi-cvr" class="metric-card__number">-</div>
+        <div style="font-size: 0.8rem; color: var(--gold-foil);">Rasio View → Inisiasi Kontak</div>
+      </div>
+    </div>
+
+    <!-- Funnel Bisnis Digital Analysis -->
+    <div class="detail-card" style="margin-bottom: var(--space-2xl);">
+      <h2 class="detail-card__title">
+        <span>📊</span> FUNNEL MODEL BISNIS & VALUE PROPOSITION
+      </h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-md); margin-top: var(--space-md);">
+        <div style="background: var(--night-black); border: 1px solid var(--surface-border); border-left: 4px solid var(--neon-cyan); border-radius: var(--radius-sm); padding: var(--space-md);">
+          <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--neon-cyan); text-transform: uppercase;">Tahap 1: Discovery (Pencarian)</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--chalk-white); margin: 4px 0;">Katalog & Filter Jadwal</div>
+          <p style="font-size: 0.85rem; color: var(--graphite); line-height: 1.5;">
+            Penyelenggara mencari musisi berdasarkan kecocokan tanggal acara, genre, lokasi domisili, dan rentang fee dalam rupiah.
+          </p>
+        </div>
+
+        <div style="background: var(--night-black); border: 1px solid var(--surface-border); border-left: 4px solid var(--gold-foil); border-radius: var(--radius-sm); padding: var(--space-md);">
+          <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--gold-foil); text-transform: uppercase;">Tahap 2: Evaluasi Kualitas</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--chalk-white); margin: 4px 0;">Sampel Audio & Riders</div>
+          <p style="font-size: 0.85rem; color: var(--graphite); line-height: 1.5;">
+            EO dapat memutar lagu demo secara langsung di web tanpa perlu membuka platform terpisah, meningkatkan efisiensi kurasi.
+          </p>
+        </div>
+
+        <div style="background: var(--night-black); border: 1px solid var(--surface-border); border-left: 4px solid var(--whatsapp-green); border-radius: var(--radius-sm); padding: var(--space-md);">
+          <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--whatsapp-green); text-transform: uppercase;">Tahap 3: Direct Connection</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--chalk-white); margin: 4px 0;">Deal Tanpa Perantara</div>
+          <p style="font-size: 0.85rem; color: var(--graphite); line-height: 1.5;">
+            Klik "Hubungi Band" membuka komunikasi WhatsApp instan, mencatat metrik konversi platform secara real-time.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Users Table -->
+    <div style="margin-bottom: var(--space-2xl);">
+      <div class="section-header">
+        <div>
+          <h2 class="section-header__title" style="font-size: 1.6rem;">PENGGUNA TERBARU DI PLATFORM</h2>
+          <p class="section-header__subtitle">Pertumbuhan akun musisi dan penyelenggara</p>
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Tipe Akun</th>
+            <th>Tanggal Registrasi</th>
+            <th>Status Akun</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="admin-users-tbody">
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--graphite); padding: 20px;">Memuat data pengguna...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Moderation Reports Table -->
+    <div>
+      <div class="section-header">
+        <div>
+          <h2 class="section-header__title" style="font-size: 1.6rem;">ANTREAN MODERASI KONTEN</h2>
+          <p class="section-header__subtitle">Laporan keluhan dari pengguna untuk menjaga kualitas ekosistem</p>
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Pelapor</th>
+            <th>Tipe Laporan</th>
+            <th>Alasan</th>
+            <th>Status</th>
+            <th>Tindakan</th>
+          </tr>
+        </thead>
+        <tbody id="admin-reports-tbody">
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--graphite); padding: 20px;">Tidak ada laporan pelanggaran aktif. Semua profil dalam kondisi baik.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer__bottom">
+      <div>© 2026 Panggung Lokal • Platform Bisnis Digital Musik Indonesia</div>
+      <a href="/" style="color: var(--neon-cyan);">Kembali ke Beranda</a>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+    async function loadMetrics() {
+      try {
+        const res = await apiGetAdminMetrics();
+        if (res.success && res.data) {
+          const s = res.data.summary;
+          document.getElementById('kpi-users').textContent = s.totalUsers;
+          document.getElementById('kpi-user-breakdown').textContent = `${s.totalBands} Band • ${s.totalOrganizers} Penyelenggara`;
+          document.getElementById('kpi-views').textContent = s.totalProfileViews.toLocaleString('id-ID');
+          document.getElementById('kpi-connections').textContent = s.totalConnections;
+          document.getElementById('kpi-cvr').textContent = s.conversionRate;
+
+          // Render Users
+          const usersTbody = document.getElementById('admin-users-tbody');
+          if (res.data.recentUsers && res.data.recentUsers.length > 0) {
+            usersTbody.innerHTML = res.data.recentUsers.map(u => `
+              <tr>
+                <td style="font-weight: 600; color: var(--chalk-white);">${u.email}</td>
+                <td>
+                  <span class="badge ${u.account_type === 'band' ? 'badge--genre' : 'badge--location'}">
+                    ${u.account_type.toUpperCase()}
+                  </span>
+                </td>
+                <td style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--graphite);">
+                  ${formatIndonesianDate(u.created_at)}
+                </td>
+                <td>
+                  <span class="badge" style="background: ${u.is_active ? 'rgba(37,211,102,0.15)' : 'rgba(224,30,55,0.15)'}; color: ${u.is_active ? 'var(--whatsapp-green)' : 'var(--electric-crimson)'};">
+                    ${u.is_active ? 'AKTIF' : 'SUSPENDED'}
+                  </span>
+                </td>
+                <td>
+                  ${u.is_active ? `
+                    <button class="btn btn--outline btn--sm" style="color: var(--electric-crimson); border-color: rgba(224,30,55,0.4);" onclick="suspendUser(${u.id})">
+                      Tangguhkan
+                    </button>
+                  ` : '<span style="color: var(--graphite); font-size: 0.8rem;">Dinonaktifkan</span>'}
+                </td>
+              </tr>
+            `).join('');
+          }
+
+          // Render Reports
+          const reportsTbody = document.getElementById('admin-reports-tbody');
+          if (res.data.pendingReports && res.data.pendingReports.length > 0) {
+            reportsTbody.innerHTML = res.data.pendingReports.map(r => `
+              <tr>
+                <td style="font-family: var(--font-mono); color: var(--chalk-white);">#${r.id}</td>
+                <td style="color: var(--graphite);">${r.reporterEmail || 'Anonim'}</td>
+                <td><span class="badge badge--genre">${r.reportedEntityType}</span></td>
+                <td style="color: var(--chalk-white);">${r.reason}</td>
+                <td><span class="badge badge--available">${r.status.toUpperCase()}</span></td>
+                <td>
+                  <button class="btn btn--primary btn--sm" onclick="resolveReport(${r.id})">
+                    Selesaikan
+                  </button>
+                </td>
+              </tr>
+            `).join('');
+          } else {
+            reportsTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--graphite); padding: 25px;">Tidak ada laporan pelanggaran aktif saat ini. Platform berjalan tertib.</td></tr>';
+          }
+        }
+      } catch (err) {
+        console.error('Error loading admin metrics:', err);
+        showToast('Gagal memuat metrik bisnis', 'error');
+      }
+    }
+
+    async function suspendUser(id) {
+      if (!confirm('Yakin ingin menonaktifkan akun ini?')) return;
+      try {
+        const res = await fetch(`/api/admin/users/${id}/suspend`, { method: 'PUT' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Akun berhasil dinonaktifkan', 'success');
+          loadMetrics();
+        } else {
+          showToast(data.message || 'Gagal', 'error');
+        }
+      } catch (e) {
+        showToast('Terjadi kesalahan', 'error');
+      }
+    }
+
+    async function resolveReport(id) {
+      try {
+        const res = await fetch(`/api/admin/reports/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'resolved', adminNotes: 'Telah ditinjau dan diselesaikan oleh admin.' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Laporan berhasil diselesaikan', 'success');
+          loadMetrics();
+        }
+      } catch (e) {
+        showToast('Gagal menyelesaikan laporan', 'error');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadMetrics);
+  </script>
+</body>
+</html>

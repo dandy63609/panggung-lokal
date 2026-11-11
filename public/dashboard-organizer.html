@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Penyelenggara Acara - Panggung Lokal</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/jpeg" href="/images/logo.jpeg">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="navbar">
+    <div class="container navbar__inner">
+      <a href="/" class="navbar__logo">
+        <img src="/images/logo.jpeg" alt="Panggung Lokal Logo" class="navbar__logo-img">
+        <span>PANGGUNG</span>
+        <span class="navbar__logo-badge">LOKAL</span>
+      </a>
+
+      <button class="navbar__toggle" aria-label="Toggle Menu">☰</button>
+
+      <nav>
+        <ul class="navbar__menu">
+          <li><a href="/" class="navbar__link">Beranda</a></li>
+          <li><a href="/search.html" class="navbar__link">Cari Band</a></li>
+          <li><a href="/dashboard-organizer.html" class="navbar__link active">Dashboard EO</a></li>
+        </ul>
+      </nav>
+
+      <div id="navbar-auth-container" class="navbar__auth"></div>
+    </div>
+  </header>
+
+  <main class="container section">
+    <div class="section-header">
+      <div>
+        <h1 class="section-header__title">PORTAL PENYELENGGARA ACARA</h1>
+        <p class="section-header__subtitle">Pantau riwayat band yang telah kamu hubungi untuk jadwal manggung</p>
+      </div>
+      <a href="/search.html" class="btn btn--primary">
+        <span>🔍 Cari Musisi Baru</span>
+      </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="dashboard-stats" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+      <div class="metric-card metric-card--cyan">
+        <div class="metric-card__label">TOTAL BAND DIHUBUNGI</div>
+        <div id="metric-contacted" class="metric-card__number">0</div>
+        <div style="font-size: 0.85rem; color: var(--neon-cyan);">Koneksi terjalin dengan musisi lokal</div>
+      </div>
+      <div class="metric-card metric-card--gold">
+        <div class="metric-card__label">REKOMENDASI KURASI</div>
+        <div class="metric-card__number">8 Band</div>
+        <div style="font-size: 0.85rem; color: var(--gold-foil);">Tersedia untuk berbagai genre & budget</div>
+      </div>
+    </div>
+
+    <!-- Contacted Bands Table -->
+    <div class="section-header">
+      <div>
+        <h2 class="section-header__title" style="font-size: 1.6rem;">RIWAYAT BAND YANG TELAH DIHUBUNGI</h2>
+        <p class="section-header__subtitle">Lanjutkan obrolan tawaran gig dan negosiasi riders panggung</p>
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Nama Band</th>
+          <th>Genre & Kota</th>
+          <th>Tanggal Dihubungi</th>
+          <th>Catatan Acara</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="contacted-bands-tbody">
+        <tr>
+          <td colspan="5" style="text-align: center; color: var(--graphite); padding: 30px;">Memuat data riwayat...</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer__bottom">
+      <div>© 2026 Panggung Lokal. Hubungkan Band Lokal dengan Penyelenggara Acara.</div>
+      <a href="/" style="color: var(--neon-cyan);">Kembali ke Beranda</a>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+    async function loadOrganizerDashboard() {
+      if (!AuthManager.isAuthenticated()) {
+        showToast('Silakan login terlebih dahulu', 'error');
+        setTimeout(() => window.location.href = '/login.html', 1000);
+        return;
+      }
+
+      try {
+        const res = await apiGetOrganizerDashboard();
+        if (res.success && res.data) {
+          const tbody = document.getElementById('contacted-bands-tbody');
+          document.getElementById('metric-contacted').textContent = res.data.stats.totalContacted;
+
+          if (res.data.contactedBands && res.data.contactedBands.length > 0) {
+            tbody.innerHTML = res.data.contactedBands.map(c => `
+              <tr>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="${c.profilePhotoUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}" 
+                         style="width: 40px; height: 40px; border-radius: var(--radius-sm); object-fit: cover;" alt="${c.bandName}">
+                    <strong style="color: var(--chalk-white); font-size: 1.05rem;">${c.bandName}</strong>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge badge--genre">${c.genre}</span>
+                  <div style="font-size: 0.8rem; color: var(--graphite); margin-top: 4px;">📍 ${c.locationCity}</div>
+                </td>
+                <td style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--graphite);">
+                  ${formatIndonesianDate(c.createdAt)}
+                </td>
+                <td style="color: var(--graphite); font-size: 0.9rem;">
+                  ${c.notes || 'Inisiasi kontak panggung'}
+                </td>
+                <td>
+                  <a href="/profile.html?id=${c.bandProfileId}" class="btn btn--outline btn--sm">
+                    Lihat Profil
+                  </a>
+                </td>
+              </tr>
+            `).join('');
+          } else {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--graphite); padding: 40px;">
+                  Belum ada band yang dihubungi. Mulai cari musisi untuk acaramu di <a href="/search.html" style="color: var(--neon-cyan); text-decoration: underline;">Katalog Band</a>.
+                </td>
+              </tr>
+            `;
+          }
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        showToast('Gagal memuat dashboard', 'error');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadOrganizerDashboard);
+  </script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar Akun Baru - Panggung Lokal</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/jpeg" href="/images/logo.jpeg">
+  <style>
+    .auth-page {
+      min-height: calc(100vh - 160px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-2xl) var(--space-md);
+    }
+    .auth-card {
+      background-color: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl);
+      width: 100%;
+      max-width: 480px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+    .role-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: var(--night-black);
+      padding: 6px;
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-lg);
+      border: 1px solid var(--surface-border);
+    }
+    .role-option {
+      background: transparent;
+      border: 1px solid transparent;
+      font-family: inherit;
+      width: 100%;
+      text-align: center;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--graphite);
+      transition: all var(--transition-fast);
+      user-select: none;
+    }
+    .role-option.active {
+      background: var(--concrete-gray);
+      color: var(--chalk-white);
+      border: 1px solid var(--neon-cyan);
+      box-shadow: 0 0 10px var(--neon-cyan-glow);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="navbar">
+    <div class="container navbar__inner">
+      <a href="/" class="navbar__logo">
+        <img src="/images/logo.jpeg" alt="Panggung Lokal Logo" class="navbar__logo-img">
+        <span>PANGGUNG</span>
+        <span class="navbar__logo-badge">LOKAL</span>
+      </a>
+      <div id="navbar-auth-container" class="navbar__auth">
+        <a href="/login.html" class="btn btn--outline btn--sm">Sudah Punya Akun? Masuk</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-page">
+    <div class="auth-card">
+      <div style="text-align: center; margin-bottom: var(--space-lg);">
+        <img src="/images/logo.jpeg" alt="Panggung Lokal" style="width: 76px; height: 76px; object-fit: cover; border-radius: var(--radius-md); margin: 0 auto var(--space-sm); border: 2px solid var(--electric-crimson); box-shadow: 0 0 16px var(--crimson-glow); display: block;">
+        <h1 style="font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 1px; color: var(--chalk-white);">
+          BERGABUNG DI PANGGUNG LOKAL
+        </h1>
+        <p style="color: var(--graphite); font-size: 0.9rem; margin-top: 4px;">
+          Pilih tipe akun untuk memulai
+        </p>
+      </div>
+
+      <!-- Account Type Selection -->
+      <div class="role-toggle">
+        <button type="button" id="role-band" class="role-option active" onclick="selectRole('band')">
+          🎸 Sebagai Band
+        </button>
+        <button type="button" id="role-organizer" class="role-option" onclick="selectRole('organizer')">
+          🎪 Penyelenggara (EO/Kafe)
+        </button>
+      </div>
+
+      <form id="register-form">
+        <input type="hidden" id="reg-account-type" value="band">
+
+        <div class="form-group">
+          <label class="form-label" for="reg-email">Alamat Email *</label>
+          <input type="email" id="reg-email" class="form-control" placeholder="nama@email.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-password">Password * (Min 6 Karakter)</label>
+          <input type="password" id="reg-password" class="form-control" placeholder="••••••••" minlength="6" required>
+        </div>
+
+        <!-- Band specific fields -->
+        <div id="band-extra-fields">
+          <div class="form-group">
+            <label class="form-label" for="reg-band-name">Nama Band / Artis *</label>
+            <input type="text" id="reg-band-name" class="form-control" placeholder="Contoh: Kelana Ombak">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm);">
+            <div class="form-group">
+              <label class="form-label" for="reg-genre">Genre Musik *</label>
+              <input type="text" id="reg-genre" class="form-control" placeholder="Indie Rock">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-city">Kota Domisili *</label>
+              <input type="text" id="reg-city" class="form-control" placeholder="Bandung">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-submit-register" class="btn btn--primary btn--block btn--lg" style="margin-top: var(--space-lg);">
+          <span>Daftar Sekarang (Gratis)</span>
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: var(--space-md); font-size: 0.9rem; color: var(--graphite);">
+        Sudah memiliki akun? <a href="/login.html" style="color: var(--neon-cyan); font-weight: 600;">Masuk di sini</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__bottom">
+      <div>© 2026 Panggung Lokal. Hubungkan Band Lokal dengan Penyelenggara Acara.</div>
+      <a href="/" style="color: var(--neon-cyan);">Kembali ke Beranda</a>
+    </div>
+  </footer>
+
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+    function selectRole(role) {
+      document.getElementById('reg-account-type').value = role;
+      document.getElementById('role-band').classList.toggle('active', role === 'band');
+      document.getElementById('role-organizer').classList.toggle('active', role === 'organizer');
+
+      const bandFields = document.getElementById('band-extra-fields');
+      if (role === 'band') {
+        bandFields.style.display = 'block';
+      } else {
+        bandFields.style.display = 'none';
+      }
+    }
+    window.selectRole = selectRole;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Attach explicit click listeners
+      const btnBand = document.getElementById('role-band');
+      const btnOrg = document.getElementById('role-organizer');
+      if (btnBand) {
+        btnBand.addEventListener('click', (e) => {
+          e.preventDefault();
+          selectRole('band');
+        });
+      }
+      if (btnOrg) {
+        btnOrg.addEventListener('click', (e) => {
+          e.preventDefault();
+          selectRole('organizer');
+        });
+      }
+
+      // Check role in URL query parameter (e.g. /register.html?role=band)
+      const urlParams = new URLSearchParams(window.location.search);
+      const roleParam = urlParams.get('role');
+      if (roleParam === 'band' || roleParam === 'organizer') {
+        selectRole(roleParam);
+      }
+
+      document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btn-submit-register');
+        btn.disabled = true;
+        btn.textContent = 'Mendaftarkan...';
+
+        const accountType = document.getElementById('reg-account-type').value;
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value;
+
+        const payload = {
+          email,
+          password,
+          accountType
+        };
+
+        if (accountType === 'band') {
+          payload.bandName = document.getElementById('reg-band-name').value.trim() || email.split('@')[0];
+          payload.genre = document.getElementById('reg-genre').value.trim() || 'Indie / Pop';
+          payload.locationCity = document.getElementById('reg-city').value.trim() || 'Bandung';
+        }
+
+        try {
+          const res = await AuthManager.register(payload);
+          if (res.success) {
+            showToast('Registrasi berhasil! Mengalihkan ke dashboard...', 'success');
+            setTimeout(() => {
+              if (accountType === 'band') {
+                window.location.href = '/dashboard-band.html';
+              } else {
+                window.location.href = '/dashboard-organizer.html';
+              }
+            }, 1000);
+          } else {
+            showToast(res.message || 'Registrasi gagal', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Daftar Sekarang (Gratis)';
+          }
+        } catch (err) {
+          showToast('Terjadi kesalahan', 'error');
+          btn.disabled = false;
+          btn.textContent = 'Daftar Sekarang (Gratis)';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

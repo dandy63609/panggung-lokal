@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Musisi & Band - Panggung Lokal</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/jpeg" href="/images/logo.jpeg">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="navbar">
+    <div class="container navbar__inner">
+      <a href="/" class="navbar__logo">
+        <img src="/images/logo.jpeg" alt="Panggung Lokal Logo" class="navbar__logo-img">
+        <span>PANGGUNG</span>
+        <span class="navbar__logo-badge">LOKAL</span>
+      </a>
+
+      <button class="navbar__toggle" aria-label="Toggle Menu">☰</button>
+
+      <nav>
+        <ul class="navbar__menu">
+          <li><a href="/" class="navbar__link">Beranda</a></li>
+          <li><a href="/search.html" class="navbar__link">Cari Band</a></li>
+          <li><a href="/dashboard-band.html" class="navbar__link active">Dashboard Band</a></li>
+        </ul>
+      </nav>
+
+      <div id="navbar-auth-container" class="navbar__auth"></div>
+    </div>
+  </header>
+
+  <main class="container section">
+    <!-- Header -->
+    <div class="section-header">
+      <div>
+        <h1 class="section-header__title" id="dash-band-name">DASHBOARD BAND</h1>
+        <p class="section-header__subtitle" id="dash-band-meta">Kelola ketersediaan panggung dan pantau interaksi penyelenggara acara</p>
+      </div>
+      <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap;">
+        <button class="btn btn--primary" onclick="openAddPostModal()">
+          <span>+ Posting Jadwal Baru</span>
+        </button>
+        <button class="btn btn--secondary" onclick="openEditProfileModal()">
+          <span>✏️ Edit Profil Band</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Metric Cards -->
+    <div class="dashboard-stats">
+      <div class="metric-card metric-card--cyan">
+        <div class="metric-card__label">TOTAL PROFILE VIEWS</div>
+        <div id="metric-views" class="metric-card__number">0</div>
+        <div style="font-size: 0.8rem; color: var(--neon-cyan);">Pengunjung melihat karyamu</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-card__label">PENYELENGGARA TERTARIK</div>
+        <div id="metric-connections" class="metric-card__number">0</div>
+        <div style="font-size: 0.8rem; color: var(--electric-crimson);">Kontak dibuka oleh EO / Kafe</div>
+      </div>
+
+      <div class="metric-card metric-card--orange">
+        <div class="metric-card__label">JADWAL AKTIF TERPASANG</div>
+        <div id="metric-posts" class="metric-card__number">0</div>
+        <div style="font-size: 0.8rem; color: var(--amp-orange);">Slot manggung siap di-booking</div>
+      </div>
+    </div>
+
+    <!-- Active Availability Posts -->
+    <div style="margin-bottom: var(--space-2xl);">
+      <div class="section-header">
+        <div>
+          <h2 class="section-header__title" style="font-size: 1.6rem;">JADWAL KETERSEDIAAN AKTIF</h2>
+          <p class="section-header__subtitle">Penyelenggara mencari band berdasarkan jadwal kosong yang kamu pasang di sini</p>
+        </div>
+      </div>
+
+      <div id="posts-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Periode Tanggal</th>
+              <th>Catatan Khusus / Tawaran</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="posts-tbody">
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--graphite);">Memuat jadwal...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Stage Documentation & Media Management (Item 5) -->
+    <div style="margin-bottom: var(--space-2xl);">
+      <div class="section-header">
+        <div>
+          <h2 class="section-header__title" style="font-size: 1.6rem;">DOKUMENTASI PANGGUNG & MEDIA BAND</h2>
+          <p class="section-header__subtitle">Foto panggung dan sampel karya yang tampil di profil publik band Anda</p>
+        </div>
+        <button class="btn btn--outline btn--sm" onclick="openAddMediaModal()">
+          <span>+ Tambah Media / Foto</span>
+        </button>
+      </div>
+
+      <div id="media-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tipe</th>
+              <th>Judul / Keterangan</th>
+              <th>Preview / URL</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="media-tbody">
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--graphite);">Memuat media dokumentasi...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Inbound Connections -->
+    <div>
+      <div class="section-header">
+        <div>
+          <h2 class="section-header__title" style="font-size: 1.6rem;">PENYELENGGARA YANG TERTARIK</h2>
+          <p class="section-header__subtitle">Daftar penyelenggara acara yang telah membuka detail kontak dan ingin bekerja sama</p>
+        </div>
+      </div>
+
+      <div id="connections-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Penyelenggara</th>
+              <th>Tujuan / Catatan</th>
+              <th>Waktu Kontak</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="connections-tbody">
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--graphite);">Memuat koneksi...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Tambah Jadwal Baru -->
+  <div id="add-post-modal" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal__header">
+        <h3 class="modal__title">POSTING JADWAL BARU</h3>
+        <button class="modal__close" onclick="closeAddPostModal()">&times;</button>
+      </div>
+      <form id="add-post-form">
+        <div class="modal__body">
+          <div class="form-group">
+            <label class="form-label" for="post-start-date">Tanggal Mulai Tersedia *</label>
+            <input type="date" id="post-start-date" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="post-end-date">Tanggal Selesai *</label>
+            <input type="date" id="post-end-date" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="post-notes">Catatan Tambahan (Riders / Promo / Format Akustik)</label>
+            <textarea id="post-notes" class="form-control" placeholder="Contoh: Tersedia slot manggung kafe / festival area Bandung & Jakarta. Full band set 45 menit, bawa alat sendiri..."></textarea>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button type="button" class="btn btn--secondary" onclick="closeAddPostModal()">Batal</button>
+          <button type="submit" class="btn btn--primary">Publikasikan Jadwal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Profil Band -->
+  <div id="edit-profile-modal" class="modal-backdrop">
+    <div class="modal" style="max-width: 650px;">
+      <div class="modal__header">
+        <h3 class="modal__title">EDIT PROFIL BAND</h3>
+        <button class="modal__close" onclick="closeEditProfileModal()">&times;</button>
+      </div>
+      <form id="edit-profile-form">
+        <div class="modal__body">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+            <div class="form-group">
+              <label class="form-label" for="edit-band-name">Nama Band *</label>
+              <input type="text" id="edit-band-name" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-genre">Genre Musik *</label>
+              <input type="text" id="edit-genre" class="form-control" placeholder="Cth: Indie Surf Rock" required>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+            <div class="form-group">
+              <label class="form-label" for="edit-city">Kota Domisili *</label>
+              <input type="text" id="edit-city" class="form-control" placeholder="Cth: Bandung" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-region">Provinsi / Wilayah</label>
+              <input type="text" id="edit-region" class="form-control" placeholder="Cth: Jawa Barat">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-bio">Deskripsi / Bio Band</label>
+            <textarea id="edit-bio" class="form-control" placeholder="Ceritakan sejarah band, konsep musik, dan pengalaman manggung..."></textarea>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+            <div class="form-group">
+              <label class="form-label" for="edit-budget-min">Budget Minimum (Rp)</label>
+              <input type="number" id="edit-budget-min" class="form-control" placeholder="3000000" step="500000">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-budget-max">Budget Maksimum (Rp)</label>
+              <input type="number" id="edit-budget-max" class="form-control" placeholder="7000000" step="500000">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+            <div class="form-group">
+              <label class="form-label" for="edit-phone">Nomor WhatsApp / HP *</label>
+              <input type="text" id="edit-phone" class="form-control" placeholder="+628123456789">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-instagram">Akun Instagram</label>
+              <input type="text" id="edit-instagram" class="form-control" placeholder="@namaband.music">
+            </div>
+          </div>
+
+          <!-- Social Media & Streaming Platforms (Item 5) -->
+          <div style="margin-top: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--surface-border);">
+            <h4 style="font-family: var(--font-display); font-size: 1.1rem; color: var(--chalk-white); margin-bottom: 8px;">
+              TAUTAN STREAMING & MEDIA SOSIAL
+            </h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+              <div class="form-group">
+                <label class="form-label" for="edit-spotify">Spotify Artist URL</label>
+                <input type="url" id="edit-spotify" class="form-control" placeholder="https://open.spotify.com/artist/...">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="edit-tiktok">Akun TikTok</label>
+                <input type="text" id="edit-tiktok" class="form-control" placeholder="@namaband">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-youtube">YouTube Channel / Video Demo URL</label>
+              <input type="url" id="edit-youtube" class="form-control" placeholder="https://youtube.com/watch?v=...">
+            </div>
+          </div>
+
+          <!-- Kebutuhan Rider & Teknis (Item 4) -->
+          <div style="margin-top: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--surface-border);">
+            <h4 style="font-family: var(--font-display); font-size: 1.1rem; color: var(--amp-orange); margin-bottom: 8px;">
+              📋 KEBUTUHAN RIDER & TEKNIS
+            </h4>
+            <div class="form-group">
+              <label class="form-label" for="edit-rider-channels">Jumlah Input Audio Channel</label>
+              <input type="text" id="edit-rider-channels" class="form-control" placeholder="Cth: 12 Channel Input (2 Voc, 2 Guitar, 1 Bass, 7 Drum)">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-rider-sound">Kebutuhan Sound System (PA, Monitor, Mic)</label>
+              <textarea id="edit-rider-sound" class="form-control" style="min-height: 70px;" placeholder="Cth: FOH PA min 5.000 Watt, 3 Stage Monitor Aux, 2 Mic Shure SM58"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-rider-instruments">Instrumen Bawa Sendiri vs Disediakan Venue</label>
+              <textarea id="edit-rider-instruments" class="form-control" style="min-height: 70px;" placeholder="Cth: Bawa sendiri: Gitar, Bass, Cymbals. Venue sediakan: Drum kit & Backline amp"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-rider-hospitality">Kebutuhan Hospitality Dasar</label>
+              <textarea id="edit-rider-hospitality" class="form-control" style="min-height: 70px;" placeholder="Cth: Backstage ber-AC, air mineral botol 2 dus, makan 6 pax, 2 slot parkir mobil"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button type="button" class="btn btn--secondary" onclick="closeEditProfileModal()">Batal</button>
+          <button type="submit" class="btn btn--primary">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah Media / Foto Dokumentasi (Item 5) -->
+  <div id="add-media-modal" class="modal-backdrop">
+    <div class="modal" style="max-width: 550px;">
+      <div class="modal__header">
+        <h3 class="modal__title">TAMBAH MEDIA / DOKUMENTASI</h3>
+        <button class="modal__close" onclick="closeAddMediaModal()">&times;</button>
+      </div>
+      <form id="add-media-form">
+        <div class="modal__body">
+          <div class="form-group">
+            <label class="form-label" for="media-type">Tipe Media *</label>
+            <select id="media-type" class="form-control" required>
+              <option value="image">📸 Foto Dokumentasi Panggung</option>
+              <option value="audio">🎵 Sampel Audio Demo</option>
+              <option value="video">🎬 Video Penampilan Live</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="media-title">Judul / Keterangan Acara *</label>
+            <input type="text" id="media-title" class="form-control" placeholder="Cth: Live di Bandung Showcase 2026" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="media-url">URL File / Gambar *</label>
+            <input type="url" id="media-url" class="form-control" placeholder="https://images.unsplash.com/... atau /uploads/..." required>
+            <div style="font-size: 0.78rem; color: var(--graphite); margin-top: 4px;">
+              Bisa menggunakan URL gambar/audio langsung, atau unggah file di bawah:
+            </div>
+          </div>
+
+          <div class="form-group" style="padding: 10px; background: var(--night-black); border-radius: var(--radius-sm); border: 1px dashed var(--surface-border);">
+            <label class="form-label" for="media-file-input">Unggah File Langsung (Opsional)</label>
+            <input type="file" id="media-file-input" class="form-control" accept="image/*,audio/*,video/*">
+            <div id="upload-status" style="font-size: 0.8rem; margin-top: 4px; color: var(--neon-cyan);"></div>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button type="button" class="btn btn--secondary" onclick="closeAddMediaModal()">Batal</button>
+          <button type="submit" class="btn btn--primary">Simpan Media</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer__bottom">
+      <div>© 2026 Panggung Lokal. Portal Manajemen Musisi Independen.</div>
+      <a href="/" style="color: var(--neon-cyan);">Kembali ke Beranda</a>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+    let bandData = null;
+
+    async function initDashboard() {
+      if (!AuthManager.isAuthenticated()) {
+        showToast('Silakan login terlebih dahulu', 'error');
+        setTimeout(() => window.location.href = '/login.html', 1000);
+        return;
+      }
+
+      if (!AuthManager.isBand()) {
+        showToast('Halaman ini khusus untuk musisi/band', 'error');
+        setTimeout(() => window.location.href = '/dashboard-organizer.html', 1000);
+        return;
+      }
+
+      try {
+        const res = await apiGetBandDashboard();
+        if (res.success && res.data) {
+          bandData = res.data;
+          renderDashboard(bandData);
+        } else {
+          showToast(res.message || 'Gagal memuat dashboard', 'error');
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        showToast('Gagal memuat data dashboard', 'error');
+      }
+    }
+
+    function renderDashboard(data) {
+      const profile = data.profile;
+      document.getElementById('dash-band-name').textContent = profile.bandName;
+      document.getElementById('dash-band-meta').textContent = `${profile.genre} • ${profile.locationCity} • Terdaftar sejak ${formatIndonesianDate(profile.createdAt)}`;
+
+      // Metrics
+      document.getElementById('metric-views').textContent = data.stats.profileViews;
+      document.getElementById('metric-connections').textContent = data.stats.totalConnections;
+      document.getElementById('metric-posts').textContent = data.stats.activePostsCount;
+
+      // Posts Table
+      const postsTbody = document.getElementById('posts-tbody');
+      if (data.activePosts && data.activePosts.length > 0) {
+        postsTbody.innerHTML = data.activePosts.map(post => `
+          <tr>
+            <td style="font-family: var(--font-mono); color: var(--amp-orange); font-weight: 700;">
+              ${formatIndonesianDate(post.start_date)} - ${formatIndonesianDate(post.end_date)}
+            </td>
+            <td style="color: var(--chalk-white);">${post.notes || '-'}</td>
+            <td><span class="badge badge--available">Aktif</span></td>
+            <td>
+              <button class="btn btn--outline btn--sm" style="color: var(--electric-crimson); border-color: rgba(224,30,55,0.4);" onclick="deletePost(${post.id})">
+                Hapus
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } else {
+        postsTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--graphite); padding: 20px;">Belum ada jadwal aktif. Klik "+ Posting Jadwal Baru" untuk menambahkan tanggal manggung kosong.</td></tr>';
+      }
+
+      // Media / Stage Documentation Table (Item 5)
+      const mediaTbody = document.getElementById('media-tbody');
+      if (data.mediaFiles && data.mediaFiles.length > 0) {
+        mediaTbody.innerHTML = data.mediaFiles.map(m => {
+          let typeBadge = '<span class="badge" style="background: rgba(0,217,255,0.15); color: var(--neon-cyan);">📸 FOTO</span>';
+          if (m.file_type === 'audio') typeBadge = '<span class="badge" style="background: rgba(255,107,53,0.15); color: var(--amp-orange);">🎵 AUDIO</span>';
+          if (m.file_type === 'video') typeBadge = '<span class="badge" style="background: rgba(224,30,55,0.15); color: var(--electric-crimson);">🎬 VIDEO</span>';
+
+          return `
+            <tr>
+              <td>${typeBadge}</td>
+              <td style="font-weight: 600; color: var(--chalk-white);">${m.title || 'Dokumentasi Band'}</td>
+              <td>
+                <a href="${m.file_url}" target="_blank" rel="noopener" style="color: var(--neon-cyan); font-size: 0.85rem; text-decoration: underline;">
+                  Buka File Media ↗
+                </a>
+              </td>
+              <td>
+                <button class="btn btn--outline btn--sm" style="color: var(--electric-crimson); border-color: rgba(224,30,55,0.4);" onclick="deleteMedia(${m.id})">
+                  Hapus
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } else {
+        mediaTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--graphite); padding: 20px;">Belum ada foto dokumentasi panggung atau sampel audio. Tambahkan media agar penyelenggara lebih yakin!</td></tr>';
+      }
+
+      // Connections Table
+      const connTbody = document.getElementById('connections-tbody');
+      if (data.recentConnections && data.recentConnections.length > 0) {
+        connTbody.innerHTML = data.recentConnections.map(c => `
+          <tr>
+            <td style="font-weight: 600; color: var(--chalk-white);">${c.organizerEmail || 'Penyelenggara Acara'}</td>
+            <td style="color: var(--graphite);">${c.notes || 'Melihat nomor kontak'}</td>
+            <td style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--graphite);">${formatIndonesianDate(c.createdAt)}</td>
+            <td><span class="badge" style="background: rgba(37,211,102,0.15); color: var(--whatsapp-green);">Terhubung</span></td>
+          </tr>
+        `).join('');
+      } else {
+        connTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--graphite); padding: 20px;">Belum ada penyelenggara yang membuka kontak. Pastikan jadwalmu selalu terbarui agar mudah ditemukan!</td></tr>';
+      }
+    }
+
+    function openAddPostModal() {
+      document.getElementById('add-post-modal').classList.add('active');
+    }
+
+    function closeAddPostModal() {
+      document.getElementById('add-post-modal').classList.remove('active');
+    }
+
+    function openAddMediaModal() {
+      document.getElementById('add-media-modal').classList.add('active');
+    }
+
+    function closeAddMediaModal() {
+      document.getElementById('add-media-modal').classList.remove('active');
+    }
+
+    function openEditProfileModal() {
+      if (!bandData || !bandData.profile) return;
+      const p = bandData.profile;
+      document.getElementById('edit-band-name').value = p.bandName || '';
+      document.getElementById('edit-genre').value = p.genre || '';
+      document.getElementById('edit-city').value = p.locationCity || '';
+      document.getElementById('edit-region').value = p.locationRegion || '';
+      document.getElementById('edit-bio').value = p.bio || '';
+      document.getElementById('edit-budget-min').value = p.budgetMin || '';
+      document.getElementById('edit-budget-max').value = p.budgetMax || '';
+      document.getElementById('edit-phone').value = p.phone || '';
+      document.getElementById('edit-instagram').value = p.instagramHandle || '';
+      document.getElementById('edit-youtube').value = p.youtubeUrl || '';
+      document.getElementById('edit-spotify').value = p.spotifyUrl || '';
+      document.getElementById('edit-tiktok').value = p.tiktokUrl || '';
+
+      // Rider fields
+      document.getElementById('edit-rider-channels').value = p.riderChannelInputs || '';
+      document.getElementById('edit-rider-sound').value = p.riderSoundSystem || '';
+      document.getElementById('edit-rider-instruments').value = p.riderInstruments || '';
+      document.getElementById('edit-rider-hospitality').value = p.riderHospitality || '';
+
+      document.getElementById('edit-profile-modal').classList.add('active');
+    }
+
+    function closeEditProfileModal() {
+      document.getElementById('edit-profile-modal').classList.remove('active');
+    }
+
+    async function deleteMedia(id) {
+      if (!confirm('Hapus media ini dari profil band Anda?')) return;
+      try {
+        const res = await apiDeleteBandMedia(id);
+        if (res.success) {
+          showToast('Media berhasil dihapus', 'success');
+          initDashboard();
+        } else {
+          showToast(res.message || 'Gagal menghapus media', 'error');
+        }
+      } catch (e) {
+        showToast('Terjadi kesalahan saat menghapus media', 'error');
+      }
+    }
+
+    async function deletePost(id) {
+      if (!confirm('Yakin ingin menghapus jadwal ketersediaan ini?')) return;
+      try {
+        const res = await apiDeleteAvailability(id);
+        if (res.success) {
+          showToast('Jadwal ketersediaan berhasil dihapus', 'success');
+          initDashboard();
+        } else {
+          showToast(res.message || 'Gagal menghapus jadwal', 'error');
+        }
+      } catch (e) {
+        showToast('Terjadi kesalahan saat menghapus', 'error');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initDashboard();
+
+      // Handle add post
+      document.getElementById('add-post-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const startDate = document.getElementById('post-start-date').value;
+        const endDate = document.getElementById('post-end-date').value;
+        const notes = document.getElementById('post-notes').value;
+
+        if (new Date(endDate) < new Date(startDate)) {
+          showToast('Tanggal selesai tidak boleh sebelum tanggal mulai', 'error');
+          return;
+        }
+
+        try {
+          const res = await apiCreateAvailability(startDate, endDate, notes);
+          if (res.success) {
+            showToast('Jadwal berhasil dipublikasikan!', 'success');
+            closeAddPostModal();
+            document.getElementById('add-post-form').reset();
+            initDashboard();
+          } else {
+            showToast(res.message || 'Gagal memposting jadwal', 'error');
+          }
+        } catch (err) {
+          showToast('Terjadi kesalahan', 'error');
+        }
+      });
+
+      // Handle edit profile
+      document.getElementById('edit-profile-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const profilePayload = {
+          bandName: document.getElementById('edit-band-name').value,
+          genre: document.getElementById('edit-genre').value,
+          locationCity: document.getElementById('edit-city').value,
+          locationRegion: document.getElementById('edit-region').value,
+          bio: document.getElementById('edit-bio').value,
+          budgetMin: document.getElementById('edit-budget-min').value,
+          budgetMax: document.getElementById('edit-budget-max').value,
+          phone: document.getElementById('edit-phone').value,
+          instagramHandle: document.getElementById('edit-instagram').value,
+          youtubeUrl: document.getElementById('edit-youtube').value,
+          spotifyUrl: document.getElementById('edit-spotify').value,
+          tiktokUrl: document.getElementById('edit-tiktok').value,
+          riderChannelInputs: document.getElementById('edit-rider-channels').value,
+          riderSoundSystem: document.getElementById('edit-rider-sound').value,
+          riderInstruments: document.getElementById('edit-rider-instruments').value,
+          riderHospitality: document.getElementById('edit-rider-hospitality').value
+        };
+
+        try {
+          const res = await apiUpdateBandProfile(profilePayload);
+          if (res.success) {
+            showToast('Profil band berhasil diperbarui!', 'success');
+            closeEditProfileModal();
+            initDashboard();
+          } else {
+            showToast(res.message || 'Gagal menyimpan profil', 'error');
+          }
+        } catch (err) {
+          showToast('Terjadi kesalahan', 'error');
+        }
+      });
+
+      // Handle media file upload
+      const fileInput = document.getElementById('media-file-input');
+      if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const statusEl = document.getElementById('upload-status');
+          statusEl.textContent = 'Mengunggah file...';
+
+          const formData = new FormData();
+          const isPhoto = file.type.startsWith('image/');
+          const uploadEndpoint = isPhoto ? '/api/upload/photo' : '/api/upload/media';
+          formData.append(isPhoto ? 'photo' : 'media', file);
+
+          try {
+            const res = await fetch(uploadEndpoint, {
+              method: 'POST',
+              headers: AuthManager.getAuthHeaders(),
+              body: formData
+            });
+            const data = await res.json();
+            if (data.success && data.fileUrl) {
+              document.getElementById('media-url').value = window.location.origin + data.fileUrl;
+              statusEl.textContent = '✅ File berhasil diunggah!';
+            } else {
+              statusEl.textContent = '⚠️ ' + (data.message || 'Gagal mengunggah file');
+            }
+          } catch (err) {
+            statusEl.textContent = '⚠️ Terjadi kesalahan saat mengunggah';
+          }
+        });
+      }
+
+      // Handle add media form
+      document.getElementById('add-media-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fileType = document.getElementById('media-type').value;
+        const title = document.getElementById('media-title').value.trim();
+        const fileUrl = document.getElementById('media-url').value.trim();
+
+        if (!fileUrl) {
+          showToast('Harap masukkan URL media atau unggah file', 'error');
+          return;
+        }
+
+        try {
+          const res = await apiAddBandMedia({ fileType, title, fileUrl });
+          if (res.success) {
+            showToast('Media dokumentasi berhasil disimpan!', 'success');
+            closeAddMediaModal();
+            document.getElementById('add-media-form').reset();
+            document.getElementById('upload-status').textContent = '';
+            initDashboard();
+          } else {
+            showToast(res.message || 'Gagal menyimpan media', 'error');
+          }
+        } catch (err) {
+          showToast('Terjadi kesalahan', 'error');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

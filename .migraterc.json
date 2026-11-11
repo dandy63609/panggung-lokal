@@ -1,0 +1,9 @@
+{
+  "database-url": {
+    "env": "DATABASE_URL"
+  },
+  "migrations-table": "pgmigrations",
+  "dir": "migrations",
+  "migration-file-language": "js",
+  "template-file-name": "migrations/migration-template.js"
+}
