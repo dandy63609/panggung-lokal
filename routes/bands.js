@@ -1,8 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const BandProfile = require('../models/BandProfile');
+const BandPost = require('../models/BandPost');
 const db = require('../utils/db');
 const { verifyToken, requireBand } = require('../middleware/auth');
+
+function getAuthenticatedUser(req) {
+  try {
+    const cookieToken = req.headers.cookie
+      ? req.headers.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('panggung_lokal_token='))?.split('=')[1]
+      : null;
+    const authHeader = req.headers.authorization || (cookieToken ? `Bearer ${decodeURIComponent(cookieToken)}` : null);
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+    const token = authHeader.substring(7);
+    const secret = process.env.JWT_SECRET || 'panggung-lokal-dev-secret-key-2026';
+    return jwt.verify(token, secret);
+  } catch (e) {
+    return null;
+  }
+}
 
 /**
  * GET /api/bands/stats
@@ -26,11 +43,13 @@ router.get('/stats', async (req, res) => {
 
 /**
  * GET /api/bands/search
- * Search bands with filters (date filter removed as per peer evaluation)
+ * Search bands with filters and sneak peek gating for guests
  */
 router.get('/search', async (req, res) => {
   try {
     const { genre, location, budgetMin, budgetMax, search, page, limit } = req.query;
+    const user = getAuthenticatedUser(req);
+    const isAuthenticated = !!user;
 
     const result = await BandProfile.search({
       genre,
@@ -39,17 +58,27 @@ router.get('/search', async (req, res) => {
       budgetMax,
       search,
       page,
-      limit
+      limit: isAuthenticated ? limit : 2
     });
+
+    const isSneakPeek = !isAuthenticated;
+    const responseBands = isSneakPeek
+      ? result.bands.slice(0, 2).map(b => ({
+          ...b,
+          phone: b.phone ? (b.phone.substring(0, 8) + 'xxxx') : null
+        }))
+      : result.bands;
 
     return res.json({
       success: true,
-      data: result.bands,
+      data: responseBands,
+      isSneakPeek,
+      message: isSneakPeek ? 'Pratinjau (Sneak Peek) 2 band. Silakan login untuk melihat seluruh katalog & kontak WhatsApp.' : null,
       pagination: {
         total: result.total,
         page: result.page,
-        totalPages: result.totalPages,
-        limit: result.limit
+        totalPages: isSneakPeek ? 1 : result.totalPages,
+        limit: isSneakPeek ? 2 : result.limit
       }
     });
   } catch (error) {
@@ -63,16 +92,28 @@ router.get('/search', async (req, res) => {
 
 /**
  * GET /api/bands/recent
- * Get recent bands for homepage
+ * Get recent bands for homepage (sneak peek for guests)
  */
 router.get('/recent', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit, 10) || 6;
+    const user = getAuthenticatedUser(req);
+    const isAuthenticated = !!user;
+    const requestedLimit = parseInt(req.query.limit, 10) || 6;
+    const limit = isAuthenticated ? requestedLimit : 2;
     const bands = await BandProfile.getRecent(limit);
+
+    const isSneakPeek = !isAuthenticated;
+    const responseBands = isSneakPeek
+      ? bands.slice(0, 2).map(b => ({
+          ...b,
+          phone: b.phone ? (b.phone.substring(0, 8) + 'xxxx') : null
+        }))
+      : bands;
 
     return res.json({
       success: true,
-      data: bands
+      data: responseBands,
+      isSneakPeek
     });
   } catch (error) {
     console.error('Get recent bands error:', error);
@@ -85,7 +126,7 @@ router.get('/recent', async (req, res) => {
 
 /**
  * GET /api/bands/profile/:id
- * Get full band profile with availability and media
+ * Get full band profile with Instagram-style posts and media
  */
 router.get('/profile/:id', async (req, res) => {
   try {
@@ -108,16 +149,26 @@ router.get('/profile/:id', async (req, res) => {
     // Increment profile view count asynchronously
     BandProfile.incrementViews(profileId).catch(err => console.error('Error incrementing views:', err));
 
-    // Fetch availability posts and media
-    const availabilityPosts = await band.getAvailabilityPosts();
+    const user = getAuthenticatedUser(req);
+    const isAuthenticated = !!user;
+    const isSneakPeek = !isAuthenticated;
+
+    // Fetch Instagram-style posts and media files
+    const posts = await BandPost.findByBandProfileId(band.id);
     const mediaFiles = await band.getMediaFiles();
+
+    const displayPhone = isSneakPeek && band.phone
+      ? (band.phone.substring(0, 8) + 'xxxx')
+      : band.phone;
 
     return res.json({
       success: true,
+      isSneakPeek,
       data: {
         ...band,
+        phone: displayPhone,
         profileViews: band.profileViews + 1,
-        availabilityPosts,
+        posts,
         mediaFiles
       }
     });
@@ -244,8 +295,19 @@ router.put('/profile', requireBand, async (req, res) => {
       riderChannelInputs,
       riderSoundSystem,
       riderInstruments,
-      riderHospitality
+      riderHospitality,
+      riderItems
     } = req.body;
+
+    const parsedBudgetMin = budgetMin !== undefined ? (budgetMin ? parseInt(budgetMin, 10) : null) : profile.budgetMin;
+    const parsedBudgetMax = budgetMax !== undefined ? (budgetMax ? parseInt(budgetMax, 10) : null) : profile.budgetMax;
+
+    if (parsedBudgetMin !== null && parsedBudgetMax !== null && !isNaN(parsedBudgetMin) && !isNaN(parsedBudgetMax) && parsedBudgetMin > parsedBudgetMax) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tarif minimum tidak boleh lebih besar dari tarif maksimum'
+      });
+    }
 
     const updated = await BandProfile.update(profile.id, {
       bandName: bandName !== undefined ? bandName : profile.bandName,
@@ -253,8 +315,8 @@ router.put('/profile', requireBand, async (req, res) => {
       locationCity: locationCity !== undefined ? locationCity : profile.locationCity,
       locationRegion: locationRegion !== undefined ? locationRegion : profile.locationRegion,
       bio: bio !== undefined ? bio : profile.bio,
-      budgetMin: budgetMin !== undefined ? (budgetMin ? parseInt(budgetMin, 10) : null) : profile.budgetMin,
-      budgetMax: budgetMax !== undefined ? (budgetMax ? parseInt(budgetMax, 10) : null) : profile.budgetMax,
+      budgetMin: parsedBudgetMin,
+      budgetMax: parsedBudgetMax,
       profilePhotoUrl: profilePhotoUrl !== undefined ? profilePhotoUrl : profile.profilePhotoUrl,
       coverPhotoUrl: coverPhotoUrl !== undefined ? coverPhotoUrl : profile.coverPhotoUrl,
       phone: phone !== undefined ? phone : profile.phone,
@@ -266,7 +328,8 @@ router.put('/profile', requireBand, async (req, res) => {
       riderChannelInputs: riderChannelInputs !== undefined ? riderChannelInputs : profile.riderChannelInputs,
       riderSoundSystem: riderSoundSystem !== undefined ? riderSoundSystem : profile.riderSoundSystem,
       riderInstruments: riderInstruments !== undefined ? riderInstruments : profile.riderInstruments,
-      riderHospitality: riderHospitality !== undefined ? riderHospitality : profile.riderHospitality
+      riderHospitality: riderHospitality !== undefined ? riderHospitality : profile.riderHospitality,
+      riderItems: riderItems !== undefined ? riderItems : profile.riderItems
     });
 
     return res.json({

@@ -2,19 +2,25 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daftar Akun Baru - Panggung Lokal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0D0D0D">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0D0D0D">
+  <meta name="color-scheme" content="dark">
+  <title>Daftar Akun - Panggung Lokal</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="icon" type="image/jpeg" href="/images/logo.jpeg">
+  <link rel="icon" type="image/jpeg" href="/images/logo.png">
   <style>
     .auth-page {
       min-height: calc(100vh - 160px);
+      min-height: calc(100dvh - 160px);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: var(--space-2xl) var(--space-md);
     }
     .auth-card {
+      animation: cascadeEnter var(--spring-duration) var(--spring-easing) both;
+      will-change: transform, opacity;
       background-color: var(--surface-card);
       border: 1px solid var(--surface-border);
       border-radius: var(--radius-lg);
@@ -41,19 +47,40 @@
       width: 100%;
       text-align: center;
       padding: 10px;
+      min-height: 44px;
       border-radius: var(--radius-sm);
       cursor: pointer;
       font-weight: 600;
       font-size: 0.9rem;
       color: var(--graphite);
-      transition: all var(--transition-fast);
+      transition: transform var(--spring-duration) var(--spring-easing), background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+      touch-action: manipulation;
       user-select: none;
+      -webkit-user-select: none;
+      will-change: transform;
+    }
+    .role-option:active {
+      transform: scale(0.97);
+      transition: transform var(--press-duration) var(--press-easing);
     }
     .role-option.active {
       background: var(--concrete-gray);
       color: var(--chalk-white);
       border: 1px solid var(--neon-cyan);
       box-shadow: 0 0 10px var(--neon-cyan-glow);
+    }
+    @media (max-width: 480px) {
+      .auth-page {
+        padding: var(--space-md) var(--space-sm);
+        min-height: calc(100dvh - 120px);
+      }
+      .auth-card {
+        padding: var(--space-lg) var(--space-md);
+        border-radius: var(--radius-md);
+      }
+      .role-toggle {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -62,13 +89,11 @@
   <!-- Navigation -->
   <header class="navbar">
     <div class="container navbar__inner">
-      <a href="/" class="navbar__logo">
-        <img src="/images/logo.jpeg" alt="Panggung Lokal Logo" class="navbar__logo-img">
-        <span>PANGGUNG</span>
-        <span class="navbar__logo-badge">LOKAL</span>
+      <a href="/" class="navbar__logo" aria-label="Panggung Lokal">
+        <img src="/images/logo.png" alt="Panggung Lokal Logo" class="navbar__logo-img">
       </a>
       <div id="navbar-auth-container" class="navbar__auth">
-        <a href="/login.html" class="btn btn--outline btn--sm">Sudah Punya Akun? Masuk</a>
+        <a href="/login.html" class="btn btn--outline btn--sm">Masuk</a>
       </div>
     </div>
   </header>
@@ -76,22 +101,21 @@
   <main class="auth-page">
     <div class="auth-card">
       <div style="text-align: center; margin-bottom: var(--space-lg);">
-        <img src="/images/logo.jpeg" alt="Panggung Lokal" style="width: 76px; height: 76px; object-fit: cover; border-radius: var(--radius-md); margin: 0 auto var(--space-sm); border: 2px solid var(--electric-crimson); box-shadow: 0 0 16px var(--crimson-glow); display: block;">
         <h1 style="font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 1px; color: var(--chalk-white);">
-          BERGABUNG DI PANGGUNG LOKAL
+          DAFTAR AKUN
         </h1>
         <p style="color: var(--graphite); font-size: 0.9rem; margin-top: 4px;">
-          Pilih tipe akun untuk memulai
+          Pilih jenis akun, lengkapi formulir, lalu kirim pendaftaran.
         </p>
       </div>
 
       <!-- Account Type Selection -->
       <div class="role-toggle">
         <button type="button" id="role-band" class="role-option active" onclick="selectRole('band')">
-          🎸 Sebagai Band
+          Musisi
         </button>
-        <button type="button" id="role-organizer" class="role-option" onclick="selectRole('organizer')">
-          🎪 Penyelenggara (EO/Kafe)
+        <button type="button" id="role-organizer" class="role-option" onclick="selectRole('general')">
+          EO/Umum
         </button>
       </div>
 
@@ -99,49 +123,59 @@
         <input type="hidden" id="reg-account-type" value="band">
 
         <div class="form-group">
-          <label class="form-label" for="reg-email">Alamat Email *</label>
-          <input type="email" id="reg-email" class="form-control" placeholder="nama@email.com" required>
+          <label class="form-label" for="reg-email">Email *</label>
+          <input type="email" id="reg-email" class="form-control" placeholder="nama@email.com" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" enterkeyhint="next" required>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="reg-password">Password * (Min 6 Karakter)</label>
-          <input type="password" id="reg-password" class="form-control" placeholder="••••••••" minlength="6" required>
+          <label class="form-label" for="reg-password">Kata Sandi * (Minimal 6 karakter)</label>
+          <input type="password" id="reg-password" class="form-control" placeholder="••••••••" minlength="6" autocomplete="new-password" enterkeyhint="next" required>
         </div>
 
         <!-- Band specific fields -->
         <div id="band-extra-fields">
           <div class="form-group">
-            <label class="form-label" for="reg-band-name">Nama Band / Artis *</label>
-            <input type="text" id="reg-band-name" class="form-control" placeholder="Contoh: Kelana Ombak">
+            <label class="form-label" for="reg-band-name">Nama Band *</label>
+            <input type="text" id="reg-band-name" class="form-control" placeholder="Contoh: Kelana Ombak" enterkeyhint="next">
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm);">
             <div class="form-group">
               <label class="form-label" for="reg-genre">Genre Musik *</label>
-              <input type="text" id="reg-genre" class="form-control" placeholder="Indie Rock">
+              <select id="reg-genre" class="form-control">
+                <option value="Indie" selected>Indie / Alternative</option>
+                <option value="Rock">Rock / Surf Rock</option>
+                <option value="Folk">Folk / Akustik</option>
+                <option value="Dangdut">Dangdut Koplo Fusion</option>
+                <option value="Punk">Hardcore / Punk</option>
+                <option value="Jazz">Jazz / Neo-Soul</option>
+                <option value="Post-Rock">Post-Rock / Ambient</option>
+                <option value="Pop">Pop / Fusion</option>
+                <option value="Funk">Funk & Soul</option>
+              </select>
             </div>
             <div class="form-group">
               <label class="form-label" for="reg-city">Kota Domisili *</label>
-              <input type="text" id="reg-city" class="form-control" placeholder="Bandung">
+              <input type="text" id="reg-city" class="form-control" placeholder="Bandung" enterkeyhint="done">
             </div>
           </div>
         </div>
 
         <button type="submit" id="btn-submit-register" class="btn btn--primary btn--block btn--lg" style="margin-top: var(--space-lg);">
-          <span>Daftar Sekarang (Gratis)</span>
+          <span>Daftar Akun</span>
         </button>
       </form>
 
       <div style="text-align: center; margin-top: var(--space-md); font-size: 0.9rem; color: var(--graphite);">
-        Sudah memiliki akun? <a href="/login.html" style="color: var(--neon-cyan); font-weight: 600;">Masuk di sini</a>
+        Sudah memiliki akun? <a href="/login.html" style="color: var(--neon-cyan); font-weight: 600;">Masuk</a>
       </div>
     </div>
   </main>
 
   <footer class="footer">
     <div class="container footer__bottom">
-      <div>© 2026 Panggung Lokal. Hubungkan Band Lokal dengan Penyelenggara Acara.</div>
-      <a href="/" style="color: var(--neon-cyan);">Kembali ke Beranda</a>
+      <div>© 2026 Panggung Lokal.</div>
+      <a href="/" style="color: var(--neon-cyan);">Beranda</a>
     </div>
   </footer>
 
@@ -211,23 +245,23 @@
         try {
           const res = await AuthManager.register(payload);
           if (res.success) {
-            showToast('Registrasi berhasil! Mengalihkan ke dashboard...', 'success');
+            showToast('Registrasi berhasil. Mengalihkan...', 'success');
             setTimeout(() => {
               if (accountType === 'band') {
                 window.location.href = '/dashboard-band.html';
               } else {
-                window.location.href = '/dashboard-organizer.html';
+                window.location.href = '/search.html';
               }
             }, 1000);
           } else {
             showToast(res.message || 'Registrasi gagal', 'error');
             btn.disabled = false;
-            btn.textContent = 'Daftar Sekarang (Gratis)';
+            btn.textContent = 'Daftar Akun';
           }
         } catch (err) {
           showToast('Terjadi kesalahan', 'error');
           btn.disabled = false;
-          btn.textContent = 'Daftar Sekarang (Gratis)';
+          btn.textContent = 'Daftar Akun';
         }
       });
     });

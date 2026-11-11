@@ -159,3 +159,24 @@ describe('FormValidator class', () => {
     expect(validator.errors['end_date']).toBe('Tanggal akhir tidak boleh sebelum tanggal mulai');
   });
 });
+
+describe('formatWhatsAppNumber utility', () => {
+  const { formatWhatsAppNumber } = require('../public/js/utils');
+
+  test('normalizes Indonesian 08xx number to 628xx', () => {
+    expect(formatWhatsAppNumber('081234567890')).toBe('6281234567890');
+    expect(formatWhatsAppNumber('0812-3456-7890')).toBe('6281234567890');
+    expect(formatWhatsAppNumber('(0812) 3456 7890')).toBe('6281234567890');
+  });
+
+  test('keeps international format +628xx', () => {
+    expect(formatWhatsAppNumber('+6281234567890')).toBe('6281234567890');
+    expect(formatWhatsAppNumber('6281234567890')).toBe('6281234567890');
+  });
+
+  test('handles null, undefined or empty input safely', () => {
+    expect(formatWhatsAppNumber('')).toBe('');
+    expect(formatWhatsAppNumber(null)).toBe('');
+    expect(formatWhatsAppNumber(undefined)).toBe('');
+  });
+});

@@ -2,19 +2,25 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Masuk Akun - Panggung Lokal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0D0D0D">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0D0D0D">
+  <meta name="color-scheme" content="dark">
+  <title>Masuk - Panggung Lokal</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="icon" type="image/jpeg" href="/images/logo.jpeg">
+  <link rel="icon" type="image/jpeg" href="/images/logo.png">
   <style>
     .auth-page {
       min-height: calc(100vh - 160px);
+      min-height: calc(100dvh - 160px);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: var(--space-2xl) var(--space-md);
     }
     .auth-card {
+      animation: cascadeEnter var(--spring-duration) var(--spring-easing) both;
+      will-change: transform, opacity;
       background-color: var(--surface-card);
       border: 1px solid var(--surface-border);
       border-radius: var(--radius-lg);
@@ -23,6 +29,16 @@
       max-width: 440px;
       box-shadow: var(--shadow-lg);
       position: relative;
+    }
+    @media (max-width: 480px) {
+      .auth-page {
+        padding: var(--space-md) var(--space-sm);
+        min-height: calc(100dvh - 120px);
+      }
+      .auth-card {
+        padding: var(--space-lg) var(--space-md);
+        border-radius: var(--radius-md);
+      }
     }
     .auth-card::before {
       content: '';
@@ -51,13 +67,11 @@
   <!-- Navigation -->
   <header class="navbar">
     <div class="container navbar__inner">
-      <a href="/" class="navbar__logo">
-        <img src="/images/logo.jpeg" alt="Panggung Lokal Logo" class="navbar__logo-img">
-        <span>PANGGUNG</span>
-        <span class="navbar__logo-badge">LOKAL</span>
+      <a href="/" class="navbar__logo" aria-label="Panggung Lokal">
+        <img src="/images/logo.png" alt="Panggung Lokal Logo" class="navbar__logo-img">
       </a>
       <div id="navbar-auth-container" class="navbar__auth">
-        <a href="/register.html" class="btn btn--outline btn--sm">Daftar Akun Baru</a>
+        <a href="/register.html" class="btn btn--outline btn--sm">Daftar Akun</a>
       </div>
     </div>
   </header>
@@ -65,55 +79,54 @@
   <main class="auth-page">
     <div class="auth-card">
       <div style="text-align: center; margin-bottom: var(--space-xl);">
-        <img src="/images/logo.jpeg" alt="Panggung Lokal" style="width: 76px; height: 76px; object-fit: cover; border-radius: var(--radius-md); margin: 0 auto var(--space-sm); border: 2px solid var(--electric-crimson); box-shadow: 0 0 16px var(--crimson-glow); display: block;">
         <h1 style="font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 1px; color: var(--chalk-white);">
-          MASUK KE PANGGUNG LOKAL
+          MASUK
         </h1>
         <p style="color: var(--graphite); font-size: 0.9rem; margin-top: 4px;">
-          Kelola profil band atau hubungi musisi lokal
+          Masukkan alamat email dan kata sandi akun.
         </p>
       </div>
 
       <form id="login-form">
         <div class="form-group">
-          <label class="form-label" for="login-email">Alamat Email</label>
-          <input type="email" id="login-email" class="form-control" placeholder="nama@email.com" required>
+          <label class="form-label" for="login-email">Email</label>
+          <input type="email" id="login-email" class="form-control" placeholder="nama@email.com" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" enterkeyhint="next" required>
         </div>
 
         <div class="form-group">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <label class="form-label" for="login-password" style="margin-bottom: 0;">Password</label>
-            <a href="/forgot-password.html" style="font-size: 0.8rem; color: var(--neon-cyan);">Lupa Password?</a>
+            <label class="form-label" for="login-password" style="margin-bottom: 0;">Kata Sandi</label>
+            <a href="/forgot-password.html" style="font-size: 0.8rem; color: var(--neon-cyan);">Lupa Kata Sandi?</a>
           </div>
-          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" autocomplete="current-password" enterkeyhint="done" required>
         </div>
 
         <button type="submit" id="btn-submit-login" class="btn btn--primary btn--block btn--lg" style="margin-top: var(--space-lg);">
-          <span>Masuk Sekarang</span>
+          <span>Masuk</span>
         </button>
       </form>
 
       <div style="text-align: center; margin-top: var(--space-md); font-size: 0.9rem; color: var(--graphite);">
-        Belum punya akun? <a href="/register.html" style="color: var(--neon-cyan); font-weight: 600;">Daftar di sini</a>
+        Belum punya akun? <a href="/register.html" style="color: var(--neon-cyan); font-weight: 600;">Daftar</a>
       </div>
 
       <!-- Demo Accounts for Easy Testing -->
       <div class="demo-box">
         <div style="font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: var(--gold-foil); text-align: center; font-weight: 700;">
-          ⚡ DEMO LOGIN 1-KLIK (UNTUK PENGUJIAN)
+          DEMO LOGIN PENGUJIAN
         </div>
         <div class="demo-btn-grid">
           <button type="button" class="btn btn--secondary btn--sm" onclick="demoLogin('kelana@panggunglokal.id', 'Password123!')">
-            🎸 Band Kelana
+            Band Kelana
           </button>
           <button type="button" class="btn btn--secondary btn--sm" onclick="demoLogin('senjabersuara@panggunglokal.id', 'Password123!')">
-            🎸 Band Senja
+            Band Senja
           </button>
           <button type="button" class="btn btn--secondary btn--sm" onclick="demoLogin('kafe.selatan@gmail.com', 'Password123!')">
-            🎪 Penyelenggara
+            EO/Umum
           </button>
           <button type="button" class="btn btn--secondary btn--sm" onclick="demoLogin('admin@admin.com', 'admin')">
-            📊 Admin KPI
+            Admin
           </button>
         </div>
       </div>
@@ -123,7 +136,7 @@
   <footer class="footer">
     <div class="container footer__bottom">
       <div>© 2026 Panggung Lokal.</div>
-      <a href="/" style="color: var(--neon-cyan);">Kembali ke Beranda</a>
+      <a href="/" style="color: var(--neon-cyan);">Beranda</a>
     </div>
   </footer>
 
@@ -138,25 +151,25 @@
       try {
         const res = await AuthManager.login(email, password);
         if (res.success) {
-          showToast('Login berhasil! Mengalihkan...', 'success');
+          showToast('Login berhasil. Mengalihkan...', 'success');
           setTimeout(() => {
             if (res.user.accountType === 'band') {
               window.location.href = '/dashboard-band.html';
             } else if (res.user.accountType === 'admin') {
               window.location.href = '/admin.html';
             } else {
-              window.location.href = '/dashboard-organizer.html';
+              window.location.href = '/search.html';
             }
           }, 800);
         } else {
           showToast(res.message || 'Login gagal', 'error');
           btn.disabled = false;
-          btn.textContent = 'Masuk Sekarang';
+          btn.textContent = 'Masuk';
         }
       } catch (err) {
         showToast('Terjadi kesalahan koneksi', 'error');
         btn.disabled = false;
-        btn.textContent = 'Masuk Sekarang';
+        btn.textContent = 'Masuk';
       }
     }
 

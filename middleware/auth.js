@@ -1,6 +1,9 @@
 const jwt = require('jsonwebtoken');
 const db = require('../utils/db');
 
+const getJwtSecret = () => process.env.JWT_SECRET || 'panggung-lokal-dev-secret-key-2026';
+const getJwtExpiresIn = () => process.env.JWT_EXPIRES_IN || '7d';
+
 /**
  * JWT Authentication Middleware
  * Provides token generation, verification, and route protection
@@ -20,8 +23,8 @@ const generateToken = (user) => {
     ...(user.mockAdmin === true && { mockAdmin: true })
   };
 
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+  return jwt.sign(payload, getJwtSecret(), {
+    expiresIn: getJwtExpiresIn()
   });
 };
 
@@ -48,7 +51,7 @@ const verifyToken = async (req, res, next) => {
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
 
     // Temporary demo admin is signed by the server and does not have a DB row.
     if (decoded.mockAdmin === true && decoded.id === 'mock-admin' && decoded.email === 'admin@admin.com' && decoded.accountType === 'admin') {

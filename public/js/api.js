@@ -97,31 +97,71 @@ const AuthManager = {
 
   renderNavbarAuth() {
     const container = document.getElementById('navbar-auth-container');
+    const menu = document.querySelector('.navbar__menu');
     if (!container) return;
+
+    let desktopHtml = '';
+    let mobileHtml = '';
 
     if (this.isAuthenticated()) {
       const user = this.getUser();
-      const dashboardLink = user.accountType === 'admin'
-        ? '/admin.html'
-        : user.accountType === 'band' ? '/dashboard-band.html' : '/dashboard-organizer.html';
-      const roleText = user.accountType === 'admin'
-        ? 'Admin'
-        : user.accountType === 'band' ? 'Band' : 'Penyelenggara';
+      const isBand = user.accountType === 'band';
+      const isAdmin = user.accountType === 'admin';
 
-      container.innerHTML = `
-        <span class="navbar__user-badge">${roleText}</span>
-        <a href="${dashboardLink}" class="btn btn--secondary btn--sm">
-          <span>📊 Dashboard</span>
-        </a>
+      const roleBadge = isAdmin ? 'Admin' : isBand ? 'Musisi' : 'EO / Umum';
+      
+      const primaryActionHtml = isBand
+        ? `<a href="/dashboard-band.html" class="btn btn--secondary btn--sm"><span>🎸 Dashboard Band</span></a>`
+        : isAdmin
+        ? `<a href="/admin.html" class="btn btn--secondary btn--sm"><span>📊 Admin KPI</span></a>`
+        : `<a href="/search.html" class="btn btn--secondary btn--sm"><span>🔍 Cari Band</span></a>`;
+
+      const primaryActionMobileHtml = isBand
+        ? `<a href="/dashboard-band.html" class="btn btn--secondary btn--block"><span>🎸 Dashboard Band</span></a>`
+        : isAdmin
+        ? `<a href="/admin.html" class="btn btn--secondary btn--block"><span>📊 Admin KPI</span></a>`
+        : `<a href="/search.html" class="btn btn--secondary btn--block"><span>🔍 Cari Band</span></a>`;
+
+      desktopHtml = `
+        <span class="navbar__user-badge">${roleBadge}</span>
+        ${primaryActionHtml}
         <button id="btn-logout" class="btn btn--outline btn--sm" onclick="AuthManager.logout()">
           <span>Keluar</span>
         </button>
       `;
+
+      mobileHtml = `
+        <div class="navbar__mobile-user-info">
+          <span class="navbar__user-badge">${roleBadge}</span>
+          <span style="font-size: 0.85rem; color: var(--graphite); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.name || user.email || ''}</span>
+        </div>
+        ${primaryActionMobileHtml}
+        <button id="btn-logout-mobile" class="btn btn--outline btn--block" onclick="AuthManager.logout()">
+          <span>Keluar</span>
+        </button>
+      `;
     } else {
-      container.innerHTML = `
+      desktopHtml = `
         <a href="/login.html" class="btn btn--outline btn--sm">Masuk</a>
         <a href="/register.html" class="btn btn--primary btn--sm">Daftar</a>
       `;
+
+      mobileHtml = `
+        <a href="/login.html" class="btn btn--outline btn--block">Masuk</a>
+        <a href="/register.html" class="btn btn--primary btn--block">Daftar</a>
+      `;
+    }
+
+    container.innerHTML = desktopHtml;
+
+    if (menu) {
+      let mobileAuthLi = menu.querySelector('.navbar__menu-auth-item');
+      if (!mobileAuthLi) {
+        mobileAuthLi = document.createElement('li');
+        mobileAuthLi.className = 'navbar__menu-auth-item';
+        menu.appendChild(mobileAuthLi);
+      }
+      mobileAuthLi.innerHTML = `<div class="navbar__menu-auth">${mobileHtml}</div>`;
     }
   }
 };
@@ -135,17 +175,70 @@ async function apiGetBands(queryParams = {}) {
     }
   });
 
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), {
+    headers: AuthManager.getAuthHeaders()
+  });
   return await res.json();
 }
 
 async function apiGetRecentBands(limit = 6) {
-  const res = await fetch(`/api/bands/recent?limit=${limit}`);
+  const res = await fetch(`/api/bands/recent?limit=${limit}`, {
+    headers: AuthManager.getAuthHeaders()
+  });
   return await res.json();
 }
 
 async function apiGetBandProfile(id) {
-  const res = await fetch(`/api/bands/profile/${id}`);
+  const res = await fetch(`/api/bands/profile/${id}`, {
+    headers: AuthManager.getAuthHeaders()
+  });
+  return await res.json();
+}
+
+// Instagram-Style Band Posts API Client
+async function apiGetBandPosts(bandId) {
+  const res = await fetch(`/api/posts/band/${bandId}`);
+  return await res.json();
+}
+
+async function apiCreateBandPost(postData) {
+  const res = await fetch('/api/posts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...AuthManager.getAuthHeaders()
+    },
+    body: JSON.stringify(postData)
+  });
+  return await res.json();
+}
+
+async function apiDeleteBandPost(postId) {
+  const res = await fetch(`/api/posts/${postId}`, {
+    method: 'DELETE',
+    headers: AuthManager.getAuthHeaders()
+  });
+  return await res.json();
+}
+
+async function apiTrackPostView(postId) {
+  try {
+    const res = await fetch(`/api/posts/${postId}/view`, { method: 'POST' });
+    return await res.json();
+  } catch (e) {
+    return { success: false };
+  }
+}
+
+async function apiTrackPostWaClick(postId) {
+  const res = await fetch(`/api/posts/${postId}/wa-click`, { method: 'POST' });
+  return await res.json();
+}
+
+async function apiGetMyPostsPerformance() {
+  const res = await fetch('/api/posts/my-performance', {
+    headers: AuthManager.getAuthHeaders()
+  });
   return await res.json();
 }
 
@@ -241,12 +334,30 @@ async function apiDeleteBandMedia(mediaId) {
 document.addEventListener('DOMContentLoaded', () => {
   AuthManager.renderNavbarAuth();
   
-  // Mobile menu toggle
+  // Mobile menu toggle & accessible handling
   const toggleBtn = document.querySelector('.navbar__toggle');
   const menu = document.querySelector('.navbar__menu');
   if (toggleBtn && menu) {
-    toggleBtn.addEventListener('click', () => {
-      menu.classList.toggle('active');
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isActive = menu.classList.toggle('active');
+      toggleBtn.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (menu.classList.contains('active') && !menu.contains(e.target) && e.target !== toggleBtn) {
+        menu.classList.remove('active');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && menu.classList.contains('active')) {
+        menu.classList.remove('active');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        toggleBtn.focus();
+      }
     });
   }
 });
@@ -255,6 +366,12 @@ window.AuthManager = AuthManager;
 window.apiGetBands = apiGetBands;
 window.apiGetRecentBands = apiGetRecentBands;
 window.apiGetBandProfile = apiGetBandProfile;
+window.apiGetBandPosts = apiGetBandPosts;
+window.apiCreateBandPost = apiCreateBandPost;
+window.apiDeleteBandPost = apiDeleteBandPost;
+window.apiTrackPostView = apiTrackPostView;
+window.apiTrackPostWaClick = apiTrackPostWaClick;
+window.apiGetMyPostsPerformance = apiGetMyPostsPerformance;
 window.apiGetPlatformStats = apiGetPlatformStats;
 window.apiCreateConnection = apiCreateConnection;
 window.apiCreateAvailability = apiCreateAvailability;

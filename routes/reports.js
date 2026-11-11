@@ -24,7 +24,8 @@ router.post('/', async (req, res) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(authHeader.substring(7), process.env.JWT_SECRET);
+        const jwtSecret = process.env.JWT_SECRET || 'panggung-lokal-dev-secret-key-2026';
+        const decoded = jwt.verify(authHeader.substring(7), jwtSecret);
         reporterUserId = decoded.id;
       } catch (e) {
         // Continue anonymously

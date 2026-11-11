@@ -41,21 +41,24 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   rider_sound_system TEXT,
   rider_instruments TEXT,
   rider_hospitality TEXT,
+  rider_items TEXT,
   spotify_url VARCHAR(500),
   tiktok_url VARCHAR(500),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS availability_posts (
+CREATE TABLE IF NOT EXISTS band_posts (
   id SERIAL PRIMARY KEY,
   band_profile_id INTEGER NOT NULL REFERENCES band_profiles(id) ON DELETE CASCADE,
-  start_date DATE NOT NULL,
-  end_date DATE NOT NULL,
-  notes TEXT,
-  views INTEGER DEFAULT 0,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  is_active BOOLEAN DEFAULT TRUE
+  media_type VARCHAR(20) NOT NULL DEFAULT 'photo',
+  media_url VARCHAR(500) NOT NULL,
+  thumbnail_url VARCHAR(500),
+  caption TEXT,
+  slides TEXT,
+  views_count INTEGER DEFAULT 0,
+  wa_clicks_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS media_files (
@@ -141,7 +144,7 @@ function getMemoryDb() {
 }
 
 async function restoreData(pool, data) {
-  const tables = ['users', 'band_profiles', 'availability_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports'];
   for (const table of tables) {
     if (Array.isArray(data[table])) {
       for (const row of data[table]) {
@@ -157,7 +160,7 @@ async function restoreData(pool, data) {
 }
 
 function dumpData(db) {
-  const tables = ['users', 'band_profiles', 'availability_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports'];
   const dump = {};
   for (const table of tables) {
     try {
@@ -365,8 +368,8 @@ async function seedInitialData(pool) {
         budget_min, budget_max, profile_photo_url, cover_photo_url, phone, 
         instagram_handle, youtube_url, spotify_url, tiktok_url,
         rider_channel_inputs, rider_sound_system, rider_instruments, rider_hospitality,
-        profile_views
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+        rider_items, profile_views
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
       [
         b.id, b.user_id, b.band_name, b.genre, b.location_city, b.location_region, b.bio,
         b.budget_min, b.budget_max, b.profile_photo_url, b.cover_photo_url, b.phone,
@@ -375,29 +378,123 @@ async function seedInitialData(pool) {
         b.rider_sound_system || 'PA System min 3.000 Watt, 2 Stage Monitor, 2 Mic Shure SM58',
         b.rider_instruments || 'Bawa instrumen utama. Venue sediakan drum kit standar dan amplifier.',
         b.rider_hospitality || 'Air mineral botol, ruang tunggu musisi, konsumsi standar 5 pax',
+        JSON.stringify([
+          { title: 'Input Audio Channel', description: b.rider_channel_inputs || '8-12 Channel Input' },
+          { title: 'Kebutuhan Sound System', description: b.rider_sound_system || 'PA System min 3.000 Watt, 2 Stage Monitor, 2 Mic Shure SM58' },
+          { title: 'Peralatan & Backline', description: b.rider_instruments || 'Bawa instrumen utama. Venue sediakan drum kit standar dan amplifier.' },
+          { title: 'Hospitality & Konsumsi', description: b.rider_hospitality || 'Air mineral botol, ruang tunggu musisi, konsumsi standar 5 pax' }
+        ]),
         b.profile_views
       ]
     );
   }
 
-  // 3. Seed Availability Posts
-  const availabilityPosts = [
-    { id: 1, band_profile_id: 1, start_date: '2026-10-20', end_date: '2026-10-25', notes: 'Bisa manggung di area Bandung & Jabodetabek. Full band set 45 menit. Sound system minimum 5000 watt.', views: 32 },
-    { id: 2, band_profile_id: 1, start_date: '2026-11-01', end_date: '2026-11-05', notes: 'Siap untuk festival kampus dan gigs kafe akhir pekan.', views: 18 },
-    { id: 3, band_profile_id: 2, start_date: '2026-10-18', end_date: '2026-10-22', notes: 'Tersedia untuk sesi sore / senja di kafe atau intimate showcase Yogyakarta & Solo. Alat akustik lengkap.', views: 45 },
-    { id: 4, band_profile_id: 2, start_date: '2026-11-10', end_date: '2026-11-15', notes: 'Open for wedding gigs & private gatherings.', views: 12 },
-    { id: 5, band_profile_id: 3, start_date: '2026-10-25', end_date: '2026-10-31', notes: 'Bisa tur Jawa Timur & Jawa Tengah. Durasi perform 60-90 menit dengan playlist hits dangdut koplo terbaru.', views: 88 },
-    { id: 6, band_profile_id: 4, start_date: '2026-10-22', end_date: '2026-10-24', notes: 'Khusus gigs hardcore / underground festival Jabodetabek. Setlist 30 menit full speed.', views: 56 },
-    { id: 7, band_profile_id: 5, start_date: '2026-10-28', end_date: '2026-11-03', notes: 'Ready for sunset session di beach club / resort Bali. Trio atau Full Quintet format.', views: 64 },
-    { id: 8, band_profile_id: 6, start_date: '2026-11-05', end_date: '2026-11-12', notes: 'Tersedia untuk art fair, launching event, dan teater di Malang & Surabaya.', views: 24 },
-    { id: 9, band_profile_id: 8, start_date: '2026-10-24', end_date: '2026-10-27', notes: 'Weekend party slot open di rooftop bar / lounge Jakarta.', views: 40 }
+  // 3. Seed Instagram-Style Band Posts
+  const bandPosts = [
+    {
+      id: 1,
+      band_profile_id: 1,
+      media_type: 'photo',
+      media_url: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=800&auto=format&fit=crop&q=80',
+      thumbnail_url: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=400&auto=format&fit=crop&q=80',
+      caption: 'Energi gigs di Pantai Madasari! Terima kasih Bandung dan Pangandaran 🌊🎸',
+      views_count: 342,
+      wa_clicks_count: 18,
+      slides: JSON.stringify([
+        { type: 'photo', url: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=800&auto=format&fit=crop&q=80' },
+        { type: 'video', url: 'https://www.w3schools.com/html/mov_bbb.mp4' },
+        { type: 'photo', url: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=800&auto=format&fit=crop&q=80' }
+      ])
+    },
+    {
+      id: 2,
+      band_profile_id: 1,
+      media_type: 'photo',
+      media_url: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=800&auto=format&fit=crop&q=80',
+      thumbnail_url: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=400&auto=format&fit=crop&q=80',
+      caption: 'Soundcheck showcase acoustic session. Reverb analog siap mengalun di venue akhir pekan ini.',
+      views_count: 289,
+      wa_clicks_count: 12,
+      slides: JSON.stringify([
+        { type: 'photo', url: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=800&auto=format&fit=crop&q=80' },
+        { type: 'photo', url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80' }
+      ])
+    },
+    {
+      id: 3,
+      band_profile_id: 1,
+      media_type: 'video',
+      media_url: 'https://www.w3schools.com/html/mov_bbb.mp4',
+      thumbnail_url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&auto=format&fit=crop&q=80',
+      caption: 'Cuplikan riff pembuka single Ombak Selatan live di Festival Kampus.',
+      views_count: 512,
+      wa_clicks_count: 27,
+      slides: JSON.stringify([
+        { type: 'video', url: 'https://www.w3schools.com/html/mov_bbb.mp4' },
+        { type: 'photo', url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=80' }
+      ])
+    },
+    {
+      id: 4,
+      band_profile_id: 1,
+      media_type: 'photo',
+      media_url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80',
+      thumbnail_url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80',
+      caption: 'Backstage vibes sebelum naik panggung. Rider aman, energi maksimal.',
+      views_count: 198,
+      wa_clicks_count: 9,
+      slides: JSON.stringify([
+        { type: 'photo', url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80' }
+      ])
+    },
+    {
+      id: 5,
+      band_profile_id: 2,
+      media_type: 'photo',
+      media_url: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&auto=format&fit=crop&q=80',
+      thumbnail_url: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&auto=format&fit=crop&q=80',
+      caption: 'Harmoni petikan akustik & cello di bawah temaram lampu kafe Yogyakarta.',
+      views_count: 420,
+      wa_clicks_count: 23,
+      slides: JSON.stringify([
+        { type: 'photo', url: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&auto=format&fit=crop&q=80' },
+        { type: 'video', url: 'https://www.w3schools.com/html/mov_bbb.mp4' }
+      ])
+    },
+    {
+      id: 6,
+      band_profile_id: 2,
+      media_type: 'audio',
+      media_url: 'https://images.unsplash.com/photo-1485579149621-3123dd979885?w=800&auto=format&fit=crop&q=80',
+      thumbnail_url: 'https://images.unsplash.com/photo-1485579149621-3123dd979885?w=400&auto=format&fit=crop&q=80',
+      caption: 'Demo akustik live studio track Langkah Kecil. Suasana hangat nan puitis.',
+      views_count: 310,
+      wa_clicks_count: 15,
+      slides: JSON.stringify([
+        { type: 'audio', url: 'https://images.unsplash.com/photo-1485579149621-3123dd979885?w=800&auto=format&fit=crop&q=80' }
+      ])
+    },
+    {
+      id: 7,
+      band_profile_id: 3,
+      media_type: 'photo',
+      media_url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=80',
+      thumbnail_url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80',
+      caption: 'Gendang koplo dipadu brass section modern! Malam pesta rakyat Surabaya.',
+      views_count: 630,
+      wa_clicks_count: 34,
+      slides: JSON.stringify([
+        { type: 'photo', url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=80' },
+        { type: 'video', url: 'https://www.w3schools.com/html/mov_bbb.mp4' }
+      ])
+    }
   ];
 
-  for (const a of availabilityPosts) {
+  for (const p of bandPosts) {
     await pool.query(
-      `INSERT INTO availability_posts (id, band_profile_id, start_date, end_date, notes, views, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, true)`,
-      [a.id, a.band_profile_id, a.start_date, a.end_date, a.notes, a.views]
+      `INSERT INTO band_posts (id, band_profile_id, media_type, media_url, thumbnail_url, caption, slides, views_count, wa_clicks_count)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [p.id, p.band_profile_id, p.media_type, p.media_url, p.thumbnail_url, p.caption, p.slides, p.views_count, p.wa_clicks_count]
     );
   }
 

@@ -42,11 +42,13 @@ router.post('/register', authLimiter, async (req, res) => {
     }
 
     // Validate account type
-    const normalizedType = accountType.toLowerCase();
-    if (!['band', 'organizer'].includes(normalizedType)) {
+    let normalizedType = accountType.toLowerCase();
+    if (normalizedType === 'organizer') normalizedType = 'general';
+
+    if (!['band', 'general'].includes(normalizedType)) {
       return res.status(400).json({
         success: false,
-        message: 'Tipe akun harus berupa "band" atau "organizer"'
+        message: 'Tipe akun harus berupa "band" atau "general"'
       });
     }
 
@@ -183,6 +185,10 @@ router.post('/login', authLimiter, async (req, res) => {
 
     // Generate JWT
     const token = generateToken(user);
+
+    const cookieOptions = [`panggung_lokal_token=${encodeURIComponent(token)}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', 'Max-Age=604800'];
+    if (process.env.NODE_ENV === 'production') cookieOptions.push('Secure');
+    res.setHeader('Set-Cookie', cookieOptions.join('; '));
 
     return res.json({
       success: true,

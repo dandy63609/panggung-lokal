@@ -2,21 +2,22 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0D0D0D">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0D0D0D">
+  <meta name="color-scheme" content="dark">
   <title>Panggung Lokal - Platform Band & Penyelenggara Acara Indonesia</title>
   <meta name="description" content="Platform mobile-first untuk menghubungkan band dan musisi lokal Indonesia dengan penyelenggara acara, kafe, festival, dan wedding planner.">
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="icon" type="image/jpeg" href="/images/logo.jpeg">
+  <link rel="icon" type="image/jpeg" href="/images/logo.png">
 </head>
 <body>
 
   <!-- Navigation -->
   <header class="navbar">
     <div class="container navbar__inner">
-      <a href="/" class="navbar__logo">
-        <img src="/images/logo.jpeg" alt="Panggung Lokal Logo" class="navbar__logo-img">
-        <span>PANGGUNG</span>
-        <span class="navbar__logo-badge">LOKAL</span>
+      <a href="/" class="navbar__logo" aria-label="Panggung Lokal">
+        <img src="/images/logo.png" alt="Panggung Lokal Logo" class="navbar__logo-img">
       </a>
 
       <button class="navbar__toggle" aria-label="Toggle Menu">☰</button>
@@ -40,10 +41,10 @@
     <div class="container">
       <div class="hero__content">
         <h1 class="hero__title">
-          HUBUNGKAN BAND & PANGGUNG <span>TANPA RIBET</span>
+          KATALOG BAND LOKAL UNTUK ACARA
         </h1>
         <p class="hero__subtitle">
-          Platform langsung untuk kafe, festival, kampus, dan EO menemukan band lokal berkualitas. Cek ketersediaan tanggal manggung dan hubungi musisi langsung via WhatsApp.
+          Pilih musisi berdasarkan genre dan kota, periksa rekaman audio dan rider teknis, lalu hubungi nomor WhatsApp band.
         </p>
 
         <!-- Quick Search Bar -->
@@ -60,6 +61,7 @@
               <option value="Jazz">Jazz / Neo-Soul</option>
               <option value="Post-Rock">Post-Rock / Ambient</option>
               <option value="Pop">Pop / Fusion</option>
+              <option value="Funk">Funk & Soul</option>
             </select>
           </div>
 
@@ -78,7 +80,7 @@
           </div>
 
           <button type="submit" class="btn btn--primary btn--lg">
-            <span>Cari Band</span> <span>→</span>
+            <span>Cari Band</span>
           </button>
         </form>
 
@@ -86,15 +88,15 @@
         <div class="hero__stats">
           <div class="stat-item">
             <div id="stat-total-bands" class="stat-item__number">8+</div>
-            <div class="stat-item__label">Total Band Terdaftar</div>
+            <div class="stat-item__label">Band Terdaftar</div>
           </div>
           <div class="stat-item">
             <div id="stat-total-genres" class="stat-item__number">6+</div>
-            <div class="stat-item__label">Variasi Genre Musik</div>
+            <div class="stat-item__label">Genre Musik</div>
           </div>
           <div class="stat-item">
             <div id="stat-curated-badge" class="stat-item__number" style="color: var(--gold-foil);">100%</div>
-            <div class="stat-item__label">Terkurasi & Terverifikasi</div>
+            <div class="stat-item__label">Kontak Terverifikasi</div>
           </div>
         </div>
       </div>
@@ -105,32 +107,32 @@
   <section class="section" style="background-color: var(--stage-dark);">
     <div class="container">
       <div class="section-header" style="text-align: center; display: block; margin-bottom: var(--space-2xl);">
-        <h2 class="section-header__title">BAGAIMANA PANGGUNG LOKAL BEKERJA</h2>
-        <p class="section-header__subtitle">Solusi digital yang memotong birokrasi booking musik konvensional</p>
+        <h2 class="section-header__title">CARA KERJA</h2>
+        <p class="section-header__subtitle">Tiga langkah mencari dan mengundang band.</p>
       </div>
 
       <div class="steps-grid">
         <div class="step-card">
           <div class="step-card__number">01</div>
-          <h3 class="step-card__title">BAND POSTING JADWAL</h3>
+          <h3 class="step-card__title">CARI BERDASARKAN GENRE DAN KOTA</h3>
           <p class="step-card__desc">
-            Musisi mempublikasikan tanggal kosong mereka, lengkap dengan estimasi fee rupiah, sampel rekaman audio, dan kebutuhan riders panggung.
+            Pilih genre musik, kota domisili, dan rentang tarif manggung sesuai kebutuhan acara.
           </p>
         </div>
 
         <div class="step-card">
           <div class="step-card__number">02</div>
-          <h3 class="step-card__title">EO & KAFE MENEMUKAN</h3>
+          <h3 class="step-card__title">PERIKSA REKAMAN DAN RIDER TEKNIS</h3>
           <p class="step-card__desc">
-            Penyelenggara acara memfilter band berdasarkan genre musik, domisili kota, rentang budget, dan kesesuaian jadwal manggung.
+            Dengarkan sampel lagu, tonton rekaman panggung, dan baca daftar kebutuhan instrumen serta sound system.
           </p>
         </div>
 
         <div class="step-card">
           <div class="step-card__number">03</div>
-          <h3 class="step-card__title">TERHUBUNG & DEAL</h3>
+          <h3 class="step-card__title">HUBUNGI VIA WHATSAPP</h3>
           <p class="step-card__desc">
-            Klik "Hubungi Band" untuk membuka kontak WhatsApp dan manajer band secara instan tanpa biaya perantara tersembunyi.
+            Buka obrolan WhatsApp dengan nomor kontak resmi band untuk membicarakan jadwal dan teknis penampilan.
           </p>
         </div>
       </div>
@@ -142,11 +144,11 @@
     <div class="container">
       <div class="section-header">
         <div>
-          <h2 class="section-header__title">BAND YANG BARU BUKA JADWAL</h2>
-          <p class="section-header__subtitle">Musisi independen yang siap mengisi panggung acaramu dalam waktu dekat</p>
+          <h2 class="section-header__title">DAFTAR BAND TERBARU</h2>
+          <p class="section-header__subtitle">Musisi lokal yang terdaftar di platform.</p>
         </div>
         <a href="/search.html" class="btn btn--outline btn--sm">
-          <span>Lihat Semua Band</span> <span>→</span>
+          <span>Buka Katalog Band</span>
         </a>
       </div>
 
@@ -166,17 +168,17 @@
       <div style="background: linear-gradient(135deg, #1C0508 0%, #29080E 100%); border: 1px solid var(--electric-crimson); border-radius: var(--radius-lg); padding: var(--space-2xl); text-align: center; position: relative; overflow: hidden;">
         <div style="position: relative; z-index: 2; max-width: 680px; margin: 0 auto;">
           <h2 style="font-family: var(--font-display); font-size: 2.8rem; letter-spacing: 1px; margin-bottom: var(--space-sm); color: var(--chalk-white);">
-            PUNYA BAND ATAU MUSIK SENDIRI?
+            DAFTARKAN PROFIL BAND
           </h2>
           <p style="color: var(--graphite); font-size: 1.05rem; line-height: 1.6; margin-bottom: var(--space-lg);">
-            Daftarkan bandmu sekarang, pasang tanggal ketersediaan manggung, dan biarkan kafe serta festival di seluruh Indonesia menemukan karyamu!
+            Buat akun musisi, pasang foto dan sampel audio, serta cantumkan nomor WhatsApp resmi band.
           </p>
           <div style="display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;">
             <a href="/register.html" class="btn btn--primary btn--lg">
-              <span>Daftarkan Band Sekarang (Gratis)</span>
+              <span>Daftar Akun Band</span>
             </a>
             <a href="/search.html" class="btn btn--secondary btn--lg">
-              <span>Eksplorasi Musisi Lain</span>
+              <span>Cari Band</span>
             </a>
           </div>
         </div>
@@ -189,13 +191,11 @@
     <div class="container">
       <div class="footer__grid">
         <div class="footer__brand">
-          <a href="/" class="navbar__logo">
-            <img src="/images/logo.jpeg" alt="Panggung Lokal Logo" class="navbar__logo-img">
-            <span>PANGGUNG</span>
-            <span class="navbar__logo-badge">LOKAL</span>
-          </a>
+          <a href="/" class="navbar__logo" aria-label="Panggung Lokal">
+        <img src="/images/logo.png" alt="Panggung Lokal Logo" class="navbar__logo-img">
+      </a>
           <p>
-            Platform digital karya mahasiswa Bisnis Digital Semester 3 untuk memberdayakan industri musik independen lokal Indonesia.
+            Platform pencarian kontak band lokal untuk penyelenggara acara. Dibuat untuk tugas mata kuliah Bisnis Digital.
           </p>
         </div>
 
@@ -205,17 +205,17 @@
             <li><a href="/">Beranda</a></li>
             <li><a href="/search.html">Cari Band</a></li>
             <li><a href="/login.html">Masuk Akun</a></li>
-            <li><a href="/register.html">Daftar Musisi / EO</a></li>
+            <li><a href="/register.html">Daftar Akun</a></li>
           </ul>
         </div>
 
         <div>
-          <h4 class="footer__column-title">Kota Terpopuler</h4>
+          <h4 class="footer__column-title">Kota</h4>
           <ul class="footer__links">
-            <li><a href="/search.html?location=Bandung">Bandung Music Scene</a></li>
-            <li><a href="/search.html?location=Jakarta">Jakarta Underground</a></li>
-            <li><a href="/search.html?location=Yogyakarta">Jogja Acoustic & Folk</a></li>
-            <li><a href="/search.html?location=Surabaya">Surabaya Koplo & Rock</a></li>
+            <li><a href="/search.html?location=Bandung">Bandung</a></li>
+            <li><a href="/search.html?location=Jakarta">Jakarta</a></li>
+            <li><a href="/search.html?location=Yogyakarta">Yogyakarta</a></li>
+            <li><a href="/search.html?location=Surabaya">Surabaya</a></li>
           </ul>
         </div>
 
@@ -228,7 +228,7 @@
       </div>
 
       <div class="footer__bottom">
-        <div>© 2026 Panggung Lokal. Dibuat untuk Tugas Kuliah Bisnis Digital Semester 3.</div>
+        <div>© 2026 Panggung Lokal.</div>
       </div>
     </div>
   </footer>
@@ -271,23 +271,43 @@
       try {
         const res = await apiGetRecentBands(6);
         if (res.success && res.data && res.data.length > 0) {
-          grid.innerHTML = res.data.map(band => {
-            const availText = band.availability 
-              ? `${formatIndonesianDate(band.availability.startDate)} - ${formatIndonesianDate(band.availability.endDate)}`
-              : 'Jadwal Buka Segera';
-
+          const isAuthed = AuthManager.isAuthenticated();
+          let cardsHtml = res.data.map((band, idx) => {
             const budgetText = (band.budgetMin && band.budgetMax)
               ? `${formatRupiah(band.budgetMin)} - ${formatRupiah(band.budgetMax)}`
               : 'Negosiasi';
 
+            const staggerDelay = (idx * 0.02).toFixed(3);
+            const phoneClean = (band.phone || '').replace(/[^0-9]/g, '');
+            const waText = encodeURIComponent(`Halo ${band.bandName}, saya menemukan profil kalian di Panggung Lokal dan tertarik untuk mengundang tampil di acara kami.`);
+            const waUrl = `https://wa.me/${phoneClean}?text=${waText}`;
+
+            const actionButtons = isAuthed
+              ? `
+                <div style="display: flex; gap: 6px; width: 100%;">
+                  <a href="/profile.html?id=${band.id}" class="btn btn--outline btn--sm" style="flex: 1; min-height: 40px; font-size: 0.8rem;">
+                    <span>Profil</span>
+                  </a>
+                  <a href="${waUrl}" target="_blank" rel="noopener" class="btn btn--whatsapp btn--sm" style="flex: 1.2; min-height: 40px; font-size: 0.8rem;">
+                    <span>💬 Chat WA</span>
+                  </a>
+                </div>
+              `
+              : `
+                <div style="width: 100%;">
+                  <a href="/login.html" class="btn btn--primary btn--sm btn--block" style="min-height: 40px; font-size: 0.85rem;">
+                    <span>🔒 Masuk untuk Kontak</span>
+                  </a>
+                </div>
+              `;
+
             return `
-              <div class="band-card">
+              <div class="band-card" style="animation-delay: ${staggerDelay}s;">
                 <div class="band-card__image-wrap">
                   <img src="${band.profilePhotoUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80'}" 
                        alt="${band.bandName}" class="band-card__image" loading="lazy">
                   <div class="band-card__badges">
                     <span class="badge badge--genre">${band.genre}</span>
-                    <span class="badge badge--available">TERSEDIA</span>
                   </div>
                   <div class="band-card__views">👁️ ${band.profileViews} views</div>
                 </div>
@@ -300,29 +320,47 @@
 
                   <p class="band-card__bio">${band.bio || 'Musisi independen lokal siap tampil.'}</p>
 
-                  <div style="margin-bottom: var(--space-sm); font-size: 0.82rem; font-family: var(--font-mono); color: var(--amp-orange);">
-                    📅 ${availText}
-                  </div>
-
-                  <div class="band-card__footer">
-                    <div>
+                  <div class="band-card__footer" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
                       <div style="font-size: 0.72rem; color: var(--graphite); text-transform: uppercase;">Estimasi Fee</div>
                       <div class="band-card__price">${budgetText}</div>
                     </div>
-                    <a href="/profile.html?id=${band.id}" class="btn btn--primary btn--sm">
-                      <span>Lihat Profil</span>
-                    </a>
+                    ${actionButtons}
                   </div>
                 </div>
               </div>
             `;
           }).join('');
+
+          if (res.isSneakPeek) {
+            cardsHtml += `
+              <div style="grid-column: 1 / -1; margin-top: var(--space-md); text-align: center; padding: clamp(20px, 4vw, 36px); background: rgba(0, 240, 255, 0.04); border: 1px dashed rgba(0, 240, 255, 0.35); border-radius: var(--radius-md);">
+                <div style="font-size: 2rem; margin-bottom: 8px;">🔒</div>
+                <h4 style="font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 0.5px; color: var(--chalk-white); margin-bottom: 6px;">
+                  MASUK UNTUK MELIHAT SELURUH BAND
+                </h4>
+                <p style="color: var(--graphite); font-size: 0.92rem; max-width: 500px; margin: 0 auto var(--space-md);">
+                  Tersedia 2 band pada mode pratinjau. Masuk untuk melihat seluruh daftar band dan nomor WhatsApp musisi.
+                </p>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                  <a href="/login.html" class="btn btn--primary btn--md">
+                    <span>Masuk</span>
+                  </a>
+                  <a href="/register.html" class="btn btn--secondary btn--md">
+                    <span>Daftar Akun</span>
+                  </a>
+                </div>
+              </div>
+            `;
+          }
+
+          grid.innerHTML = cardsHtml;
         } else {
-          grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--graphite);">Belum ada jadwal band yang tersedia.</div>';
+          grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--graphite);">Belum ada band yang terdaftar.</div>';
         }
       } catch (err) {
         console.error('Error loading bands:', err);
-        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #FF5A5F;">Gagal memuat jadwal band.</div>';
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #FF5A5F;">Gagal memuat band.</div>';
       }
     });
   </script>

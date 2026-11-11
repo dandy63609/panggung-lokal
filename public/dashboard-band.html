@@ -2,20 +2,21 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Musisi & Band - Panggung Lokal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0D0D0D">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0D0D0D">
+  <meta name="color-scheme" content="dark">
+  <title>Dashboard Musisi - Panggung Lokal</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="icon" type="image/jpeg" href="/images/logo.jpeg">
+  <link rel="icon" type="image/jpeg" href="/images/logo.png">
 </head>
 <body>
 
   <!-- Navigation -->
   <header class="navbar">
     <div class="container navbar__inner">
-      <a href="/" class="navbar__logo">
-        <img src="/images/logo.jpeg" alt="Panggung Lokal Logo" class="navbar__logo-img">
-        <span>PANGGUNG</span>
-        <span class="navbar__logo-badge">LOKAL</span>
+      <a href="/" class="navbar__logo" aria-label="Panggung Lokal">
+        <img src="/images/logo.png" alt="Panggung Lokal Logo" class="navbar__logo-img">
       </a>
 
       <button class="navbar__toggle" aria-label="Toggle Menu">☰</button>
@@ -24,7 +25,7 @@
         <ul class="navbar__menu">
           <li><a href="/" class="navbar__link">Beranda</a></li>
           <li><a href="/search.html" class="navbar__link">Cari Band</a></li>
-          <li><a href="/dashboard-band.html" class="navbar__link active">Dashboard Band</a></li>
+          <li><a href="/dashboard-band.html" class="navbar__link active">Dashboard Musisi</a></li>
         </ul>
       </nav>
 
@@ -32,170 +33,272 @@
     </div>
   </header>
 
-  <main class="container section">
-    <!-- Header -->
-    <div class="section-header">
+  <main class="container section" style="padding-top: var(--space-xl);">
+
+    <!-- Instagram-Style Musician Profile Header -->
+    <section class="ig-profile-header">
+      <div style="display: flex; gap: clamp(16px, 4vw, 32px); align-items: flex-start; flex-wrap: wrap;">
+        <div class="ig-avatar-wrap">
+          <img id="dash-avatar" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80" alt="Band Avatar" class="ig-avatar">
+        </div>
+
+        <div class="ig-info">
+          <div class="ig-title-row">
+            <h1 class="ig-band-name" id="dash-band-name">MEMUAT BAND...</h1>
+            <span class="badge badge--genre" id="dash-band-genre">Genre</span>
+            <span class="badge" style="background: rgba(0, 217, 255, 0.15); color: var(--neon-cyan); font-size: 0.75rem;">Musisi Terverifikasi</span>
+          </div>
+
+          <p style="color: var(--graphite); font-size: 0.88rem; margin-bottom: 8px;" id="dash-band-location">
+            📍 Lokasi Domisili
+          </p>
+
+          <p class="ig-bio" id="dash-band-bio">
+            Profil band dan galeri karya.
+          </p>
+
+          <!-- WhatsApp Direct Link Pill -->
+          <div style="margin-bottom: 12px;">
+            <a id="dash-wa-link" href="#" target="_blank" rel="noopener" class="ig-wa-pill">
+              <span>💬</span>
+              <span id="dash-wa-text">WhatsApp: Memuat...</span>
+            </a>
+          </div>
+
+          <!-- Instagram-Style Stats Bar -->
+          <div class="ig-stats-row">
+            <div class="ig-stat-item">
+              <strong id="stat-posts">0</strong> karya
+            </div>
+            <div class="ig-stat-item">
+              <strong id="stat-views">0</strong> tayangan
+            </div>
+            <div class="ig-stat-item">
+              <strong id="stat-wa-clicks" style="color: var(--whatsapp-green);">0</strong> klik WhatsApp
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="ig-actions-row">
+            <button class="btn btn--primary btn--sm" onclick="openCreatePostModal()">
+              <span>+ Unggah Karya</span>
+            </button>
+            <button class="btn btn--secondary btn--sm" onclick="openEditProfileModal()">
+              <span>Edit Profil</span>
+            </button>
+            <a id="btn-public-preview" href="#" target="_blank" class="btn btn--outline btn--sm">
+              <span>Pratinjau Publik</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Instagram Navigation Tabs -->
+    <nav class="ig-tabs" role="tablist">
+      <button id="tab-btn-feed" class="ig-tab-btn active" role="tab" aria-selected="true" onclick="switchDashboardTab('feed')">
+        GALERI KARYA
+      </button>
+      <button id="tab-btn-insights" class="ig-tab-btn" role="tab" aria-selected="false" onclick="switchDashboardTab('insights')">
+        STATISTIK
+      </button>
+    </nav>
+
+    <!-- Tab 1: Feed Portofolio (Instagram 3-Column Grid) -->
+    <section id="panel-feed" role="tabpanel" aria-labelledby="tab-btn-feed">
+      <div id="posts-grid" class="ig-grid">
+        <!-- Injected via JavaScript -->
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--graphite); padding: 40px;">
+          Memuat postingan karya musik...
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="posts-empty-state" style="display: none; text-align: center; padding: clamp(32px, 6vw, 60px); background: var(--surface-card); border: 1px dashed var(--surface-border); border-radius: var(--radius-lg); margin-bottom: var(--space-2xl);">
+        <div style="font-size: 3rem; margin-bottom: 12px;">📸</div>
+        <h3 style="font-family: var(--font-display); font-size: 1.8rem; color: var(--chalk-white); margin-bottom: 8px;">
+          BELUM ADA KARYA
+        </h3>
+        <p style="color: var(--graphite); max-width: 460px; margin: 0 auto var(--space-lg); font-size: 0.95rem;">
+          Unggah foto panggung, video penampilan, atau berkas audio untuk ditampilkan pada profil band.
+        </p>
+        <button class="btn btn--primary" onclick="openCreatePostModal()">
+          <span>+ Unggah Karya</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Tab 2: Insight & Performa -->
+    <section id="panel-insights" role="tabpanel" aria-labelledby="tab-btn-insights" style="display: none;">
+      
+      <!-- Top Conversion Overview Cards -->
+      <div class="dashboard-stats" style="margin-bottom: var(--space-xl);">
+        <div class="metric-card metric-card--cyan">
+          <div class="metric-card__label">TOTAL TAYANGAN</div>
+          <div id="kpi-total-views" class="metric-card__number">0</div>
+          <div style="font-size: 0.8rem; color: var(--neon-cyan);">Jumlah tayangan profil dan karya</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-card__label">KLIK WHATSAPP</div>
+          <div id="kpi-total-wa" class="metric-card__number" style="color: var(--whatsapp-green);">0</div>
+          <div style="font-size: 0.8rem; color: var(--whatsapp-green);">Jumlah klik tombol WhatsApp profil dan karya</div>
+        </div>
+
+        <div class="metric-card metric-card--orange">
+          <div class="metric-card__label">RASIO KLIK</div>
+          <div id="kpi-conversion-rate" class="metric-card__number">0%</div>
+          <div style="font-size: 0.8rem; color: var(--amp-orange);">Persentase klik kontak dibanding total tayangan</div>
+        </div>
+      </div>
+
+      <!-- Individual Post Performance Breakdown -->
       <div>
-        <h1 class="section-header__title" id="dash-band-name">DASHBOARD BAND</h1>
-        <p class="section-header__subtitle" id="dash-band-meta">Kelola ketersediaan panggung dan pantau interaksi penyelenggara acara</p>
-      </div>
-      <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap;">
-        <button class="btn btn--primary" onclick="openAddPostModal()">
-          <span>+ Posting Jadwal Baru</span>
-        </button>
-        <button class="btn btn--secondary" onclick="openEditProfileModal()">
-          <span>✏️ Edit Profil Band</span>
-        </button>
-      </div>
-    </div>
+        <div class="section-header" style="margin-bottom: var(--space-md);">
+          <div>
+            <h2 class="section-header__title" style="font-size: 1.5rem;">STATISTIK TIAP KARYA</h2>
+            <p class="section-header__subtitle">Jumlah tayangan dan klik WhatsApp untuk setiap berkas karya.</p>
+          </div>
+        </div>
 
-    <!-- KPI Metric Cards -->
-    <div class="dashboard-stats">
-      <div class="metric-card metric-card--cyan">
-        <div class="metric-card__label">TOTAL PROFILE VIEWS</div>
-        <div id="metric-views" class="metric-card__number">0</div>
-        <div style="font-size: 0.8rem; color: var(--neon-cyan);">Pengunjung melihat karyamu</div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-card__label">PENYELENGGARA TERTARIK</div>
-        <div id="metric-connections" class="metric-card__number">0</div>
-        <div style="font-size: 0.8rem; color: var(--electric-crimson);">Kontak dibuka oleh EO / Kafe</div>
-      </div>
-
-      <div class="metric-card metric-card--orange">
-        <div class="metric-card__label">JADWAL AKTIF TERPASANG</div>
-        <div id="metric-posts" class="metric-card__number">0</div>
-        <div style="font-size: 0.8rem; color: var(--amp-orange);">Slot manggung siap di-booking</div>
-      </div>
-    </div>
-
-    <!-- Active Availability Posts -->
-    <div style="margin-bottom: var(--space-2xl);">
-      <div class="section-header">
-        <div>
-          <h2 class="section-header__title" style="font-size: 1.6rem;">JADWAL KETERSEDIAAN AKTIF</h2>
-          <p class="section-header__subtitle">Penyelenggara mencari band berdasarkan jadwal kosong yang kamu pasang di sini</p>
+        <div id="insights-list">
+          <div style="text-align: center; color: var(--graphite); padding: 30px;">
+            Memuat analisis performa...
+          </div>
         </div>
       </div>
 
-      <div id="posts-table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Periode Tanggal</th>
-              <th>Catatan Khusus / Tawaran</th>
-              <th>Status</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="posts-tbody">
-            <tr>
-              <td colspan="4" style="text-align: center; color: var(--graphite);">Memuat jadwal...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Stage Documentation & Media Management (Item 5) -->
-    <div style="margin-bottom: var(--space-2xl);">
-      <div class="section-header">
-        <div>
-          <h2 class="section-header__title" style="font-size: 1.6rem;">DOKUMENTASI PANGGUNG & MEDIA BAND</h2>
-          <p class="section-header__subtitle">Foto panggung dan sampel karya yang tampil di profil publik band Anda</p>
+      <!-- Inbound WhatsApp Connection Log -->
+      <div style="margin-top: var(--space-2xl);">
+        <div class="section-header" style="margin-bottom: var(--space-md);">
+          <div>
+            <h2 class="section-header__title" style="font-size: 1.5rem;">RIWAYAT KLIK KONTAK</h2>
+            <p class="section-header__subtitle">Daftar akun yang mengeklik tombol WhatsApp band.</p>
+          </div>
         </div>
-        <button class="btn btn--outline btn--sm" onclick="openAddMediaModal()">
-          <span>+ Tambah Media / Foto</span>
-        </button>
-      </div>
 
-      <div id="media-table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Tipe</th>
-              <th>Judul / Keterangan</th>
-              <th>Preview / URL</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="media-tbody">
-            <tr>
-              <td colspan="4" style="text-align: center; color: var(--graphite);">Memuat media dokumentasi...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Recent Inbound Connections -->
-    <div>
-      <div class="section-header">
-        <div>
-          <h2 class="section-header__title" style="font-size: 1.6rem;">PENYELENGGARA YANG TERTARIK</h2>
-          <p class="section-header__subtitle">Daftar penyelenggara acara yang telah membuka detail kontak dan ingin bekerja sama</p>
+        <div id="connections-table-container" class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Pengguna / Penyelenggara</th>
+                <th>Keterangan</th>
+                <th>Waktu Akses</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="connections-tbody">
+              <tr>
+                <td colspan="4" style="text-align: center; color: var(--graphite);">Memuat riwayat kontak...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
+    </section>
 
-      <div id="connections-table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Penyelenggara</th>
-              <th>Tujuan / Catatan</th>
-              <th>Waktu Kontak</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="connections-tbody">
-            <tr>
-              <td colspan="4" style="text-align: center; color: var(--graphite);">Memuat koneksi...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
   </main>
 
-  <!-- Modal: Tambah Jadwal Baru -->
-  <div id="add-post-modal" class="modal-backdrop">
-    <div class="modal">
+  <!-- Modal: Buat Postingan Baru -->
+  <div id="modal-create-post" class="modal-backdrop">
+    <div class="modal" style="max-width: 540px;">
       <div class="modal__header">
-        <h3 class="modal__title">POSTING JADWAL BARU</h3>
-        <button class="modal__close" onclick="closeAddPostModal()">&times;</button>
+        <h3 class="modal__title">UNGGAH KARYA</h3>
+        <button class="modal__close" onclick="closeCreatePostModal()">&times;</button>
       </div>
-      <form id="add-post-form">
+      <form id="form-create-post">
         <div class="modal__body">
           <div class="form-group">
-            <label class="form-label" for="post-start-date">Tanggal Mulai Tersedia *</label>
-            <input type="date" id="post-start-date" class="form-control" required>
+            <label class="form-label" for="post-media-type">Format Media *</label>
+            <select id="post-media-type" class="form-control" required onchange="handleMediaTypeChange()">
+              <option value="photo">Foto Panggung</option>
+              <option value="video">Video Penampilan</option>
+            </select>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="post-end-date">Tanggal Selesai *</label>
-            <input type="date" id="post-end-date" class="form-control" required>
+
+          <div class="form-group" style="padding: 12px; background: var(--night-black); border-radius: var(--radius-sm); border: 1px dashed var(--surface-border);">
+            <label class="form-label" for="post-file-input">Pilih Berkas dari Perangkat</label>
+            <input type="file" id="post-file-input" class="form-control" accept="image/*,video/*">
+            <div id="post-upload-status" style="font-size: 0.82rem; margin-top: 6px; color: var(--neon-cyan);"></div>
           </div>
+
           <div class="form-group">
-            <label class="form-label" for="post-notes">Catatan Tambahan (Riders / Promo / Format Akustik)</label>
-            <textarea id="post-notes" class="form-control" placeholder="Contoh: Tersedia slot manggung kafe / festival area Bandung & Jakarta. Full band set 45 menit, bawa alat sendiri..."></textarea>
+            <label class="form-label" for="post-media-url">URL Media (Opsional)</label>
+            <input type="url" id="post-media-url" class="form-control" placeholder="https://... atau terisi otomatis saat memilih berkas" oninput="updateLivePreview()">
+            <div style="font-size: 0.78rem; color: var(--graphite); margin-top: 4px;">
+              Opsional jika berkas sudah dipilih dari perangkat, atau masukkan URL langsung.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="post-caption">Keterangan Karya</label>
+            <textarea id="post-caption" class="form-control" rows="3" placeholder="Tuliskan keterangan karya atau momen panggung..."></textarea>
+          </div>
+
+          <!-- Live Preview Box -->
+          <div id="post-preview-box" style="margin-top: 10px; display: none; text-align: center; background: #000; border-radius: var(--radius-sm); padding: 8px; border: 1px solid var(--surface-border);">
+            <div style="font-size: 0.72rem; color: var(--graphite); margin-bottom: 6px; text-transform: uppercase;">Pratinjau Media</div>
+            <img id="post-preview-img" src="" alt="Preview" style="max-height: 180px; max-width: 100%; object-fit: contain; border-radius: 4px;">
+            <audio id="post-preview-audio" controls style="width: 100%; display: none; margin-top: 6px;"></audio>
+            <video id="post-preview-video" controls style="max-height: 180px; max-width: 100%; display: none; border-radius: 4px;"></video>
           </div>
         </div>
         <div class="modal__footer">
-          <button type="button" class="btn btn--secondary" onclick="closeAddPostModal()">Batal</button>
-          <button type="submit" class="btn btn--primary">Publikasikan Jadwal</button>
+          <button type="button" class="btn btn--secondary" onclick="closeCreatePostModal()">Batal</button>
+          <button type="submit" id="btn-submit-post" class="btn btn--primary">
+            <span>Unggah Karya</span>
+          </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Modal: Edit Profil Band -->
-  <div id="edit-profile-modal" class="modal-backdrop">
-    <div class="modal" style="max-width: 650px;">
+  <!-- Modal: Detail & Performa Postingan -->
+  <div id="modal-post-detail" class="modal-backdrop">
+    <div class="modal" style="max-width: 580px;">
+      <div class="modal__header">
+        <h3 class="modal__title" id="detail-modal-title">DETAIL KARYA</h3>
+        <button class="modal__close" onclick="closePostDetailModal()">&times;</button>
+      </div>
+      <div class="modal__body">
+        <!-- Multi-slide Carousel for Band Dashboard -->
+        <div class="post-carousel" id="detail-carousel" style="margin-bottom: var(--space-md);">
+          <div class="post-carousel__track" id="detail-carousel-track">
+            <!-- Dynamically injected slide elements -->
+          </div>
+          <button type="button" class="post-carousel__btn post-carousel__btn--prev" id="detail-btn-prev" onclick="prevDetailSlide()" aria-label="Slide sebelumnya">&#10094;</button>
+          <button type="button" class="post-carousel__btn post-carousel__btn--next" id="detail-btn-next" onclick="nextDetailSlide()" aria-label="Slide berikutnya">&#10095;</button>
+          <div class="post-carousel__counter" id="detail-carousel-counter">1/1</div>
+          <div class="post-carousel__dots" id="detail-carousel-dots"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--surface-border);">
+          <div style="display: flex; gap: 14px; font-family: var(--font-mono); font-size: 0.95rem;">
+            <div><strong id="detail-views">0</strong> tayangan</div>
+            <div><strong id="detail-wa-clicks" style="color: var(--whatsapp-green);">0</strong> klik WhatsApp</div>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--graphite);" id="detail-date">-</div>
+        </div>
+
+        <p id="detail-caption" style="color: var(--chalk-white); font-size: 0.95rem; line-height: 1.5; margin-bottom: var(--space-lg); white-space: pre-wrap;"></p>
+      </div>
+      <div class="modal__footer" style="justify-content: space-between;">
+        <button type="button" class="btn btn--outline btn--sm" style="color: var(--electric-crimson); border-color: rgba(224, 30, 55, 0.4);" onclick="handleDeleteCurrentPost()">
+          <span>Hapus Karya</span>
+        </button>
+        <button type="button" class="btn btn--secondary btn--sm" onclick="closePostDetailModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Profil & Technical Rider -->
+  <div id="modal-edit-profile" class="modal-backdrop">
+    <div class="modal" style="max-width: 660px;">
       <div class="modal__header">
         <h3 class="modal__title">EDIT PROFIL BAND</h3>
         <button class="modal__close" onclick="closeEditProfileModal()">&times;</button>
       </div>
-      <form id="edit-profile-form">
+      <form id="form-edit-profile">
         <div class="modal__body">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
             <div class="form-group">
@@ -204,7 +307,18 @@
             </div>
             <div class="form-group">
               <label class="form-label" for="edit-genre">Genre Musik *</label>
-              <input type="text" id="edit-genre" class="form-control" placeholder="Cth: Indie Surf Rock" required>
+              <select id="edit-genre" class="form-control" required>
+                <option value="">Pilih Genre</option>
+                <option value="Indie">Indie / Alternative</option>
+                <option value="Rock">Rock / Surf Rock</option>
+                <option value="Folk">Folk / Akustik</option>
+                <option value="Dangdut">Dangdut Koplo Fusion</option>
+                <option value="Punk">Hardcore / Punk</option>
+                <option value="Jazz">Jazz / Neo-Soul</option>
+                <option value="Post-Rock">Post-Rock / Ambient</option>
+                <option value="Pop">Pop / Fusion</option>
+                <option value="Funk">Funk & Soul</option>
+              </select>
             </div>
           </div>
 
@@ -220,124 +334,73 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="edit-bio">Deskripsi / Bio Band</label>
-            <textarea id="edit-bio" class="form-control" placeholder="Ceritakan sejarah band, konsep musik, dan pengalaman manggung..."></textarea>
+            <label class="form-label" for="edit-bio">Deskripsi Band</label>
+            <textarea id="edit-bio" class="form-control" rows="3" placeholder="Tuliskan profil singkat, konsep musik, dan formasi personel..."></textarea>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
             <div class="form-group">
-              <label class="form-label" for="edit-budget-min">Budget Minimum (Rp)</label>
+              <label class="form-label" for="edit-budget-min">Tarif Minimum (Rp)</label>
               <input type="number" id="edit-budget-min" class="form-control" placeholder="3000000" step="500000">
             </div>
             <div class="form-group">
-              <label class="form-label" for="edit-budget-max">Budget Maksimum (Rp)</label>
+              <label class="form-label" for="edit-budget-max">Tarif Maksimum (Rp)</label>
               <input type="number" id="edit-budget-max" class="form-control" placeholder="7000000" step="500000">
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
-            <div class="form-group">
-              <label class="form-label" for="edit-phone">Nomor WhatsApp / HP *</label>
-              <input type="text" id="edit-phone" class="form-control" placeholder="+628123456789">
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="edit-instagram">Akun Instagram</label>
-              <input type="text" id="edit-instagram" class="form-control" placeholder="@namaband.music">
-            </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-phone">Nomor WhatsApp *</label>
+            <input type="text" id="edit-phone" class="form-control" placeholder="+628123456789" required>
+            <div style="font-size: 0.75rem; color: var(--graphite); margin-top: 2px;">Format nomor: +628... (nomor aktif untuk menerima kontak langsung dari penyelenggara acara)</div>
           </div>
 
-          <!-- Social Media & Streaming Platforms (Item 5) -->
+          <!-- Social Links -->
           <div style="margin-top: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--surface-border);">
             <h4 style="font-family: var(--font-display); font-size: 1.1rem; color: var(--chalk-white); margin-bottom: 8px;">
-              TAUTAN STREAMING & MEDIA SOSIAL
+              TAUTAN MEDIA
             </h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+              <div class="form-group">
+                <label class="form-label" for="edit-instagram">Akun Instagram</label>
+                <input type="text" id="edit-instagram" class="form-control" placeholder="@namaband.music">
+              </div>
               <div class="form-group">
                 <label class="form-label" for="edit-spotify">Spotify Artist URL</label>
                 <input type="url" id="edit-spotify" class="form-control" placeholder="https://open.spotify.com/artist/...">
               </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
               <div class="form-group">
                 <label class="form-label" for="edit-tiktok">Akun TikTok</label>
                 <input type="text" id="edit-tiktok" class="form-control" placeholder="@namaband">
               </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="edit-youtube">YouTube Channel / Video Demo URL</label>
-              <input type="url" id="edit-youtube" class="form-control" placeholder="https://youtube.com/watch?v=...">
+              <div class="form-group">
+                <label class="form-label" for="edit-youtube">YouTube Channel / Demo</label>
+                <input type="url" id="edit-youtube" class="form-control" placeholder="https://youtube.com/watch?v=...">
+              </div>
             </div>
           </div>
 
-          <!-- Kebutuhan Rider & Teknis (Item 4) -->
+          <!-- Technical Rider Specifications -->
           <div style="margin-top: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--surface-border);">
-            <h4 style="font-family: var(--font-display); font-size: 1.1rem; color: var(--amp-orange); margin-bottom: 8px;">
-              📋 KEBUTUHAN RIDER & TEKNIS
-            </h4>
-            <div class="form-group">
-              <label class="form-label" for="edit-rider-channels">Jumlah Input Audio Channel</label>
-              <input type="text" id="edit-rider-channels" class="form-control" placeholder="Cth: 12 Channel Input (2 Voc, 2 Guitar, 1 Bass, 7 Drum)">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h4 style="font-family: var(--font-display); font-size: 1.1rem; color: var(--amp-orange); margin-bottom: 0;">
+                RIDER TEKNIS
+              </h4>
+              <button type="button" class="btn btn--outline btn--sm" style="font-size: 0.78rem; padding: 4px 10px;" onclick="addRiderItemRow()">
+                <span>+ Tambah Kebutuhan Rider</span>
+              </button>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="edit-rider-sound">Kebutuhan Sound System (PA, Monitor, Mic)</label>
-              <textarea id="edit-rider-sound" class="form-control" style="min-height: 70px;" placeholder="Cth: FOH PA min 5.000 Watt, 3 Stage Monitor Aux, 2 Mic Shure SM58"></textarea>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="edit-rider-instruments">Instrumen Bawa Sendiri vs Disediakan Venue</label>
-              <textarea id="edit-rider-instruments" class="form-control" style="min-height: 70px;" placeholder="Cth: Bawa sendiri: Gitar, Bass, Cymbals. Venue sediakan: Drum kit & Backline amp"></textarea>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="edit-rider-hospitality">Kebutuhan Hospitality Dasar</label>
-              <textarea id="edit-rider-hospitality" class="form-control" style="min-height: 70px;" placeholder="Cth: Backstage ber-AC, air mineral botol 2 dus, makan 6 pax, 2 slot parkir mobil"></textarea>
-            </div>
+            <p style="font-size: 0.8rem; color: var(--graphite); margin-bottom: 12px;">
+              Tuliskan judul dan rincian kebutuhan teknis. Anda dapat menambah atau menghapus poin sesuai kebutuhan panggung band.
+            </p>
+            <div id="rider-items-editor-container"></div>
           </div>
         </div>
         <div class="modal__footer">
           <button type="button" class="btn btn--secondary" onclick="closeEditProfileModal()">Batal</button>
-          <button type="submit" class="btn btn--primary">Simpan Perubahan</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: Tambah Media / Foto Dokumentasi (Item 5) -->
-  <div id="add-media-modal" class="modal-backdrop">
-    <div class="modal" style="max-width: 550px;">
-      <div class="modal__header">
-        <h3 class="modal__title">TAMBAH MEDIA / DOKUMENTASI</h3>
-        <button class="modal__close" onclick="closeAddMediaModal()">&times;</button>
-      </div>
-      <form id="add-media-form">
-        <div class="modal__body">
-          <div class="form-group">
-            <label class="form-label" for="media-type">Tipe Media *</label>
-            <select id="media-type" class="form-control" required>
-              <option value="image">📸 Foto Dokumentasi Panggung</option>
-              <option value="audio">🎵 Sampel Audio Demo</option>
-              <option value="video">🎬 Video Penampilan Live</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="media-title">Judul / Keterangan Acara *</label>
-            <input type="text" id="media-title" class="form-control" placeholder="Cth: Live di Bandung Showcase 2026" required>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="media-url">URL File / Gambar *</label>
-            <input type="url" id="media-url" class="form-control" placeholder="https://images.unsplash.com/... atau /uploads/..." required>
-            <div style="font-size: 0.78rem; color: var(--graphite); margin-top: 4px;">
-              Bisa menggunakan URL gambar/audio langsung, atau unggah file di bawah:
-            </div>
-          </div>
-
-          <div class="form-group" style="padding: 10px; background: var(--night-black); border-radius: var(--radius-sm); border: 1px dashed var(--surface-border);">
-            <label class="form-label" for="media-file-input">Unggah File Langsung (Opsional)</label>
-            <input type="file" id="media-file-input" class="form-control" accept="image/*,audio/*,video/*">
-            <div id="upload-status" style="font-size: 0.8rem; margin-top: 4px; color: var(--neon-cyan);"></div>
-          </div>
-        </div>
-        <div class="modal__footer">
-          <button type="button" class="btn btn--secondary" onclick="closeAddMediaModal()">Batal</button>
-          <button type="submit" class="btn btn--primary">Simpan Media</button>
+          <button type="submit" id="btn-submit-profile" class="btn btn--primary">Simpan Perubahan</button>
         </div>
       </form>
     </div>
@@ -346,8 +409,8 @@
   <!-- Footer -->
   <footer class="footer">
     <div class="container footer__bottom">
-      <div>© 2026 Panggung Lokal. Portal Manajemen Musisi Independen.</div>
-      <a href="/" style="color: var(--neon-cyan);">Kembali ke Beranda</a>
+      <div>© 2026 Panggung Lokal.</div>
+      <a href="/" style="color: var(--neon-cyan);">Beranda</a>
     </div>
   </footer>
 
@@ -355,130 +418,529 @@
   <script src="/js/utils.js"></script>
   <script src="/js/api.js"></script>
   <script>
-    let bandData = null;
+    let dashboardState = {
+      profile: null,
+      stats: null,
+      posts: [],
+      recentConnections: [],
+      activePostDetail: null
+    };
 
-    async function initDashboard() {
+    async function initBandDashboard() {
       if (!AuthManager.isAuthenticated()) {
-        showToast('Silakan login terlebih dahulu', 'error');
+        showToast('Silakan masuk terlebih dahulu', 'error');
         setTimeout(() => window.location.href = '/login.html', 1000);
         return;
       }
 
       if (!AuthManager.isBand()) {
-        showToast('Halaman ini khusus untuk musisi/band', 'error');
-        setTimeout(() => window.location.href = '/dashboard-organizer.html', 1000);
+        showToast('Halaman dashboard khusus untuk akun musisi/band', 'error');
+        setTimeout(() => window.location.href = '/search.html', 1200);
         return;
       }
 
       try {
         const res = await apiGetBandDashboard();
         if (res.success && res.data) {
-          bandData = res.data;
-          renderDashboard(bandData);
+          dashboardState.profile = res.data.profile;
+          dashboardState.stats = res.data.stats;
+          dashboardState.posts = res.data.posts || [];
+          dashboardState.recentConnections = res.data.recentConnections || [];
+          
+          renderDashboardHeader();
+          renderFeedGrid();
+          renderInsights();
+          renderConnections();
         } else {
-          showToast(res.message || 'Gagal memuat dashboard', 'error');
+          showToast(res.message || 'Gagal memuat data dashboard', 'error');
         }
       } catch (err) {
-        console.error('Error:', err);
-        showToast('Gagal memuat data dashboard', 'error');
+        console.error('Error loading dashboard:', err);
+        showToast('Terjadi kesalahan memuat dashboard', 'error');
       }
     }
 
-    function renderDashboard(data) {
-      const profile = data.profile;
-      document.getElementById('dash-band-name').textContent = profile.bandName;
-      document.getElementById('dash-band-meta').textContent = `${profile.genre} • ${profile.locationCity} • Terdaftar sejak ${formatIndonesianDate(profile.createdAt)}`;
+    function renderDashboardHeader() {
+      const p = dashboardState.profile;
+      const s = dashboardState.stats;
+      if (!p) return;
 
-      // Metrics
-      document.getElementById('metric-views').textContent = data.stats.profileViews;
-      document.getElementById('metric-connections').textContent = data.stats.totalConnections;
-      document.getElementById('metric-posts').textContent = data.stats.activePostsCount;
+      document.getElementById('dash-band-name').textContent = p.bandName;
+      document.getElementById('dash-band-genre').textContent = p.genre || 'Musisi';
+      document.getElementById('dash-band-location').textContent = `📍 ${p.locationCity || 'Indonesia'}${p.locationRegion ? ', ' + p.locationRegion : ''} • Terdaftar sejak ${formatIndonesianDate(p.createdAt)}`;
+      document.getElementById('dash-band-bio').textContent = p.bio || 'Musisi independen lokal siap meramaikan berbagai panggung acara.';
 
-      // Posts Table
-      const postsTbody = document.getElementById('posts-tbody');
-      if (data.activePosts && data.activePosts.length > 0) {
-        postsTbody.innerHTML = data.activePosts.map(post => `
-          <tr>
-            <td style="font-family: var(--font-mono); color: var(--amp-orange); font-weight: 700;">
-              ${formatIndonesianDate(post.start_date)} - ${formatIndonesianDate(post.end_date)}
-            </td>
-            <td style="color: var(--chalk-white);">${post.notes || '-'}</td>
-            <td><span class="badge badge--available">Aktif</span></td>
-            <td>
-              <button class="btn btn--outline btn--sm" style="color: var(--electric-crimson); border-color: rgba(224,30,55,0.4);" onclick="deletePost(${post.id})">
-                Hapus
-              </button>
-            </td>
-          </tr>
-        `).join('');
+      // WhatsApp link & pill
+      const phoneClean = typeof formatWhatsAppNumber === 'function' ? formatWhatsAppNumber(p.phone) : (p.phone || '').replace(/[^0-9]/g, '');
+      const waLinkEl = document.getElementById('dash-wa-link');
+      const waTextEl = document.getElementById('dash-wa-text');
+      if (phoneClean) {
+        const waMsg = encodeURIComponent(`Halo ${p.bandName}, kami tertarik mengundang kalian tampil di panggung kami.`);
+        waLinkEl.href = `https://wa.me/${phoneClean}?text=${waMsg}`;
+        waTextEl.textContent = `WhatsApp: ${p.phone}`;
       } else {
-        postsTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--graphite); padding: 20px;">Belum ada jadwal aktif. Klik "+ Posting Jadwal Baru" untuk menambahkan tanggal manggung kosong.</td></tr>';
+        waLinkEl.href = 'javascript:void(0)';
+        waTextEl.textContent = 'WhatsApp belum diatur';
       }
 
-      // Media / Stage Documentation Table (Item 5)
-      const mediaTbody = document.getElementById('media-tbody');
-      if (data.mediaFiles && data.mediaFiles.length > 0) {
-        mediaTbody.innerHTML = data.mediaFiles.map(m => {
-          let typeBadge = '<span class="badge" style="background: rgba(0,217,255,0.15); color: var(--neon-cyan);">📸 FOTO</span>';
-          if (m.file_type === 'audio') typeBadge = '<span class="badge" style="background: rgba(255,107,53,0.15); color: var(--amp-orange);">🎵 AUDIO</span>';
-          if (m.file_type === 'video') typeBadge = '<span class="badge" style="background: rgba(224,30,55,0.15); color: var(--electric-crimson);">🎬 VIDEO</span>';
+      // Public preview button
+      document.getElementById('btn-public-preview').href = `/profile.html?id=${p.id}`;
 
-          return `
-            <tr>
-              <td>${typeBadge}</td>
-              <td style="font-weight: 600; color: var(--chalk-white);">${m.title || 'Dokumentasi Band'}</td>
-              <td>
-                <a href="${m.file_url}" target="_blank" rel="noopener" style="color: var(--neon-cyan); font-size: 0.85rem; text-decoration: underline;">
-                  Buka File Media ↗
-                </a>
-              </td>
-              <td>
-                <button class="btn btn--outline btn--sm" style="color: var(--electric-crimson); border-color: rgba(224,30,55,0.4);" onclick="deleteMedia(${m.id})">
-                  Hapus
+      // Avatar
+      if (p.profilePhotoUrl) {
+        document.getElementById('dash-avatar').src = p.profilePhotoUrl;
+      }
+
+      // Stats
+      const totalPosts = s ? s.totalPosts : dashboardState.posts.length;
+      const totalViews = s ? s.totalViews : 0;
+      const totalWaClicks = s ? s.totalWaClicks : 0;
+
+      document.getElementById('stat-posts').textContent = totalPosts;
+      document.getElementById('stat-views').textContent = totalViews;
+      document.getElementById('stat-wa-clicks').textContent = totalWaClicks;
+
+      // KPIs in Insights
+      document.getElementById('kpi-total-views').textContent = totalViews;
+      document.getElementById('kpi-total-wa').textContent = totalWaClicks;
+      const convRate = totalViews > 0 ? ((totalWaClicks / totalViews) * 100).toFixed(1) + '%' : '0%';
+      document.getElementById('kpi-conversion-rate').textContent = convRate;
+    }
+
+    function renderFeedGrid() {
+      const grid = document.getElementById('posts-grid');
+      const emptyState = document.getElementById('posts-empty-state');
+      const posts = dashboardState.posts;
+
+      if (!posts || posts.length === 0) {
+        grid.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      grid.style.display = 'grid';
+      emptyState.style.display = 'none';
+
+      grid.innerHTML = posts.map((post, idx) => {
+        const staggerDelay = (idx * 0.02).toFixed(3);
+        const slides = Array.isArray(post.slides) && post.slides.length > 0
+          ? post.slides
+          : [{ type: post.mediaType || 'photo', url: post.mediaUrl }];
+
+        let badgeIcon = '';
+        if (slides.length > 1) {
+          badgeIcon = `<span class="ig-grid__badge">📑 ${slides.length}</span>`;
+        } else if (slides[0]?.type === 'video' || post.mediaType === 'video') {
+          badgeIcon = '<span class="ig-grid__badge">🎬 VIDEO</span>';
+        } else if (slides[0]?.type === 'audio' || post.mediaType === 'audio') {
+          badgeIcon = '<span class="ig-grid__badge">🎵 AUDIO</span>';
+        }
+
+        const thumb = post.thumbnailUrl || (slides[0] && slides[0].url) || post.mediaUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500';
+
+        return `
+          <div class="ig-grid__item" style="animation-delay: ${staggerDelay}s;" onclick="openPostDetailModalById(${post.id})" role="button" tabindex="0" aria-label="Lihat detail karya">
+            <img src="${thumb}" alt="${escapeHtml(post.caption || 'Portofolio')}" class="ig-grid__thumb" loading="lazy">
+            ${badgeIcon}
+            <div class="ig-grid__overlay">
+              <div class="ig-grid__stats">
+                <span>👁️ ${post.viewsCount || 0}</span>
+                <span style="color: var(--whatsapp-green);">💬 ${post.waClicksCount || 0}</span>
+              </div>
+              <div class="ig-grid__caption-preview">
+                ${escapeHtml(post.caption || 'Karya band')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderInsights() {
+      const list = document.getElementById('insights-list');
+      const posts = dashboardState.posts;
+
+      if (!posts || posts.length === 0) {
+        list.innerHTML = `
+          <div style="text-align: center; color: var(--graphite); padding: 30px; background: var(--surface-card); border-radius: var(--radius-md);">
+            Belum ada data statistik. Unggah karya untuk melihat tayangan dan klik WhatsApp.
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = posts.map((post, idx) => {
+        const staggerDelay = (idx * 0.02).toFixed(3);
+        const thumb = post.thumbnailUrl || post.mediaUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200';
+        const views = post.viewsCount || 0;
+        const waClicks = post.waClicksCount || 0;
+        const rate = views > 0 ? ((waClicks / views) * 100).toFixed(1) + '%' : '0%';
+
+        let typeText = 'Foto Panggung';
+        if (post.mediaType === 'video') typeText = 'Video Penampilan';
+        if (post.mediaType === 'audio') typeText = 'Sampel Audio';
+
+        return `
+          <div class="ig-insight-card" style="animation-delay: ${staggerDelay}s;">
+            <div style="display: flex; gap: 14px; align-items: center; width: 100%; flex-wrap: wrap;">
+              <img src="${thumb}" alt="Post thumbnail" class="ig-insight-thumb">
+              
+              <div class="ig-insight-info">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+                  <span class="badge" style="background: rgba(255,255,255,0.06); font-size: 0.7rem; color: var(--chalk-white);">${typeText}</span>
+                  <span style="font-size: 0.78rem; color: var(--graphite);">${formatIndonesianDate(post.createdAt)}</span>
+                </div>
+                <div style="font-size: 0.9rem; color: var(--chalk-white); font-weight: 500; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 380px;">
+                  ${escapeHtml(post.caption || 'Karya tanpa keterangan')}
+                </div>
+                <div class="ig-insight-metrics">
+                  <div class="ig-metric-badge">
+                    <span class="ig-metric-badge__label">Tayangan</span>
+                    <span class="ig-metric-badge__value">${views}</span>
+                  </div>
+                  <div class="ig-metric-badge">
+                    <span class="ig-metric-badge__label">Klik WhatsApp</span>
+                    <span class="ig-metric-badge__value" style="color: var(--whatsapp-green);">${waClicks}</span>
+                  </div>
+                  <div class="ig-metric-badge">
+                    <span class="ig-metric-badge__label">Rasio Klik</span>
+                    <span class="ig-metric-badge__value" style="color: var(--amp-orange);">${rate}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 8px; align-items: center; margin-left: auto; flex-wrap: wrap;">
+                <button class="btn btn--outline btn--sm" style="font-size: 0.78rem; padding: 6px 10px;" onclick="openPostDetailModalById(${post.id})">
+                  <span>Lihat Detail</span>
                 </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      } else {
-        mediaTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--graphite); padding: 20px;">Belum ada foto dokumentasi panggung atau sampel audio. Tambahkan media agar penyelenggara lebih yakin!</td></tr>';
-      }
+                <button class="btn btn--outline btn--sm" style="font-size: 0.78rem; padding: 6px 10px; color: var(--electric-crimson); border-color: rgba(224,30,55,0.4);" onclick="deletePost(${post.id})">
+                  <span>Hapus</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
-      // Connections Table
-      const connTbody = document.getElementById('connections-tbody');
-      if (data.recentConnections && data.recentConnections.length > 0) {
-        connTbody.innerHTML = data.recentConnections.map(c => `
+    function renderConnections() {
+      const tbody = document.getElementById('connections-tbody');
+      const conns = dashboardState.recentConnections;
+
+      if (!conns || conns.length === 0) {
+        tbody.innerHTML = `
           <tr>
-            <td style="font-weight: 600; color: var(--chalk-white);">${c.organizerEmail || 'Penyelenggara Acara'}</td>
-            <td style="color: var(--graphite);">${c.notes || 'Melihat nomor kontak'}</td>
-            <td style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--graphite);">${formatIndonesianDate(c.createdAt)}</td>
-            <td><span class="badge" style="background: rgba(37,211,102,0.15); color: var(--whatsapp-green);">Terhubung</span></td>
+            <td colspan="4" style="text-align: center; color: var(--graphite); padding: 24px;">
+              Belum ada riwayat klik kontak.
+            </td>
           </tr>
-        `).join('');
+        `;
+        return;
+      }
+
+      tbody.innerHTML = conns.map((c, idx) => `
+        <tr style="animation: cascadeEnter var(--spring-duration) var(--spring-easing) both; animation-delay: ${(idx * 0.02).toFixed(3)}s;">
+          <td style="font-weight: 600; color: var(--chalk-white);">${escapeHtml(c.organizerEmail || 'Penyelenggara Acara')}</td>
+          <td style="color: var(--graphite);">${escapeHtml(c.notes || 'Membuka kontak WhatsApp')}</td>
+          <td style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--graphite);">${formatIndonesianDate(c.createdAt)}</td>
+          <td><span class="badge" style="background: rgba(37,211,102,0.15); color: var(--whatsapp-green);">Terhubung</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function switchDashboardTab(tabName) {
+      const feedBtn = document.getElementById('tab-btn-feed');
+      const insightsBtn = document.getElementById('tab-btn-insights');
+      const feedPanel = document.getElementById('panel-feed');
+      const insightsPanel = document.getElementById('panel-insights');
+
+      if (tabName === 'feed') {
+        feedBtn.classList.add('active');
+        feedBtn.setAttribute('aria-selected', 'true');
+        insightsBtn.classList.remove('active');
+        insightsBtn.setAttribute('aria-selected', 'false');
+
+        feedPanel.style.display = 'block';
+        insightsPanel.style.display = 'none';
       } else {
-        connTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--graphite); padding: 20px;">Belum ada penyelenggara yang membuka kontak. Pastikan jadwalmu selalu terbarui agar mudah ditemukan!</td></tr>';
+        insightsBtn.classList.add('active');
+        insightsBtn.setAttribute('aria-selected', 'true');
+        feedBtn.classList.remove('active');
+        feedBtn.setAttribute('aria-selected', 'false');
+
+        insightsPanel.style.display = 'block';
+        feedPanel.style.display = 'none';
       }
     }
 
-    function openAddPostModal() {
-      document.getElementById('add-post-modal').classList.add('active');
+    // Modal: Create Post
+    function openCreatePostModal() {
+      document.getElementById('modal-create-post').classList.add('active');
+      handleMediaTypeChange();
     }
 
-    function closeAddPostModal() {
-      document.getElementById('add-post-modal').classList.remove('active');
+    function closeCreatePostModal() {
+      document.getElementById('modal-create-post').classList.remove('active');
+      document.getElementById('form-create-post').reset();
+      document.getElementById('post-upload-status').textContent = '';
+      document.getElementById('post-preview-box').style.display = 'none';
+      const previewImg = document.getElementById('post-preview-img');
+      const previewAudio = document.getElementById('post-preview-audio');
+      const previewVideo = document.getElementById('post-preview-video');
+      if (previewImg) previewImg.src = '';
+      if (previewAudio) previewAudio.src = '';
+      if (previewVideo) previewVideo.src = '';
     }
 
-    function openAddMediaModal() {
-      document.getElementById('add-media-modal').classList.add('active');
+    function handleMediaTypeChange() {
+      const type = document.getElementById('post-media-type').value;
+      const input = document.getElementById('post-file-input');
+      if (type === 'photo') input.accept = 'image/*';
+      else if (type === 'audio') input.accept = 'audio/*';
+      else if (type === 'video') input.accept = 'video/*';
+      updateLivePreview();
     }
 
-    function closeAddMediaModal() {
-      document.getElementById('add-media-modal').classList.remove('active');
+    function updateLivePreview() {
+      const type = document.getElementById('post-media-type').value;
+      const url = document.getElementById('post-media-url').value.trim();
+      const previewBox = document.getElementById('post-preview-box');
+      const previewImg = document.getElementById('post-preview-img');
+      const previewAudio = document.getElementById('post-preview-audio');
+      const previewVideo = document.getElementById('post-preview-video');
+
+      if (!url) {
+        previewBox.style.display = 'none';
+        return;
+      }
+
+      previewBox.style.display = 'block';
+      previewImg.style.display = 'none';
+      previewAudio.style.display = 'none';
+      previewVideo.style.display = 'none';
+
+      if (type === 'photo') {
+        previewImg.src = url;
+        previewImg.style.display = 'inline-block';
+      } else if (type === 'audio') {
+        previewAudio.src = url;
+        previewAudio.style.display = 'inline-block';
+      } else if (type === 'video') {
+        previewVideo.src = url;
+        previewVideo.style.display = 'inline-block';
+      }
+    }
+
+    // Modal: Detail Post (Carousel)
+    let detailActiveSlideIndex = 0;
+
+    function openPostDetailModalById(postId) {
+      const post = dashboardState.posts.find(p => p.id === postId);
+      if (!post) return;
+      dashboardState.activePostDetail = post;
+      detailActiveSlideIndex = 0;
+
+      const slides = Array.isArray(post.slides) && post.slides.length > 0
+        ? post.slides
+        : [{ type: post.mediaType || 'photo', url: post.mediaUrl }];
+
+      const isVideo = slides[0]?.type === 'video' || post.mediaType === 'video';
+      document.getElementById('detail-modal-title').textContent = 
+        isVideo ? 'VIDEO PENAMPILAN' :
+        (slides[0]?.type === 'audio' || post.mediaType === 'audio') ? 'SAMPEL AUDIO' : 'FOTO PANGGUNG';
+
+      const trackEl = document.getElementById('detail-carousel-track');
+      trackEl.innerHTML = slides.map((slide, sIdx) => {
+        if (slide.type === 'video') {
+          return `
+            <div class="post-carousel__slide" data-slide-index="${sIdx}">
+              <video controls playsinline preload="metadata" src="${escapeHtml(slide.url)}" style="max-height: 380px; width: 100%; object-fit: contain;"></video>
+            </div>
+          `;
+        }
+        if (slide.type === 'audio') {
+          return `
+            <div class="post-carousel__slide" data-slide-index="${sIdx}">
+              <div class="carousel-audio-wrapper">
+                <div style="font-size: 3rem; margin-bottom: 10px;">🎵</div>
+                <audio controls src="${escapeHtml(slide.url)}" style="width: 100%; max-width: 360px;"></audio>
+              </div>
+            </div>
+          `;
+        }
+        return `
+          <div class="post-carousel__slide" data-slide-index="${sIdx}">
+            <img src="${escapeHtml(slide.url)}" alt="Slide ${sIdx + 1}" style="max-height: 380px; max-width: 100%; object-fit: contain;">
+          </div>
+        `;
+      }).join('');
+
+      const dotsEl = document.getElementById('detail-carousel-dots');
+      if (slides.length > 1) {
+        dotsEl.innerHTML = slides.map((_, sIdx) => `
+          <div class="post-carousel__dot ${sIdx === 0 ? 'active' : ''}"></div>
+        `).join('');
+        dotsEl.style.display = 'flex';
+      } else {
+        dotsEl.innerHTML = '';
+        dotsEl.style.display = 'none';
+      }
+
+      updateDetailCarouselState();
+
+      document.getElementById('detail-views').textContent = post.viewsCount || 0;
+      document.getElementById('detail-wa-clicks').textContent = post.waClicksCount || 0;
+      document.getElementById('detail-date').textContent = formatIndonesianDate(post.createdAt);
+      document.getElementById('detail-caption').textContent = post.caption || 'Tanpa keterangan.';
+
+      document.getElementById('modal-post-detail').classList.add('active');
+    }
+
+    function updateDetailCarouselState() {
+      const post = dashboardState.activePostDetail;
+      if (!post) return;
+      const slides = Array.isArray(post.slides) && post.slides.length > 0
+        ? post.slides
+        : [{ type: post.mediaType || 'photo', url: post.mediaUrl }];
+
+      const trackEl = document.getElementById('detail-carousel-track');
+      if (trackEl) {
+        trackEl.style.transform = `translateX(-${detailActiveSlideIndex * 100}%)`;
+      }
+
+      const counterEl = document.getElementById('detail-carousel-counter');
+      if (counterEl) {
+        if (slides.length > 1) {
+          counterEl.textContent = `${detailActiveSlideIndex + 1}/${slides.length}`;
+          counterEl.style.display = 'block';
+        } else {
+          counterEl.style.display = 'none';
+        }
+      }
+
+      const prevBtn = document.getElementById('detail-btn-prev');
+      const nextBtn = document.getElementById('detail-btn-next');
+      if (prevBtn && nextBtn) {
+        if (slides.length > 1) {
+          prevBtn.hidden = detailActiveSlideIndex === 0;
+          nextBtn.hidden = detailActiveSlideIndex === slides.length - 1;
+        } else {
+          prevBtn.hidden = true;
+          nextBtn.hidden = true;
+        }
+      }
+
+      const dots = document.querySelectorAll('#detail-carousel-dots .post-carousel__dot');
+      dots.forEach((dot, dIdx) => {
+        dot.classList.toggle('active', dIdx === detailActiveSlideIndex);
+      });
+
+      const videos = document.querySelectorAll('#detail-carousel-track video');
+      videos.forEach((vid, vIdx) => {
+        if (vIdx !== detailActiveSlideIndex && !vid.paused) {
+          vid.pause();
+        }
+      });
+    }
+
+    function nextDetailSlide() {
+      const post = dashboardState.activePostDetail;
+      if (!post) return;
+      const slides = Array.isArray(post.slides) ? post.slides : [1];
+      if (detailActiveSlideIndex < slides.length - 1) {
+        detailActiveSlideIndex++;
+        updateDetailCarouselState();
+      }
+    }
+
+    function prevDetailSlide() {
+      if (detailActiveSlideIndex > 0) {
+        detailActiveSlideIndex--;
+        updateDetailCarouselState();
+      }
+    }
+
+    function closePostDetailModal() {
+      document.getElementById('modal-post-detail').classList.remove('active');
+      dashboardState.activePostDetail = null;
+      const videos = document.querySelectorAll('#detail-carousel-track video');
+      videos.forEach(vid => vid.pause());
+      const trackEl = document.getElementById('detail-carousel-track');
+      if (trackEl) trackEl.innerHTML = '';
+    }
+
+    async function handleDetailWaClick() {
+      const post = dashboardState.activePostDetail;
+      if (!post) return;
+
+      try {
+        await apiTrackPostWaClick(post.id);
+        post.waClicksCount = (post.waClicksCount || 0) + 1;
+        document.getElementById('detail-wa-clicks').textContent = post.waClicksCount;
+
+        // Open WhatsApp chat in new window
+        const p = dashboardState.profile;
+        if (p && p.phone) {
+          const phoneClean = p.phone.replace(/[^0-9]/g, '');
+          const waMsg = encodeURIComponent(`Halo ${p.bandName}, saya melihat karya postingan kalian dan tertarik mengajak manggung.`);
+          window.open(`https://wa.me/${phoneClean}?text=${waMsg}`, '_blank', 'noopener');
+        }
+        showToast('Klik WhatsApp dicatat', 'success');
+        initBandDashboard();
+      } catch (e) {
+        console.error('Error tracking WA click:', e);
+      }
+    }
+
+    async function handleDeleteCurrentPost() {
+      const post = dashboardState.activePostDetail;
+      if (!post) return;
+      await deletePost(post.id);
+      closePostDetailModal();
+    }
+
+    async function deletePost(postId) {
+      if (!confirm('Hapus berkas karya ini?')) return;
+      try {
+        const res = await apiDeleteBandPost(postId);
+        if (res.success) {
+          showToast('Karya berhasil dihapus', 'success');
+          initBandDashboard();
+        } else {
+          showToast(res.message || 'Gagal menghapus postingan', 'error');
+        }
+      } catch (err) {
+        showToast('Terjadi kesalahan saat menghapus', 'error');
+      }
+    }
+
+    // Modal: Edit Profile & Dynamic Rider
+    function addRiderItemRow(title = '', desc = '') {
+      const container = document.getElementById('rider-items-editor-container');
+      if (!container) return;
+      const card = document.createElement('div');
+      card.className = 'rider-editor-card';
+      card.innerHTML = `
+        <div class="rider-editor-header">
+          <span class="rider-editor-title-label">Item Kebutuhan Panggung</span>
+          <button type="button" class="rider-delete-btn" onclick="this.closest('.rider-editor-card').remove()" title="Hapus item rider" aria-label="Hapus item rider">&times; Hapus</button>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <label style="font-size: 0.78rem; color: var(--graphite); display: block; margin-bottom: 3px;">Judul Kebutuhan</label>
+          <input type="text" class="form-control rider-title-input" value="${escapeHtml(title)}" placeholder="Cth: Input Audio Channel / Tata Panggung / Monitor Aux">
+        </div>
+        <div>
+          <label style="font-size: 0.78rem; color: var(--graphite); display: block; margin-bottom: 3px;">Rincian &amp; Deskripsi Teknis</label>
+          <textarea class="form-control rider-desc-input" rows="2" placeholder="Cth: Minimal 12 channel input, 2 Mic Shure SM58, 3 monitor aux panggung...">${escapeHtml(desc)}</textarea>
+        </div>
+      `;
+      container.appendChild(card);
     }
 
     function openEditProfileModal() {
-      if (!bandData || !bandData.profile) return;
-      const p = bandData.profile;
+      const p = dashboardState.profile;
+      if (!p) return;
+
       document.getElementById('edit-band-name').value = p.bandName || '';
       document.getElementById('edit-genre').value = p.genre || '';
       document.getElementById('edit-city').value = p.locationCity || '';
@@ -492,124 +954,53 @@
       document.getElementById('edit-spotify').value = p.spotifyUrl || '';
       document.getElementById('edit-tiktok').value = p.tiktokUrl || '';
 
-      // Rider fields
-      document.getElementById('edit-rider-channels').value = p.riderChannelInputs || '';
-      document.getElementById('edit-rider-sound').value = p.riderSoundSystem || '';
-      document.getElementById('edit-rider-instruments').value = p.riderInstruments || '';
-      document.getElementById('edit-rider-hospitality').value = p.riderHospitality || '';
+      // Populate rider items
+      const riderContainer = document.getElementById('rider-items-editor-container');
+      riderContainer.innerHTML = '';
+      let items = [];
+      if (Array.isArray(p.riderItems) && p.riderItems.length > 0) {
+        items = p.riderItems;
+      } else if (p.riderChannelInputs || p.riderSoundSystem || p.riderInstruments || p.riderHospitality) {
+        if (p.riderChannelInputs) items.push({ title: 'Input Audio Channel', description: p.riderChannelInputs });
+        if (p.riderSoundSystem) items.push({ title: 'Kebutuhan Sound System', description: p.riderSoundSystem });
+        if (p.riderInstruments) items.push({ title: 'Instrumen Panggung', description: p.riderInstruments });
+        if (p.riderHospitality) items.push({ title: 'Hospitality Dasar', description: p.riderHospitality });
+      }
 
-      document.getElementById('edit-profile-modal').classList.add('active');
+      if (items.length === 0) {
+        // Default examples inside the box
+        addRiderItemRow('Input Audio Channel', 'Cth: Minimal 12 channel (2 Voc, 2 Guitar, 1 Bass, 7 Drum)');
+        addRiderItemRow('Kebutuhan Sound System', 'Cth: FOH PA min 5.000 Watt, 3 Stage Monitor Aux, 2 Mic Shure SM58');
+      } else {
+        items.forEach(it => addRiderItemRow(it.title, it.description));
+      }
+
+      document.getElementById('modal-edit-profile').classList.add('active');
     }
 
     function closeEditProfileModal() {
-      document.getElementById('edit-profile-modal').classList.remove('active');
+      document.getElementById('modal-edit-profile').classList.remove('active');
     }
 
-    async function deleteMedia(id) {
-      if (!confirm('Hapus media ini dari profil band Anda?')) return;
-      try {
-        const res = await apiDeleteBandMedia(id);
-        if (res.success) {
-          showToast('Media berhasil dihapus', 'success');
-          initDashboard();
-        } else {
-          showToast(res.message || 'Gagal menghapus media', 'error');
-        }
-      } catch (e) {
-        showToast('Terjadi kesalahan saat menghapus media', 'error');
-      }
-    }
-
-    async function deletePost(id) {
-      if (!confirm('Yakin ingin menghapus jadwal ketersediaan ini?')) return;
-      try {
-        const res = await apiDeleteAvailability(id);
-        if (res.success) {
-          showToast('Jadwal ketersediaan berhasil dihapus', 'success');
-          initDashboard();
-        } else {
-          showToast(res.message || 'Gagal menghapus jadwal', 'error');
-        }
-      } catch (e) {
-        showToast('Terjadi kesalahan saat menghapus', 'error');
-      }
-    }
-
+    // Document Ready Event Listeners
     document.addEventListener('DOMContentLoaded', () => {
-      initDashboard();
+      initBandDashboard();
 
-      // Handle add post
-      document.getElementById('add-post-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const startDate = document.getElementById('post-start-date').value;
-        const endDate = document.getElementById('post-end-date').value;
-        const notes = document.getElementById('post-notes').value;
-
-        if (new Date(endDate) < new Date(startDate)) {
-          showToast('Tanggal selesai tidak boleh sebelum tanggal mulai', 'error');
-          return;
-        }
-
-        try {
-          const res = await apiCreateAvailability(startDate, endDate, notes);
-          if (res.success) {
-            showToast('Jadwal berhasil dipublikasikan!', 'success');
-            closeAddPostModal();
-            document.getElementById('add-post-form').reset();
-            initDashboard();
-          } else {
-            showToast(res.message || 'Gagal memposting jadwal', 'error');
-          }
-        } catch (err) {
-          showToast('Terjadi kesalahan', 'error');
-        }
-      });
-
-      // Handle edit profile
-      document.getElementById('edit-profile-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const profilePayload = {
-          bandName: document.getElementById('edit-band-name').value,
-          genre: document.getElementById('edit-genre').value,
-          locationCity: document.getElementById('edit-city').value,
-          locationRegion: document.getElementById('edit-region').value,
-          bio: document.getElementById('edit-bio').value,
-          budgetMin: document.getElementById('edit-budget-min').value,
-          budgetMax: document.getElementById('edit-budget-max').value,
-          phone: document.getElementById('edit-phone').value,
-          instagramHandle: document.getElementById('edit-instagram').value,
-          youtubeUrl: document.getElementById('edit-youtube').value,
-          spotifyUrl: document.getElementById('edit-spotify').value,
-          tiktokUrl: document.getElementById('edit-tiktok').value,
-          riderChannelInputs: document.getElementById('edit-rider-channels').value,
-          riderSoundSystem: document.getElementById('edit-rider-sound').value,
-          riderInstruments: document.getElementById('edit-rider-instruments').value,
-          riderHospitality: document.getElementById('edit-rider-hospitality').value
-        };
-
-        try {
-          const res = await apiUpdateBandProfile(profilePayload);
-          if (res.success) {
-            showToast('Profil band berhasil diperbarui!', 'success');
-            closeEditProfileModal();
-            initDashboard();
-          } else {
-            showToast(res.message || 'Gagal menyimpan profil', 'error');
-          }
-        } catch (err) {
-          showToast('Terjadi kesalahan', 'error');
-        }
-      });
-
-      // Handle media file upload
-      const fileInput = document.getElementById('media-file-input');
-      if (fileInput) {
-        fileInput.addEventListener('change', async (e) => {
+      // File upload handler in create post
+      const postFileInput = document.getElementById('post-file-input');
+      if (postFileInput) {
+        postFileInput.addEventListener('change', async (e) => {
           const file = e.target.files[0];
           if (!file) return;
 
-          const statusEl = document.getElementById('upload-status');
-          statusEl.textContent = 'Mengunggah file...';
+          const statusEl = document.getElementById('post-upload-status');
+          statusEl.textContent = '⏳ Mengunggah media ke server...';
+
+          const submitBtn = document.getElementById('btn-submit-post');
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>⏳ Mengunggah Media...</span>';
+          }
 
           const formData = new FormData();
           const isPhoto = file.type.startsWith('image/');
@@ -624,45 +1015,134 @@
             });
             const data = await res.json();
             if (data.success && data.fileUrl) {
-              document.getElementById('media-url').value = window.location.origin + data.fileUrl;
-              statusEl.textContent = '✅ File berhasil diunggah!';
+              const fullUrl = window.location.origin + data.fileUrl;
+              document.getElementById('post-media-url').value = fullUrl;
+              statusEl.textContent = '✅ Berhasil diunggah!';
+              updateLivePreview();
             } else {
               statusEl.textContent = '⚠️ ' + (data.message || 'Gagal mengunggah file');
             }
           } catch (err) {
             statusEl.textContent = '⚠️ Terjadi kesalahan saat mengunggah';
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<span>Unggah Karya</span>';
+            }
           }
         });
       }
 
-      // Handle add media form
-      document.getElementById('add-media-form').addEventListener('submit', async (e) => {
+      // Handle submit create post
+      document.getElementById('form-create-post').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const fileType = document.getElementById('media-type').value;
-        const title = document.getElementById('media-title').value.trim();
-        const fileUrl = document.getElementById('media-url').value.trim();
+        const mediaType = document.getElementById('post-media-type').value;
+        const mediaUrl = document.getElementById('post-media-url').value.trim();
+        const caption = document.getElementById('post-caption').value.trim();
 
-        if (!fileUrl) {
-          showToast('Harap masukkan URL media atau unggah file', 'error');
+        if (!mediaUrl) {
+          showToast('Harap pilih berkas dari perangkat atau masukkan URL media', 'error');
           return;
         }
 
+        const slides = [
+          { type: mediaType, url: mediaUrl }
+        ];
+
+        const submitBtn = document.getElementById('btn-submit-post');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Mengunggah...';
+
         try {
-          const res = await apiAddBandMedia({ fileType, title, fileUrl });
+          const res = await apiCreateBandPost({
+            mediaType,
+            mediaUrl,
+            thumbnailUrl: mediaUrl,
+            caption,
+            slides
+          });
+
           if (res.success) {
-            showToast('Media dokumentasi berhasil disimpan!', 'success');
-            closeAddMediaModal();
-            document.getElementById('add-media-form').reset();
-            document.getElementById('upload-status').textContent = '';
-            initDashboard();
+            showToast('Karya berhasil diunggah', 'success');
+            closeCreatePostModal();
+            initBandDashboard();
           } else {
-            showToast(res.message || 'Gagal menyimpan media', 'error');
+            showToast(res.message || 'Gagal membuat postingan', 'error');
           }
         } catch (err) {
-          showToast('Terjadi kesalahan', 'error');
+          showToast('Terjadi kesalahan saat membuat postingan', 'error');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>Unggah Karya</span>';
+        }
+      });
+
+      // Handle submit edit profile
+      document.getElementById('form-edit-profile').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById('btn-submit-profile');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Menyimpan...';
+
+        // Collect dynamic rider items
+        const riderCards = document.querySelectorAll('#rider-items-editor-container .rider-editor-card');
+        const riderItems = [];
+        riderCards.forEach(card => {
+          const titleInput = card.querySelector('.rider-title-input');
+          const descInput = card.querySelector('.rider-desc-input');
+          const title = titleInput ? titleInput.value.trim() : '';
+          const description = descInput ? descInput.value.trim() : '';
+          if (title || description) {
+            riderItems.push({ title, description });
+          }
+        });
+
+        const genreVal = document.getElementById('edit-genre').value.trim();
+        if (!genreVal) {
+          showToast('Harap pilih genre musik band', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Simpan Perubahan';
+          return;
+        }
+
+        const payload = {
+          bandName: document.getElementById('edit-band-name').value.trim(),
+          genre: genreVal,
+          locationCity: document.getElementById('edit-city').value.trim(),
+          locationRegion: document.getElementById('edit-region').value.trim(),
+          bio: document.getElementById('edit-bio').value.trim(),
+          budgetMin: document.getElementById('edit-budget-min').value,
+          budgetMax: document.getElementById('edit-budget-max').value,
+          phone: document.getElementById('edit-phone').value.trim(),
+          instagramHandle: document.getElementById('edit-instagram').value.trim(),
+          youtubeUrl: document.getElementById('edit-youtube').value.trim(),
+          spotifyUrl: document.getElementById('edit-spotify').value.trim(),
+          tiktokUrl: document.getElementById('edit-tiktok').value.trim(),
+          riderItems: riderItems
+        };
+
+        try {
+          const res = await apiUpdateBandProfile(payload);
+          if (res.success) {
+            showToast('Profil berhasil disimpan', 'success');
+            closeEditProfileModal();
+            initBandDashboard();
+          } else {
+            showToast(res.message || 'Gagal memperbarui profil', 'error');
+          }
+        } catch (err) {
+          showToast('Terjadi kesalahan saat menyimpan profil', 'error');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Simpan Perubahan';
         }
       });
     });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
   </script>
 </body>
 </html>

@@ -7,6 +7,8 @@ require('dotenv').config();
 
 const app = express();
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -18,7 +20,8 @@ app.use(helmet({
       scriptSrcAttr: ["'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
       mediaSrc: ["'self'", "https:", "data:", "blob:"],
-      connectSrc: ["'self'"]
+      connectSrc: ["'self'"],
+      upgradeInsecureRequests: isProduction ? [] : null
     },
   },
   hsts: {
@@ -30,7 +33,7 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: true,
   credentials: true
 }));
 
@@ -42,9 +45,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Static files
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/admin.html', require('./middleware/auth').requireAdminPage, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Redirect legacy organizer dashboard directly to search
+app.get('/dashboard-organizer.html', (req, res) => {
+  res.redirect('/search.html');
 });
 
 // Health check endpoint
@@ -55,14 +64,12 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/bands', require('./routes/bands'));
-app.use('/api/availability', require('./routes/availability'));
+app.use('/api/posts', require('./routes/posts'));
 app.use('/api/connections', require('./routes/connections'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/reports', require('./routes/reports'));
-
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // Root route
 app.get('/', (req, res) => {
@@ -105,13 +112,23 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Start server
 if (require.main === module) {
-  app.listen(PORT, () => {
+  const os = require('os');
+  app.listen(PORT, HOST, () => {
     console.log(`🚀 Panggung Lokal server running on port ${PORT}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    console.log(`🔗 Local PC: http://localhost:${PORT}`);
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name]) {
+        if (iface.family === 'IPv4' && !iface.internal && !iface.address.startsWith('192.168.56')) {
+          console.log(`📱 Phone (Wi-Fi): http://${iface.address}:${PORT}`);
+        }
+      }
+    }
   });
 }
 

@@ -111,6 +111,34 @@ describe('BandProfile Model (Evaluation & Improvement Changes)', () => {
       expect(updated.riderChannelInputs).toBe('16 Channel');
       expect(updated.riderHospitality).toBe('Backstage VIP');
     });
+
+    it('should update dynamic rider items array and synchronize legacy fields', async () => {
+      const mockUpdated = {
+        id: 1,
+        user_id: 10,
+        band_name: 'Custom Rider Band',
+        rider_items: JSON.stringify([
+          { title: 'Custom Stage Mix', description: '4 In-Ear Monitor Stereo' },
+          { title: 'Backline Amp', description: 'Marshall JCM800 & Ampeg SVT' }
+        ]),
+        rider_channel_inputs: '4 In-Ear Monitor Stereo',
+        rider_sound_system: 'Marshall JCM800 & Ampeg SVT'
+      };
+
+      db.query.mockResolvedValueOnce({ rows: [mockUpdated] });
+
+      const updated = await BandProfile.update(1, {
+        riderItems: [
+          { title: 'Custom Stage Mix', description: '4 In-Ear Monitor Stereo' },
+          { title: 'Backline Amp', description: 'Marshall JCM800 & Ampeg SVT' }
+        ]
+      });
+
+      expect(updated.riderItems).toHaveLength(2);
+      expect(updated.riderItems[0].title).toBe('Custom Stage Mix');
+      expect(updated.riderItems[0].description).toBe('4 In-Ear Monitor Stereo');
+      expect(updated.riderChannelInputs).toBe('4 In-Ear Monitor Stereo');
+    });
   });
 
   describe('addMediaFile', () => {

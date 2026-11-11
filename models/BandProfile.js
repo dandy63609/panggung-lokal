@@ -27,6 +27,42 @@ class BandProfile {
     this.riderSoundSystem = data.rider_sound_system;
     this.riderInstruments = data.rider_instruments;
     this.riderHospitality = data.rider_hospitality;
+
+    // Parse customizable rider items
+    let parsedRiderItems = [];
+    if (Array.isArray(data.rider_items)) {
+      parsedRiderItems = data.rider_items;
+    } else if (typeof data.rider_items === 'string' && data.rider_items.trim()) {
+      try {
+        parsedRiderItems = JSON.parse(data.rider_items);
+      } catch (e) {
+        parsedRiderItems = [];
+      }
+    }
+
+    if (Array.isArray(parsedRiderItems) && parsedRiderItems.length > 0) {
+      this.riderItems = parsedRiderItems
+        .filter(item => item && typeof item === 'object')
+        .map(item => ({
+          title: item.title || 'Kebutuhan Panggung',
+          description: item.description || ''
+        }));
+    } else {
+      const legacyList = [
+        { title: 'Input Audio Channel', description: this.riderChannelInputs || '' },
+        { title: 'Kebutuhan Sound System', description: this.riderSoundSystem || '' },
+        { title: 'Peralatan & Backline', description: this.riderInstruments || '' },
+        { title: 'Hospitality & Konsumsi', description: this.riderHospitality || '' }
+      ].filter(item => item.description.trim() !== '');
+
+      this.riderItems = legacyList.length > 0 ? legacyList : [
+        { title: 'Input Audio Channel', description: 'Dapat dinegosiasikan (Standar 8-16 Channel)' },
+        { title: 'Kebutuhan Sound System', description: 'FOH PA System & Active Stage Monitor standar venue' },
+        { title: 'Peralatan & Backline', description: 'Musisi membawa instrumen utama. Venue menyediakan drum kit dan amplifier.' },
+        { title: 'Hospitality & Konsumsi', description: 'Ruang tunggu bersih, air mineral botol, konsumsi tim/kru.' }
+      ];
+    }
+
     this.profileViews = data.profile_views || 0;
     this.createdAt = data.created_at;
     this.updatedAt = data.updated_at;
@@ -58,14 +94,20 @@ class BandProfile {
    * Create a new band profile
    */
   static async create(data) {
+    let riderItemsJson = null;
+    if (data.riderItems) {
+      riderItemsJson = typeof data.riderItems === 'string' ? data.riderItems : JSON.stringify(data.riderItems);
+    }
+
     const result = await db.query(
       `INSERT INTO band_profiles (
         user_id, band_name, genre, location_city, location_region, 
         bio, budget_min, budget_max, profile_photo_url, cover_photo_url, 
         phone, instagram_handle, facebook_url, youtube_url,
         spotify_url, tiktok_url,
-        rider_channel_inputs, rider_sound_system, rider_instruments, rider_hospitality
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+        rider_channel_inputs, rider_sound_system, rider_instruments, rider_hospitality,
+        rider_items
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
       RETURNING *`,
       [
         data.userId,
@@ -88,6 +130,7 @@ class BandProfile {
         data.riderSoundSystem || null,
         data.riderInstruments || null,
         data.riderHospitality || null,
+        riderItemsJson
       ]
     );
     return new BandProfile(result.rows[0]);
@@ -97,6 +140,32 @@ class BandProfile {
    * Update band profile
    */
   static async update(id, data) {
+    let riderItemsJson = null;
+    let riderChannel = data.riderChannelInputs;
+    let riderSound = data.riderSoundSystem;
+    let riderInst = data.riderInstruments;
+    let riderHosp = data.riderHospitality;
+
+    if (data.riderItems !== undefined) {
+      let items = data.riderItems;
+      if (typeof items === 'string') {
+        try { items = JSON.parse(items); } catch (e) { items = []; }
+      }
+      if (Array.isArray(items)) {
+        const sanitizedItems = items
+          .filter(it => it && typeof it === 'object')
+          .map(it => ({
+            title: String(it.title || 'Kebutuhan Panggung').trim(),
+            description: String(it.description || '').trim()
+          }));
+        riderItemsJson = JSON.stringify(sanitizedItems);
+        if (sanitizedItems[0] && riderChannel === undefined) riderChannel = sanitizedItems[0].description;
+        if (sanitizedItems[1] && riderSound === undefined) riderSound = sanitizedItems[1].description;
+        if (sanitizedItems[2] && riderInst === undefined) riderInst = sanitizedItems[2].description;
+        if (sanitizedItems[3] && riderHosp === undefined) riderHosp = sanitizedItems[3].description;
+      }
+    }
+
     const result = await db.query(
       `UPDATE band_profiles SET
         band_name = COALESCE($1, band_name),
@@ -118,8 +187,9 @@ class BandProfile {
         rider_sound_system = COALESCE($17, rider_sound_system),
         rider_instruments = COALESCE($18, rider_instruments),
         rider_hospitality = COALESCE($19, rider_hospitality),
+        rider_items = COALESCE($20, rider_items),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $20
+      WHERE id = $21
       RETURNING *`,
       [
         data.bandName,
@@ -137,10 +207,11 @@ class BandProfile {
         data.youtubeUrl,
         data.spotifyUrl,
         data.tiktokUrl,
-        data.riderChannelInputs,
-        data.riderSoundSystem,
-        data.riderInstruments,
-        data.riderHospitality,
+        riderChannel,
+        riderSound,
+        riderInst,
+        riderHosp,
+        riderItemsJson,
         id,
       ]
     );
@@ -171,16 +242,18 @@ class BandProfile {
   }
 
   /**
-   * Get active availability posts for this band
+   * Get Instagram-style posts for this band
+   */
+  async getPosts() {
+    const BandPost = require('./BandPost');
+    return await BandPost.findByBandProfileId(this.id);
+  }
+
+  /**
+   * Get active availability posts (deprecated, returns empty array)
    */
   async getAvailabilityPosts() {
-    const result = await db.query(
-      `SELECT * FROM availability_posts 
-       WHERE band_profile_id = $1 AND is_active = true 
-       ORDER BY start_date ASC`,
-      [this.id]
-    );
-    return result.rows;
+    return [];
   }
 
   /**
@@ -301,38 +374,14 @@ class BandProfile {
   }
 
   /**
-   * Get recent bands with upcoming availability for homepage
+   * Get recent curated bands for homepage
    */
   static async getRecent(limit = 6) {
     const result = await db.query(
-      `SELECT bp.*, 
-              ap.id as post_id, ap.start_date, ap.end_date, ap.notes as availability_notes
-       FROM band_profiles bp
-       LEFT JOIN availability_posts ap ON ap.band_profile_id = bp.id AND ap.is_active = true
-       ORDER BY ap.start_date ASC NULLS LAST, bp.profile_views DESC
-       LIMIT $1`,
+      `SELECT * FROM band_profiles ORDER BY profile_views DESC, created_at DESC LIMIT $1`,
       [limit]
     );
-
-    // Group by band profile
-    const seen = new Set();
-    const bands = [];
-    for (const row of result.rows) {
-      if (!seen.has(row.id)) {
-        seen.add(row.id);
-        bands.push({
-          ...new BandProfile(row),
-          availability: row.start_date ? {
-            id: row.post_id,
-            startDate: row.start_date,
-            endDate: row.end_date,
-            notes: row.availability_notes
-          } : null
-        });
-      }
-    }
-
-    return bands;
+    return result.rows.map(row => new BandProfile(row));
   }
 }
 

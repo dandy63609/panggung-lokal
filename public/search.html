@@ -2,19 +2,200 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cari & Temukan Band - Panggung Lokal</title>
-  <meta name="description" content="Cari dan filter band lokal Indonesia berdasarkan genre musik, kota, rentang budget, dan jadwal ketersediaan panggung.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0D0D0D">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0D0D0D">
+  <meta name="color-scheme" content="dark">
+  <title>Cari Band - Panggung Lokal</title>
+  <meta name="description" content="Filter musisi lokal berdasarkan genre, domisili kota, dan rentang tarif manggung.">
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="icon" type="image/jpeg" href="/images/logo.jpeg">
+  <link rel="icon" type="image/jpeg" href="/images/logo.png">
   <style>
+    /* Search Layout */
     .search-layout {
       display: grid;
       grid-template-columns: 280px 1fr;
-      gap: var(--space-xl);
+      gap: clamp(16px, 3vw, var(--space-xl));
       align-items: flex-start;
-      margin-top: var(--space-xl);
+      margin-top: clamp(12px, 2.5vw, var(--space-lg));
     }
+
+    /* Search Count Badge */
+    .search-count-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--neon-cyan);
+      letter-spacing: 0.3px;
+    }
+
+    /* Mobile Quick Search Bar */
+    .mobile-search-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: var(--space-sm);
+    }
+
+    .search-input-wrap {
+      position: relative;
+      flex-grow: 1;
+    }
+
+    .search-input-wrap .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.95rem;
+      color: var(--graphite);
+      pointer-events: none;
+    }
+
+    .search-input-wrap input {
+      padding-left: 38px;
+      padding-right: 36px;
+      min-height: 44px;
+      font-size: 16px; /* Prevents auto-zoom in iOS Safari */
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-md);
+      color: var(--chalk-white);
+      width: 100%;
+    }
+
+    .search-input-wrap .clear-btn {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: var(--graphite);
+      font-size: 1.1rem;
+      cursor: pointer;
+      border-radius: 50%;
+      touch-action: manipulation;
+    }
+
+    .search-input-wrap .clear-btn.visible {
+      display: flex;
+    }
+
+    .btn-filter-sheet-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 0 16px;
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-md);
+      color: var(--chalk-white);
+      font-size: 0.88rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      /* GPU composite-only micro-interaction */
+      transition: transform 90ms cubic-bezier(0.25, 1, 0.5, 1), border-color 0.18s ease;
+      will-change: transform;
+    }
+
+    .btn-filter-sheet-trigger {
+      transition: transform var(--spring-duration) var(--spring-easing), background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+      will-change: transform;
+    }
+    .btn-filter-sheet-trigger:active {
+      transform: scale(0.97);
+      transition: transform var(--press-duration) var(--press-easing);
+    }
+
+    .filter-count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      background: var(--electric-crimson);
+      color: white;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 999px;
+    }
+
+    /* Quick Filter Chips (Pill Bar) */
+    .chips-bar-wrapper {
+      position: relative;
+      margin-bottom: var(--space-md);
+    }
+
+    .chips-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
+      padding: 4px 2px 8px 2px;
+      scrollbar-width: none;
+    }
+
+    .chips-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      min-height: 40px;
+      border-radius: 999px;
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      color: var(--chalk-white);
+      font-size: 0.85rem;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      /* GPU composite-only transitions */
+      transition: transform var(--spring-duration) var(--spring-easing), border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+      will-change: transform;
+    }
+
+    .chip-pill:active {
+      transform: scale(0.97);
+      transition: transform var(--press-duration) var(--press-easing);
+    }
+
+    .chip-pill.is-active {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      font-weight: 600;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.22);
+    }
+
+    /* Desktop Sidebar Filter Panel */
     .filter-panel {
       background-color: var(--surface-card);
       border: 1px solid var(--surface-border);
@@ -23,6 +204,7 @@
       position: sticky;
       top: 90px;
     }
+
     .filter-title {
       font-family: var(--font-display);
       font-size: 1.4rem;
@@ -33,16 +215,19 @@
       align-items: center;
       justify-content: space-between;
     }
+
     .filter-group {
       margin-bottom: var(--space-md);
       padding-bottom: var(--space-md);
       border-bottom: 1px solid var(--surface-border);
     }
+
     .filter-group:last-child {
       border-bottom: none;
       margin-bottom: 0;
       padding-bottom: 0;
     }
+
     .filter-label {
       display: block;
       font-family: var(--font-mono);
@@ -51,20 +236,149 @@
       color: var(--graphite);
       margin-bottom: 6px;
     }
+
+    /* Pagination */
     .pagination {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: var(--space-sm);
-      margin-top: var(--space-2xl);
+      margin-top: clamp(var(--space-lg), 4vw, var(--space-2xl));
+      flex-wrap: wrap;
     }
+
+    /* Apple-Style Bottom Sheet & Backdrop (Mobile <= 900px) */
+    .sheet-handle,
+    .filter-sheet-close,
+    .filter-backdrop {
+      display: none;
+    }
+
     @media (max-width: 900px) {
       .search-layout {
         grid-template-columns: 1fr;
+        margin-top: var(--space-sm);
       }
+
+      /* Backdrop Overlay */
+      .filter-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.72);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 999;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+        will-change: opacity;
+      }
+
+      .filter-backdrop.is-active {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      /* iOS Spring Bottom Sheet */
       .filter-panel {
-        position: relative;
-        top: 0;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        max-height: 85dvh;
+        z-index: 1000;
+        background: rgba(18, 18, 18, 0.96);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 24px 24px 0 0;
+        padding: 0;
+        box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.8);
+        /* Strictly GPU transform & opacity within 120Hz budget */
+        transform: translateY(100%);
+        visibility: hidden;
+        pointer-events: none;
+        transition: transform var(--spring-duration) var(--spring-easing), visibility var(--spring-duration);
+        will-change: transform;
+        overscroll-behavior: contain;
+      }
+
+      .filter-panel.is-open {
+        transform: translateY(0);
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      .sheet-handle {
+        display: block;
+        width: 38px;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.28);
+        margin: 12px auto 4px auto;
+        flex-shrink: 0;
+        cursor: grab;
+      }
+
+      .filter-title {
+        padding: 10px 20px 14px 20px;
+        border-bottom: 1px solid var(--surface-border);
+        margin-bottom: 0;
+      }
+
+      .filter-sheet-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        background: none;
+        border: none;
+        color: var(--chalk-white);
+        font-size: 1.4rem;
+        cursor: pointer;
+        touch-action: manipulation;
+        border-radius: 50%;
+        transition: transform 80ms cubic-bezier(0.25, 1, 0.5, 1);
+      }
+
+      .filter-sheet-close:active {
+        transform: scale(0.9);
+      }
+
+      .filter-form-content {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 18px 20px 12px 20px;
+        flex-grow: 1;
+      }
+
+      .sheet-sticky-footer {
+        padding: 14px 20px;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom, 12px));
+        background: rgba(15, 15, 15, 0.98);
+        border-top: 1px solid var(--surface-border);
+        display: flex;
+        gap: 10px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .filter-panel,
+      .filter-backdrop,
+      .chip-pill,
+      .band-card,
+      .btn {
+        transition: opacity 0.1s linear !important;
+        animation: none !important;
+        transform: none !important;
       }
     }
   </style>
@@ -74,10 +388,8 @@
   <!-- Navigation -->
   <header class="navbar">
     <div class="container navbar__inner">
-      <a href="/" class="navbar__logo">
-        <img src="/images/logo.jpeg" alt="Panggung Lokal Logo" class="navbar__logo-img">
-        <span>PANGGUNG</span>
-        <span class="navbar__logo-badge">LOKAL</span>
+      <a href="/" class="navbar__logo" aria-label="Panggung Lokal">
+        <img src="/images/logo.png" alt="Panggung Lokal Logo" class="navbar__logo-img">
       </a>
 
       <button class="navbar__toggle" aria-label="Toggle Menu">☰</button>
@@ -98,75 +410,116 @@
   <main class="container section">
     <div class="section-header">
       <div>
-        <h1 class="section-header__title">CARI & EKSPLORASI BAND LOKAL</h1>
-        <p class="section-header__subtitle">Temukan musisi yang tepat untuk acaramu dengan filter terperinci</p>
+        <h1 class="section-header__title">CARI BAND</h1>
+        <p class="section-header__subtitle">Pilih genre, domisili kota, atau rentang tarif untuk memfilter daftar.</p>
       </div>
-      <div id="search-count" style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--neon-cyan);">
+      <div id="search-count" class="search-count-pill">
         Memuat data...
       </div>
     </div>
 
+    <!-- Quick Search & Filter Trigger Bar -->
+    <div class="mobile-search-bar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="quick-search-input" placeholder="Ketik nama band atau genre..." inputmode="search" enterkeyhint="search" autocapitalize="none">
+        <button type="button" id="btn-clear-quick-search" class="clear-btn" aria-label="Hapus Pencarian">✕</button>
+      </div>
+      <button type="button" id="btn-open-filter-sheet" class="btn-filter-sheet-trigger" aria-haspopup="dialog" aria-expanded="false">
+        <span>Filter</span>
+        <span id="filter-badge-count" class="filter-count-badge" style="display:none;">0</span>
+      </button>
+    </div>
+
+    <!-- Quick Genre Chips -->
+    <div class="chips-bar-wrapper">
+      <div class="chips-bar" id="genre-chips-container" role="toolbar" aria-label="Filter Genre Cepat">
+        <button type="button" class="chip-pill is-active" data-genre="">Semua</button>
+        <button type="button" class="chip-pill" data-genre="Indie">Indie Rock</button>
+        <button type="button" class="chip-pill" data-genre="Folk">Folk Akustik</button>
+        <button type="button" class="chip-pill" data-genre="Dangdut">Dangdut Koplo</button>
+        <button type="button" class="chip-pill" data-genre="Punk">Hardcore Punk</button>
+        <button type="button" class="chip-pill" data-genre="Jazz">Jazz & Soul</button>
+        <button type="button" class="chip-pill" data-genre="Pop">World Pop</button>
+        <button type="button" class="chip-pill" data-genre="Funk">Funk</button>
+      </div>
+    </div>
+
+    <!-- Backdrop for Mobile Sheet -->
+    <div id="filter-backdrop" class="filter-backdrop" aria-hidden="true"></div>
+
     <div class="search-layout">
-      <!-- Filter Sidebar -->
-      <aside class="filter-panel">
+      <!-- Filter Sidebar (Desktop) / Bottom Sheet (Mobile) -->
+      <aside id="filter-panel" class="filter-panel" role="dialog" aria-label="Filter Pencarian">
+        <div class="sheet-handle" aria-hidden="true"></div>
         <div class="filter-title">
-          <span>FILTER PENCARIAN</span>
-          <button id="btn-reset-filters" class="btn btn--outline btn--sm" style="padding: 2px 8px; font-size: 0.75rem;">
-            Reset
-          </button>
+          <span>FILTER</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button id="btn-reset-filters" type="button" class="btn btn--outline btn--sm" style="min-height: 38px; padding: 4px 12px; font-size: 0.8rem;">
+              Reset
+            </button>
+            <button id="btn-close-filter-sheet" type="button" class="filter-sheet-close" aria-label="Tutup Filter">
+              ✕
+            </button>
+          </div>
         </div>
 
-        <form id="filter-form">
-          <div class="filter-group">
-            <label class="filter-label" for="filter-search">Kata Kunci</label>
-            <input type="text" id="filter-search" name="search" class="form-control" placeholder="Nama band / deskripsi...">
-          </div>
+        <form id="filter-form" style="display: flex; flex-direction: column; flex-grow: 1;">
+          <div class="filter-form-content">
+            <div class="filter-group">
+              <label class="filter-label" for="filter-search">Kata Kunci</label>
+              <input type="text" id="filter-search" name="search" class="form-control" placeholder="Nama band / deskripsi..." inputmode="search" enterkeyhint="search" autocapitalize="none">
+            </div>
 
-          <div class="filter-group">
-            <label class="filter-label" for="filter-genre">Genre Musik</label>
-            <select id="filter-genre" name="genre" class="form-control">
-              <option value="">Semua Genre</option>
-              <option value="Indie">Indie Rock / Alternative</option>
-              <option value="Folk">Folk / Akustik</option>
-              <option value="Dangdut">Dangdut Koplo Fusion</option>
-              <option value="Punk">Hardcore / Punk</option>
-              <option value="Jazz">Jazz / Neo-Soul</option>
-              <option value="Post-Rock">Post-Rock / Ambient</option>
-              <option value="Pop">Pop / Fusion</option>
-              <option value="Funk">Funk & Soul</option>
-            </select>
-          </div>
+            <div class="filter-group">
+              <label class="filter-label" for="filter-genre">Genre Musik</label>
+              <select id="filter-genre" name="genre" class="form-control">
+                <option value="">Semua Genre</option>
+                <option value="Indie">Indie / Alternative</option>
+                <option value="Rock">Rock / Surf Rock</option>
+                <option value="Folk">Folk / Akustik</option>
+                <option value="Dangdut">Dangdut Koplo Fusion</option>
+                <option value="Punk">Hardcore / Punk</option>
+                <option value="Jazz">Jazz / Neo-Soul</option>
+                <option value="Post-Rock">Post-Rock / Ambient</option>
+                <option value="Pop">Pop / Fusion</option>
+                <option value="Funk">Funk & Soul</option>
+              </select>
+            </div>
 
-          <div class="filter-group">
-            <label class="filter-label" for="filter-location">Kota / Domisili</label>
-            <select id="filter-location" name="location" class="form-control">
-              <option value="">Seluruh Kota</option>
-              <option value="Bandung">Bandung</option>
-              <option value="Jakarta">Jakarta</option>
-              <option value="Yogyakarta">Yogyakarta</option>
-              <option value="Surabaya">Surabaya</option>
-              <option value="Denpasar">Denpasar / Bali</option>
-              <option value="Malang">Malang</option>
-              <option value="Medan">Medan</option>
-            </select>
-          </div>
+            <div class="filter-group">
+              <label class="filter-label" for="filter-location">Kota / Domisili</label>
+              <select id="filter-location" name="location" class="form-control">
+                <option value="">Seluruh Kota</option>
+                <option value="Bandung">Bandung</option>
+                <option value="Jakarta">Jakarta</option>
+                <option value="Yogyakarta">Yogyakarta</option>
+                <option value="Surabaya">Surabaya</option>
+                <option value="Denpasar">Denpasar / Bali</option>
+                <option value="Malang">Malang</option>
+                <option value="Medan">Medan</option>
+              </select>
+            </div>
 
-          <div class="filter-group">
-            <label class="filter-label">Rentang Budget Fee (Rp)</label>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-              <input type="number" id="filter-budget-min" name="budgetMin" class="form-control" placeholder="Min (cth: 2jt)" step="500000">
-              <input type="number" id="filter-budget-max" name="budgetMax" class="form-control" placeholder="Max (cth: 10jt)" step="500000">
+            <div class="filter-group">
+              <label class="filter-label">Rentang Budget Fee (Rp)</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="number" id="filter-budget-min" name="budgetMin" class="form-control" placeholder="Min (cth: 2jt)" step="500000" inputmode="numeric" enterkeyhint="next">
+                <input type="number" id="filter-budget-max" name="budgetMax" class="form-control" placeholder="Max (cth: 10jt)" step="500000" inputmode="numeric" enterkeyhint="search">
+              </div>
             </div>
           </div>
 
-          <button type="submit" class="btn btn--primary btn--block">
-            <span>Terapkan Filter</span>
-          </button>
+          <div class="sheet-sticky-footer">
+            <button type="submit" class="btn btn--primary btn--block btn--lg">
+              <span>Terapkan Filter</span>
+            </button>
+          </div>
         </form>
       </aside>
 
       <!-- Results Grid -->
-      <section>
+      <section style="min-width: 0;">
         <div id="search-results-grid" class="band-grid">
           <!-- Rendered dynamically -->
         </div>
@@ -182,7 +535,7 @@
   <!-- Footer -->
   <footer class="footer">
     <div class="container footer__bottom">
-      <div>© 2026 Panggung Lokal. Hubungkan Band Lokal dengan Penyelenggara Acara.</div>
+      <div>© 2026 Panggung Lokal.</div>
       <a href="/" style="color: var(--neon-cyan);">Kembali ke Beranda</a>
     </div>
   </footer>
@@ -192,6 +545,57 @@
   <script src="/js/api.js"></script>
   <script>
     let currentPage = 1;
+
+    // Filter Sheet Controller
+    const filterPanel = document.getElementById('filter-panel');
+    const filterBackdrop = document.getElementById('filter-backdrop');
+    const btnOpenFilter = document.getElementById('btn-open-filter-sheet');
+    const btnCloseFilter = document.getElementById('btn-close-filter-sheet');
+    const filterBadgeCount = document.getElementById('filter-badge-count');
+    const quickSearchInput = document.getElementById('quick-search-input');
+    const btnClearQuickSearch = document.getElementById('btn-clear-quick-search');
+    const filterSearchInput = document.getElementById('filter-search');
+
+    function updateActiveFilterBadge() {
+      let activeCount = 0;
+      if (document.getElementById('filter-search').value.trim()) activeCount++;
+      if (document.getElementById('filter-genre').value) activeCount++;
+      if (document.getElementById('filter-location').value) activeCount++;
+      if (document.getElementById('filter-budget-min').value) activeCount++;
+      if (document.getElementById('filter-budget-max').value) activeCount++;
+
+      if (activeCount > 0) {
+        filterBadgeCount.textContent = activeCount;
+        filterBadgeCount.style.display = 'inline-flex';
+      } else {
+        filterBadgeCount.style.display = 'none';
+      }
+
+      // Sync active chip
+      const currentGenre = document.getElementById('filter-genre').value;
+      document.querySelectorAll('#genre-chips-container .chip-pill').forEach(pill => {
+        if (pill.getAttribute('data-genre') === currentGenre) {
+          pill.classList.add('is-active');
+        } else {
+          pill.classList.remove('is-active');
+        }
+      });
+    }
+
+    function openFilterSheet() {
+      filterPanel.classList.add('is-open');
+      filterBackdrop.classList.add('is-active');
+      btnOpenFilter.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeFilterSheet() {
+      filterPanel.classList.remove('is-open');
+      filterBackdrop.classList.remove('is-active');
+      btnOpenFilter.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+      filterPanel.style.transform = '';
+    }
 
     async function loadBands() {
       const grid = document.getElementById('search-results-grid');
@@ -213,27 +617,55 @@
       try {
         const res = await apiGetBands(searchParams);
         if (res.success) {
-          countEl.textContent = `Menemukan ${res.pagination.total} band`;
+          const isAuthed = AuthManager.isAuthenticated();
+          countEl.textContent = res.isSneakPeek
+            ? `Pratinjau: 2 Band (Total ${res.pagination.total}+)`
+            : `Menemukan ${res.pagination.total} band`;
+          updateActiveFilterBadge();
 
           if (res.data.length === 0) {
             grid.innerHTML = `
-              <div style="grid-column: 1 / -1; text-align: center; padding: 60px; background: var(--surface-card); border-radius: var(--radius-md); border: 1px solid var(--surface-border);">
+              <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: var(--surface-card); border-radius: var(--radius-md); border: 1px solid var(--surface-border);">
                 <div style="font-size: 2.5rem; margin-bottom: 10px;">🎸</div>
-                <h3 style="font-family: var(--font-display); font-size: 1.6rem; color: var(--chalk-white); margin-bottom: 6px;">TIDAK ADA BAND DITEMUKAN</h3>
-                <p style="color: var(--graphite); font-size: 0.95rem;">Coba ubah kriteria filter, lokasi kota, atau rentang budget pencarianmu.</p>
+                <h3 style="font-family: var(--font-display); font-size: 1.6rem; color: var(--chalk-white); margin-bottom: 6px;">TIDAK ADA HASIL</h3>
+                <p style="color: var(--graphite); font-size: 0.95rem;">Ubah kata kunci, genre, kota, atau rentang tarif untuk memperluas pencarian.</p>
               </div>
             `;
             paginationEl.innerHTML = '';
             return;
           }
 
-          grid.innerHTML = res.data.map(band => {
+          let cardsHtml = res.data.map((band, idx) => {
             const budgetText = (band.budgetMin && band.budgetMax)
               ? `${formatRupiah(band.budgetMin)} - ${formatRupiah(band.budgetMax)}`
               : 'Negosiasi';
 
+            const staggerDelay = (idx * 0.02).toFixed(3);
+            const phoneClean = typeof formatWhatsAppNumber === 'function' ? formatWhatsAppNumber(band.phone) : (band.phone || '').replace(/[^0-9]/g, '');
+            const waText = encodeURIComponent(`Halo ${band.bandName}, saya menemukan profil kalian di Panggung Lokal dan tertarik untuk mengundang tampil di acara kami.`);
+            const waUrl = `https://wa.me/${phoneClean}?text=${waText}`;
+
+            const actionButtons = isAuthed
+              ? `
+                <div style="display: flex; gap: 6px; width: 100%;">
+                  <a href="/profile.html?id=${band.id}" class="btn btn--outline btn--sm" style="flex: 1; min-height: 44px;">
+                    <span>Profil</span>
+                  </a>
+                  <a href="${waUrl}" target="_blank" rel="noopener" class="btn btn--whatsapp btn--sm" style="flex: 1.2; min-height: 44px;" onclick="apiCreateConnection(${band.id}, 'whatsapp_search')">
+                    <span>💬 Chat WA</span>
+                  </a>
+                </div>
+              `
+              : `
+                <div style="width: 100%;">
+                  <a href="/login.html" class="btn btn--primary btn--sm btn--block" style="min-height: 44px; font-size: 0.85rem;">
+                    <span>🔒 Masuk untuk Kontak</span>
+                  </a>
+                </div>
+              `;
+
             return `
-              <div class="band-card">
+              <div class="band-card" style="animation-delay: ${staggerDelay}s;">
                 <div class="band-card__image-wrap">
                   <img src="${band.profilePhotoUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80'}" 
                        alt="${band.bandName}" class="band-card__image" loading="lazy">
@@ -251,31 +683,53 @@
 
                   <p class="band-card__bio">${band.bio || 'Musisi independen lokal siap tampil.'}</p>
 
-                  <div class="band-card__footer">
-                    <div>
+                  <div class="band-card__footer" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
                       <div style="font-size: 0.72rem; color: var(--graphite); text-transform: uppercase;">Estimasi Fee</div>
                       <div class="band-card__price">${budgetText}</div>
                     </div>
-                    <a href="/profile.html?id=${band.id}" class="btn btn--primary btn--sm">
-                      <span>Lihat Profil</span>
-                    </a>
+                    ${actionButtons}
                   </div>
                 </div>
               </div>
             `;
           }).join('');
 
+          if (res.isSneakPeek) {
+            cardsHtml += `
+              <div style="grid-column: 1 / -1; margin-top: var(--space-md); text-align: center; padding: clamp(20px, 4vw, 36px); background: rgba(0, 240, 255, 0.04); border: 1px dashed rgba(0, 240, 255, 0.35); border-radius: var(--radius-md);">
+                <div style="font-size: 2rem; margin-bottom: 8px;">🔒</div>
+                <h4 style="font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 0.5px; color: var(--chalk-white); margin-bottom: 6px;">
+                  MASUK UNTUK MELIHAT SELURUH BAND
+                </h4>
+                <p style="color: var(--graphite); font-size: 0.92rem; max-width: 500px; margin: 0 auto var(--space-md);">
+                  Tersedia 2 band pada mode pratinjau. Masuk untuk melihat seluruh daftar band dan nomor WhatsApp musisi.
+                </p>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                  <a href="/login.html" class="btn btn--primary btn--md">
+                    <span>Masuk</span>
+                  </a>
+                  <a href="/register.html" class="btn btn--secondary btn--md">
+                    <span>Daftar Akun</span>
+                  </a>
+                </div>
+              </div>
+            `;
+          }
+
+          grid.innerHTML = cardsHtml;
+
           // Render pagination
-          if (res.pagination.totalPages > 1) {
+          if (!res.isSneakPeek && res.pagination.totalPages > 1) {
             paginationEl.innerHTML = `
-              <button class="btn btn--outline btn--sm" ${res.pagination.page <= 1 ? 'disabled' : ''} onclick="changePage(${res.pagination.page - 1})">
-                ← Sebelumnya
+              <button class="btn btn--outline btn--sm" style="min-height: 44px; padding: 0 16px;" ${res.pagination.page <= 1 ? 'disabled' : ''} onclick="changePage(${res.pagination.page - 1})">
+                Sebelumnya
               </button>
-              <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--graphite);">
+              <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--graphite); padding: 0 8px;">
                 Halaman ${res.pagination.page} dari ${res.pagination.totalPages}
               </span>
-              <button class="btn btn--outline btn--sm" ${res.pagination.page >= res.pagination.totalPages ? 'disabled' : ''} onclick="changePage(${res.pagination.page + 1})">
-                Selanjutnya →
+              <button class="btn btn--outline btn--sm" style="min-height: 44px; padding: 0 16px;" ${res.pagination.page >= res.pagination.totalPages ? 'disabled' : ''} onclick="changePage(${res.pagination.page + 1})">
+                Selanjutnya
               </button>
             `;
           } else {
@@ -284,7 +738,7 @@
         }
       } catch (err) {
         console.error('Error fetching bands:', err);
-        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #FF5A5F;">Terjadi kesalahan saat memuat data.</div>';
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #FF5A5F; padding: 30px;">Terjadi kesalahan saat memuat data.</div>';
       }
     }
 
@@ -295,24 +749,144 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Parse URL parameters from homepage search
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('genre')) document.getElementById('filter-genre').value = urlParams.get('genre');
-      if (urlParams.has('location')) document.getElementById('filter-location').value = urlParams.get('location');
-      if (urlParams.has('search')) document.getElementById('filter-search').value = urlParams.get('search');
+      // Event listeners for Bottom Sheet
+      if (btnOpenFilter) {
+        btnOpenFilter.addEventListener('click', openFilterSheet);
+      }
+      if (btnCloseFilter) {
+        btnCloseFilter.addEventListener('click', closeFilterSheet);
+      }
+      if (filterBackdrop) {
+        filterBackdrop.addEventListener('click', closeFilterSheet);
+      }
 
-      loadBands();
+      // Close on Escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && filterPanel.classList.contains('is-open')) {
+          closeFilterSheet();
+        }
+      });
 
-      document.getElementById('filter-form').addEventListener('submit', (e) => {
-        e.preventDefault();
+      // Apple fluid 1:1 drag gesture to dismiss sheet
+      const sheetHandle = document.querySelector('.sheet-handle');
+      if (sheetHandle) {
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+
+        sheetHandle.addEventListener('pointerdown', (e) => {
+          if (window.innerWidth > 900) return;
+          startY = e.clientY;
+          isDragging = true;
+          sheetHandle.setPointerCapture(e.pointerId);
+          filterPanel.style.transition = 'none';
+        });
+
+        sheetHandle.addEventListener('pointermove', (e) => {
+          if (!isDragging) return;
+          currentY = e.clientY;
+          const diffY = Math.max(0, currentY - startY);
+          filterPanel.style.transform = `translateY(${diffY}px)`;
+        });
+
+        const finishDrag = () => {
+          if (!isDragging) return;
+          isDragging = false;
+          filterPanel.style.transition = '';
+          const diffY = currentY - startY;
+          if (diffY > 80) {
+            closeFilterSheet();
+          } else {
+            filterPanel.style.transform = '';
+          }
+        };
+
+        sheetHandle.addEventListener('pointerup', finishDrag);
+        sheetHandle.addEventListener('pointercancel', finishDrag);
+      }
+
+      // Quick Search input sync
+      quickSearchInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        filterSearchInput.value = val;
+        if (val) {
+          btnClearQuickSearch.classList.add('visible');
+        } else {
+          btnClearQuickSearch.classList.remove('visible');
+        }
+      });
+
+      quickSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          currentPage = 1;
+          loadBands();
+        }
+      });
+
+      btnClearQuickSearch.addEventListener('click', () => {
+        quickSearchInput.value = '';
+        filterSearchInput.value = '';
+        btnClearQuickSearch.classList.remove('visible');
         currentPage = 1;
         loadBands();
       });
 
-      document.getElementById('btn-reset-filters').addEventListener('click', () => {
-        document.getElementById('filter-form').reset();
+      filterSearchInput.addEventListener('input', (e) => {
+        quickSearchInput.value = e.target.value;
+        if (e.target.value) {
+          btnClearQuickSearch.classList.add('visible');
+        } else {
+          btnClearQuickSearch.classList.remove('visible');
+        }
+      });
+
+      // Quick Genre Chips click handlers
+      const genreChipsContainer = document.getElementById('genre-chips-container');
+      if (genreChipsContainer) {
+        genreChipsContainer.addEventListener('click', (e) => {
+          const pill = e.target.closest('.chip-pill');
+          if (!pill) return;
+          const genre = pill.getAttribute('data-genre');
+          document.getElementById('filter-genre').value = genre;
+          currentPage = 1;
+          loadBands();
+        });
+      }
+
+      // Parse URL parameters from homepage search
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('genre')) document.getElementById('filter-genre').value = urlParams.get('genre');
+      if (urlParams.has('location')) document.getElementById('filter-location').value = urlParams.get('location');
+      if (urlParams.has('search')) {
+        const sVal = urlParams.get('search');
+        document.getElementById('filter-search').value = sVal;
+        quickSearchInput.value = sVal;
+        btnClearQuickSearch.classList.add('visible');
+      }
+
+      loadBands();
+
+      // Form submission
+      document.getElementById('filter-form').addEventListener('submit', (e) => {
+        e.preventDefault();
         currentPage = 1;
         loadBands();
+        if (window.innerWidth <= 900) {
+          closeFilterSheet();
+        }
+      });
+
+      // Reset filters
+      document.getElementById('btn-reset-filters').addEventListener('click', () => {
+        document.getElementById('filter-form').reset();
+        quickSearchInput.value = '';
+        btnClearQuickSearch.classList.remove('visible');
+        currentPage = 1;
+        loadBands();
+        if (window.innerWidth <= 900) {
+          closeFilterSheet();
+        }
       });
     });
   </script>

@@ -62,7 +62,39 @@ function showToast(message, type = 'info') {
   }, 3500);
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function formatWhatsAppNumber(phone) {
+  let clean = (phone || '').replace(/[^0-9]/g, '');
+  if (clean.startsWith('0')) {
+    clean = '62' + clean.slice(1);
+  }
+  return clean;
+}
+
 // Make functions accessible globally
-window.formatRupiah = formatRupiah;
-window.formatIndonesianDate = formatIndonesianDate;
-window.showToast = showToast;
+if (typeof window !== 'undefined') {
+  window.escapeHtml = escapeHtml;
+  window.formatRupiah = formatRupiah;
+  window.formatIndonesianDate = formatIndonesianDate;
+  window.formatWhatsAppNumber = formatWhatsAppNumber;
+  window.showToast = showToast;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    formatRupiah,
+    formatIndonesianDate,
+    formatWhatsAppNumber,
+    escapeHtml,
+    showToast
+  };
+}
