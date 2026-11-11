@@ -6,10 +6,19 @@ const fs = require('fs');
 const { requireAuth } = require('../middleware/auth');
 const { uploadLimiter } = require('../middleware/rateLimiter');
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const os = require('os');
+
+// Ensure uploads directory exists (use tmp dir on serverless like Vercel)
+const uploadDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'uploads')
+  : path.join(__dirname, '..', 'uploads');
+
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('⚠️ Notice initializing uploads directory:', err.message);
 }
 
 // Multer storage configuration
