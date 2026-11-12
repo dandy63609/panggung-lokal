@@ -581,6 +581,24 @@
       }
     }
 
+    // Media Helper: YouTube & Video Detection
+    function getYouTubeEmbedUrl(url) {
+      if (!url) return null;
+      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/)|youtube\.com\/live\/)([\w-]{11})/);
+      return match ? `https://www.youtube.com/embed/${match[1]}?rel=0` : null;
+    }
+
+    function getYouTubeThumbnail(url) {
+      if (!url) return null;
+      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/)|youtube\.com\/live\/)([\w-]{11})/);
+      return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
+    }
+
+    function isVideoUrl(url) {
+      if (!url) return false;
+      return getYouTubeEmbedUrl(url) !== null || /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+    }
+
     function renderPostsGrid(posts) {
       const postsGridEl = document.getElementById('posts-grid');
       if (!postsGridEl) return;
@@ -602,18 +620,21 @@
           ? post.slides
           : [{ type: post.mediaType || 'photo', url: post.mediaUrl }];
 
-        const firstSlide = slides[0];
+        const firstSlide = slides[0] || {};
+        const firstUrl = firstSlide.url || post.mediaUrl || '';
         const isMulti = slides.length > 1;
-        const isVideo = firstSlide.type === 'video' || post.mediaType === 'video';
+        const isYt = getYouTubeEmbedUrl(firstUrl) !== null;
+        const isVideo = firstSlide.type === 'video' || post.mediaType === 'video' || isYt || isVideoUrl(firstUrl);
 
         let badgeHtml = '';
         if (isMulti) {
           badgeHtml = `<span class="ig-grid__badge">📑 ${slides.length}</span>`;
         } else if (isVideo) {
-          badgeHtml = `<span class="ig-grid__badge">🎬 VIDEO</span>`;
+          badgeHtml = '<span class="ig-grid__badge">🎬 VIDEO</span>';
         }
 
-        const thumb = post.thumbnailUrl || firstSlide.url || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500';
+        const ytThumb = getYouTubeThumbnail(firstUrl);
+        const thumb = ytThumb || post.thumbnailUrl || firstUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500';
 
         return `
           <div class="ig-grid__item" style="animation-delay: ${staggerDelay}s;" onclick="openPostViewer(${post.id})" role="button" tabindex="0" aria-label="Buka postingan karya">
@@ -661,7 +682,15 @@
 
       const trackEl = document.getElementById('viewer-carousel-track');
       trackEl.innerHTML = slides.map((slide, sIdx) => {
-        if (slide.type === 'video') {
+        const ytEmbed = getYouTubeEmbedUrl(slide.url);
+        if (ytEmbed) {
+          return `
+            <div class="post-carousel__slide" data-slide-index="${sIdx}">
+              <iframe src="${ytEmbed}" title="YouTube Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width: 100%; height: 420px; border-radius: 8px;"></iframe>
+            </div>
+          `;
+        }
+        if (slide.type === 'video' || isVideoUrl(slide.url)) {
           return `
             <div class="post-carousel__slide" data-slide-index="${sIdx}">
               <video controls playsinline preload="metadata" src="${escapeHtml(slide.url)}" style="max-height: 480px; width: 100%; object-fit: contain;"></video>

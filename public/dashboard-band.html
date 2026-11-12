@@ -199,49 +199,101 @@
 
   </main>
 
-  <!-- Modal: Buat Postingan Baru -->
+  <!-- Modal: Buat Postingan Baru (Simpel, Terarah & Multi-Slide Carousel) -->
   <div id="modal-create-post" class="modal-backdrop">
-    <div class="modal" style="max-width: 540px;">
+    <div class="modal" style="max-width: 580px;">
       <div class="modal__header">
-        <h3 class="modal__title">UNGGAH KARYA</h3>
-        <button class="modal__close" onclick="closeCreatePostModal()">&times;</button>
+        <div>
+          <h3 class="modal__title" style="display: flex; align-items: center; gap: 8px;">
+            <span>🎸</span> UNGGAH KARYA & DOKUMENTASI
+          </h3>
+          <div style="font-size: 0.8rem; color: var(--graphite); margin-top: 2px;">
+            Bagikan foto panggung atau video penampilan band Anda (maks. 5 slide)
+          </div>
+        </div>
+        <button class="modal__close" onclick="closeCreatePostModal()" aria-label="Tutup">&times;</button>
       </div>
       <form id="form-create-post">
         <div class="modal__body">
-          <div class="form-group">
-            <label class="form-label" for="post-media-type">Format Media *</label>
-            <select id="post-media-type" class="form-control" required onchange="handleMediaTypeChange()">
-              <option value="photo">Foto Panggung</option>
-              <option value="video">Video Penampilan</option>
-            </select>
+          
+          <!-- Tab Pemilihan Media -->
+          <div class="media-tabs" style="display: flex; gap: 8px; margin-bottom: 16px; background: var(--night-black); padding: 4px; border-radius: var(--radius-md); border: 1px solid var(--surface-border);">
+            <button type="button" id="tab-btn-file" class="btn-media-tab active" onclick="switchMediaTab('file')" style="flex: 1; padding: 8px 12px; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: all 0.2s; background: var(--electric-crimson); color: #fff;">
+              📁 Unggah Berkas
+            </button>
+            <button type="button" id="tab-btn-link" class="btn-media-tab" onclick="switchMediaTab('link')" style="flex: 1; padding: 8px 12px; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--graphite);">
+              🔗 Tautkan Link Video / YouTube
+            </button>
           </div>
 
-          <div class="form-group" style="padding: 12px; background: var(--night-black); border-radius: var(--radius-sm); border: 1px dashed var(--surface-border);">
-            <label class="form-label" for="post-file-input">Pilih Berkas dari Perangkat</label>
-            <input type="file" id="post-file-input" class="form-control" accept="image/*,video/*">
-            <div id="post-upload-status" style="font-size: 0.82rem; margin-top: 6px; color: var(--neon-cyan);"></div>
+          <!-- Tab Content 1: Area Dropzone Berkas Berilustrasi -->
+          <div id="tab-content-file">
+            <div id="post-dropzone" style="border: 2px dashed var(--neon-cyan); border-radius: var(--radius-md); padding: 24px 16px; text-align: center; background: rgba(0, 217, 255, 0.03); cursor: pointer; transition: border-color 0.2s, background 0.2s;" onclick="document.getElementById('post-file-input').click()">
+              <!-- SVG Illustration: Music Wave & Stage Camera -->
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin: 0 auto 12px auto; display: block;">
+                <circle cx="32" cy="32" r="30" fill="#141414" stroke="#00D9FF" stroke-width="1.5" stroke-dasharray="3 3"/>
+                <path d="M20 25C20 23.3431 21.3431 22 23 22H26.3431C27.1388 22 27.902 21.6839 28.4645 21.1213L29.8787 19.7071C30.4413 19.1446 31.2044 18.8284 32 18.8284H36C36.7956 18.8284 37.5587 19.1446 38.1213 19.7071L39.5355 21.1213C40.098 21.6839 40.8612 22 41.6569 22H45C46.6569 22 48 23.3431 48 25V41C48 42.6569 46.6569 44 45 44H23C21.3431 44 20 42.6569 20 41V25Z" stroke="#E01E37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="34" cy="33" r="6" stroke="#00D9FF" stroke-width="2"/>
+                <path d="M12 49C18 45 26 47 32 45C38 43 46 45 52 49" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--chalk-white); margin-bottom: 4px;">
+                Klik atau Seret Foto / Video ke Sini
+              </div>
+              <div style="font-size: 0.78rem; color: var(--graphite); margin-bottom: 8px;">
+                Pilih berkas dari galeri atau komputer Anda
+              </div>
+              <div style="display: inline-block; padding: 4px 10px; background: rgba(255, 255, 255, 0.05); border-radius: var(--radius-full); font-size: 0.74rem; color: var(--neon-cyan); border: 1px solid rgba(0, 217, 255, 0.2);">
+                📷 Foto maks. 5 MB • 🎬 Video maks. 20 MB
+              </div>
+              <input type="file" id="post-file-input" style="display: none;" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
+            </div>
+            <div id="post-upload-status" style="font-size: 0.82rem; margin-top: 8px; text-align: center; color: var(--neon-cyan); min-height: 20px;"></div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="post-media-url">URL Media (Opsional)</label>
-            <input type="url" id="post-media-url" class="form-control" placeholder="https://... atau terisi otomatis saat memilih berkas" oninput="updateLivePreview()">
-            <div style="font-size: 0.78rem; color: var(--graphite); margin-top: 4px;">
-              Opsional jika berkas sudah dipilih dari perangkat, atau masukkan URL langsung.
+          <!-- Tab Content 2: Tautkan Link -->
+          <div id="tab-content-link" style="display: none;">
+            <div style="padding: 16px; background: var(--night-black); border-radius: var(--radius-md); border: 1px solid var(--surface-border);">
+              <label class="form-label" for="post-link-input" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">
+                Tautan Video (YouTube, YouTube Shorts, TikTok, atau MP4)
+              </label>
+              <div style="display: flex; gap: 8px;">
+                <input type="url" id="post-link-input" class="form-control" placeholder="Contoh: https://www.youtube.com/watch?v=... atau https://youtu.be/..." style="flex: 1;">
+                <button type="button" class="btn btn--secondary" onclick="addLinkToSlides()" style="white-space: nowrap; padding: 0 16px;">
+                  + Tautkan
+                </button>
+              </div>
+              <div style="font-size: 0.76rem; color: var(--graphite); margin-top: 8px;">
+                💡 <em>Video YouTube akan langsung diputar di dalam web (anti-buffering & hemat kuota hosting).</em>
+              </div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="post-caption">Keterangan Karya</label>
-            <textarea id="post-caption" class="form-control" rows="3" placeholder="Tuliskan keterangan karya atau momen panggung..."></textarea>
+          <!-- Section: Slide Media Terlampir (Multi-Slide Carousel) -->
+          <div id="post-slides-section" style="margin-top: 16px; display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--chalk-white); letter-spacing: 0.5px;">
+                Media Terlampir (<span id="post-slides-count">0</span>/5)
+              </span>
+              <button type="button" id="btn-add-more-slide" class="btn btn--sm" onclick="showMediaPickerForNextSlide()" style="background: rgba(0, 217, 255, 0.1); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); font-size: 0.76rem; padding: 4px 10px; border-radius: var(--radius-sm); cursor: pointer;">
+                ➕ Tambah Foto/Video Lain
+              </button>
+            </div>
+            
+            <!-- Horizontal Slide Thumbnails List -->
+            <div id="post-slides-tray" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px;"></div>
+
+            <!-- Preview Active Slide Container -->
+            <div id="post-preview-box" style="margin-top: 10px; background: #000; border-radius: var(--radius-sm); padding: 8px; border: 1px solid var(--surface-border); text-align: center;">
+              <div id="post-preview-media-container" style="min-height: 160px; max-height: 240px; display: flex; align-items: center; justify-content: center;"></div>
+            </div>
           </div>
 
-          <!-- Live Preview Box -->
-          <div id="post-preview-box" style="margin-top: 10px; display: none; text-align: center; background: #000; border-radius: var(--radius-sm); padding: 8px; border: 1px solid var(--surface-border);">
-            <div style="font-size: 0.72rem; color: var(--graphite); margin-bottom: 6px; text-transform: uppercase;">Pratinjau Media</div>
-            <img id="post-preview-img" src="" alt="Preview" style="max-height: 180px; max-width: 100%; object-fit: contain; border-radius: 4px;">
-            <audio id="post-preview-audio" controls style="width: 100%; display: none; margin-top: 6px;"></audio>
-            <video id="post-preview-video" controls style="max-height: 180px; max-width: 100%; display: none; border-radius: 4px;"></video>
+          <!-- Keterangan Karya / Caption -->
+          <div class="form-group" style="margin-top: 16px;">
+            <label class="form-label" for="post-caption" style="font-size: 0.85rem; font-weight: 600;">Keterangan Karya (Caption)</label>
+            <textarea id="post-caption" class="form-control" rows="3" placeholder="Ceritakan momen penampilan panggung, festival, atau cerita di balik karya ini..."></textarea>
           </div>
+
         </div>
         <div class="modal__footer">
           <button type="button" class="btn btn--secondary" onclick="closeCreatePostModal()">Batal</button>
@@ -527,16 +579,19 @@
           ? post.slides
           : [{ type: post.mediaType || 'photo', url: post.mediaUrl }];
 
+        const firstUrl = (slides[0] && slides[0].url) || post.mediaUrl || '';
+        const isYt = getYouTubeEmbedUrl(firstUrl) !== null;
         let badgeIcon = '';
         if (slides.length > 1) {
           badgeIcon = `<span class="ig-grid__badge">📑 ${slides.length}</span>`;
-        } else if (slides[0]?.type === 'video' || post.mediaType === 'video') {
+        } else if (slides[0]?.type === 'video' || post.mediaType === 'video' || isYt || isVideoUrl(firstUrl)) {
           badgeIcon = '<span class="ig-grid__badge">🎬 VIDEO</span>';
         } else if (slides[0]?.type === 'audio' || post.mediaType === 'audio') {
           badgeIcon = '<span class="ig-grid__badge">🎵 AUDIO</span>';
         }
 
-        const thumb = post.thumbnailUrl || (slides[0] && slides[0].url) || post.mediaUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500';
+        const ytThumb = getYouTubeThumbnail(firstUrl);
+        const thumb = ytThumb || post.thumbnailUrl || firstUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500';
 
         return `
           <div class="ig-grid__item" style="animation-delay: ${staggerDelay}s;" onclick="openPostDetailModalById(${post.id})" role="button" tabindex="0" aria-label="Lihat detail karya">
@@ -673,62 +728,256 @@
       }
     }
 
-    // Modal: Create Post
+    // Media Helper: YouTube & Video Detection
+    function getYouTubeEmbedUrl(url) {
+      if (!url) return null;
+      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/)|youtube\.com\/live\/)([\w-]{11})/);
+      return match ? `https://www.youtube.com/embed/${match[1]}?rel=0` : null;
+    }
+
+    function getYouTubeThumbnail(url) {
+      if (!url) return null;
+      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/)|youtube\.com\/live\/)([\w-]{11})/);
+      return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
+    }
+
+    function isVideoUrl(url) {
+      if (!url) return false;
+      return getYouTubeEmbedUrl(url) !== null || /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+    }
+
+    // Modal: Create Post (Multi-Slide Carousel Builder)
+    let createPostSlides = []; // [{ type: 'photo'|'video', url: string, thumb: string }]
+    let activePreviewIndex = 0;
+
     function openCreatePostModal() {
       document.getElementById('modal-create-post').classList.add('active');
-      handleMediaTypeChange();
+      createPostSlides = [];
+      activePreviewIndex = 0;
+      switchMediaTab('file');
+      renderCreatePostSlides();
     }
 
     function closeCreatePostModal() {
       document.getElementById('modal-create-post').classList.remove('active');
       document.getElementById('form-create-post').reset();
-      document.getElementById('post-upload-status').textContent = '';
-      document.getElementById('post-preview-box').style.display = 'none';
-      const previewImg = document.getElementById('post-preview-img');
-      const previewAudio = document.getElementById('post-preview-audio');
-      const previewVideo = document.getElementById('post-preview-video');
-      if (previewImg) previewImg.src = '';
-      if (previewAudio) previewAudio.src = '';
-      if (previewVideo) previewVideo.src = '';
+      createPostSlides = [];
+      activePreviewIndex = 0;
+      const statusEl = document.getElementById('post-upload-status');
+      if (statusEl) statusEl.textContent = '';
+      const section = document.getElementById('post-slides-section');
+      if (section) section.style.display = 'none';
+      switchMediaTab('file');
     }
 
-    function handleMediaTypeChange() {
-      const type = document.getElementById('post-media-type').value;
-      const input = document.getElementById('post-file-input');
-      if (type === 'photo') input.accept = 'image/*';
-      else if (type === 'audio') input.accept = 'audio/*';
-      else if (type === 'video') input.accept = 'video/*';
-      updateLivePreview();
+    function switchMediaTab(tab) {
+      const btnFile = document.getElementById('tab-btn-file');
+      const btnLink = document.getElementById('tab-btn-link');
+      const contentFile = document.getElementById('tab-content-file');
+      const contentLink = document.getElementById('tab-content-link');
+
+      if (!btnFile || !btnLink || !contentFile || !contentLink) return;
+
+      if (tab === 'file') {
+        btnFile.style.background = 'var(--electric-crimson)';
+        btnFile.style.color = '#fff';
+        btnLink.style.background = 'transparent';
+        btnLink.style.color = 'var(--graphite)';
+        contentFile.style.display = 'block';
+        contentLink.style.display = 'none';
+      } else {
+        btnLink.style.background = 'var(--electric-crimson)';
+        btnLink.style.color = '#fff';
+        btnFile.style.background = 'transparent';
+        btnFile.style.color = 'var(--graphite)';
+        contentFile.style.display = 'none';
+        contentLink.style.display = 'block';
+      }
     }
 
-    function updateLivePreview() {
-      const type = document.getElementById('post-media-type').value;
-      const url = document.getElementById('post-media-url').value.trim();
-      const previewBox = document.getElementById('post-preview-box');
-      const previewImg = document.getElementById('post-preview-img');
-      const previewAudio = document.getElementById('post-preview-audio');
-      const previewVideo = document.getElementById('post-preview-video');
+    function showMediaPickerForNextSlide() {
+      if (createPostSlides.length >= 5) {
+        showToast('Maksimal 5 media per postingan', 'info');
+        return;
+      }
+      switchMediaTab('file');
+      const fileInput = document.getElementById('post-file-input');
+      if (fileInput) fileInput.click();
+    }
+
+    function addLinkToSlides() {
+      const input = document.getElementById('post-link-input');
+      if (!input) return;
+      const url = input.value.trim();
 
       if (!url) {
-        previewBox.style.display = 'none';
+        showToast('Harap masukkan tautan media terlebih dahulu', 'error');
         return;
       }
 
-      previewBox.style.display = 'block';
-      previewImg.style.display = 'none';
-      previewAudio.style.display = 'none';
-      previewVideo.style.display = 'none';
-
-      if (type === 'photo') {
-        previewImg.src = url;
-        previewImg.style.display = 'inline-block';
-      } else if (type === 'audio') {
-        previewAudio.src = url;
-        previewAudio.style.display = 'inline-block';
-      } else if (type === 'video') {
-        previewVideo.src = url;
-        previewVideo.style.display = 'inline-block';
+      if (createPostSlides.length >= 5) {
+        showToast('Maksimal 5 media per postingan', 'error');
+        return;
       }
+
+      const ytEmbed = getYouTubeEmbedUrl(url);
+      const isVideo = ytEmbed !== null || isVideoUrl(url);
+      const thumb = ytEmbed ? getYouTubeThumbnail(url) : url;
+
+      createPostSlides.push({
+        type: isVideo ? 'video' : 'photo',
+        url: url,
+        thumb: thumb
+      });
+
+      input.value = '';
+      activePreviewIndex = createPostSlides.length - 1;
+      renderCreatePostSlides();
+      showToast('Media berhasil ditambahkan', 'success');
+    }
+
+    async function handlePostFileUpload(file) {
+      if (!file) return;
+
+      if (createPostSlides.length >= 5) {
+        showToast('Maksimal 5 media per postingan', 'error');
+        return;
+      }
+
+      const isPhoto = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+
+      if (isPhoto && file.size > 5 * 1024 * 1024) {
+        showToast('Ukuran foto maksimal 5 MB untuk mengoptimalkan penyimpanan', 'error');
+        return;
+      }
+
+      if (isVideo && file.size > 20 * 1024 * 1024) {
+        showToast('Ukuran video melebihi 20 MB. Untuk video durasi panjang, disarankan gunakan tab "Tautkan Link YouTube"', 'error');
+        return;
+      }
+
+      const statusEl = document.getElementById('post-upload-status');
+      if (statusEl) {
+        statusEl.innerHTML = '<span style="color: var(--neon-cyan);">⏳ Mengunggah media ke Cloud Storage...</span>';
+      }
+
+      const submitBtn = document.getElementById('btn-submit-post');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳ Mengunggah Media...</span>';
+      }
+
+      const formData = new FormData();
+      const uploadEndpoint = isPhoto ? '/api/upload/photo' : '/api/upload/media';
+      formData.append(isPhoto ? 'photo' : 'media', file);
+
+      try {
+        const res = await fetch(uploadEndpoint, {
+          method: 'POST',
+          headers: AuthManager.getAuthHeaders(),
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success && data.fileUrl) {
+          if (statusEl) {
+            statusEl.innerHTML = '<span style="color: var(--whatsapp-green);">✅ Berhasil diunggah ke Cloud!</span>';
+          }
+          createPostSlides.push({
+            type: isPhoto ? 'photo' : 'video',
+            url: data.fileUrl,
+            thumb: data.fileUrl
+          });
+          activePreviewIndex = createPostSlides.length - 1;
+          renderCreatePostSlides();
+          setTimeout(() => {
+            if (statusEl) statusEl.textContent = '';
+          }, 3500);
+        } else {
+          if (statusEl) statusEl.textContent = '⚠️ ' + (data.message || 'Gagal mengunggah berkas');
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = '⚠️ Terjadi kesalahan saat mengunggah berkas';
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>Unggah Karya</span>';
+        }
+        const fileInput = document.getElementById('post-file-input');
+        if (fileInput) fileInput.value = '';
+      }
+    }
+
+    function renderCreatePostSlides() {
+      const section = document.getElementById('post-slides-section');
+      const countEl = document.getElementById('post-slides-count');
+      const tray = document.getElementById('post-slides-tray');
+      const btnAddMore = document.getElementById('btn-add-more-slide');
+      const previewContainer = document.getElementById('post-preview-media-container');
+
+      if (!section || !countEl || !tray || !previewContainer) return;
+
+      if (createPostSlides.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = 'block';
+      countEl.textContent = createPostSlides.length;
+
+      if (btnAddMore) {
+        btnAddMore.style.display = createPostSlides.length < 5 ? 'inline-block' : 'none';
+        btnAddMore.textContent = `➕ Tambah Foto/Video (${createPostSlides.length}/5)`;
+      }
+
+      tray.innerHTML = createPostSlides.map((slide, idx) => {
+        const isActive = idx === activePreviewIndex;
+        const isVideo = slide.type === 'video';
+        const thumbUrl = slide.thumb || slide.url;
+        return `
+          <div style="position: relative; flex: 0 0 76px; width: 76px; height: 76px; border-radius: var(--radius-sm); overflow: hidden; border: 2px solid ${isActive ? 'var(--neon-cyan)' : 'var(--surface-border)'}; cursor: pointer; background: #000;" onclick="selectPreviewSlide(${idx})">
+            ${isVideo && !thumbUrl.includes('img.youtube.com') 
+              ? `<video src="${escapeHtml(thumbUrl)}" style="width: 100%; height: 100%; object-fit: cover;"></video>`
+              : `<img src="${escapeHtml(thumbUrl)}" alt="Slide ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;">`
+            }
+            <span style="position: absolute; bottom: 2px; left: 2px; font-size: 0.65rem; background: rgba(0,0,0,0.75); padding: 1px 4px; border-radius: 2px; color: #fff;">
+              ${isVideo ? '🎬' : '📷'} ${idx + 1}
+            </span>
+            <button type="button" onclick="event.stopPropagation(); removeCreatePostSlide(${idx})" style="position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: rgba(224,30,55,0.9); color: #fff; border: none; border-radius: 50%; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;" aria-label="Hapus slide">&times;</button>
+          </div>
+        `;
+      }).join('');
+
+      const activeSlide = createPostSlides[activePreviewIndex] || createPostSlides[0];
+      if (!activeSlide) return;
+
+      const ytEmbed = getYouTubeEmbedUrl(activeSlide.url);
+      if (ytEmbed) {
+        previewContainer.innerHTML = `
+          <iframe src="${ytEmbed}" title="YouTube Preview" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width: 100%; height: 220px; border-radius: 4px;"></iframe>
+        `;
+      } else if (activeSlide.type === 'video' || isVideoUrl(activeSlide.url)) {
+        previewContainer.innerHTML = `
+          <video controls playsinline src="${escapeHtml(activeSlide.url)}" style="max-height: 220px; max-width: 100%; border-radius: 4px;"></video>
+        `;
+      } else {
+        previewContainer.innerHTML = `
+          <img src="${escapeHtml(activeSlide.url)}" alt="Preview" style="max-height: 220px; max-width: 100%; object-fit: contain; border-radius: 4px;">
+        `;
+      }
+    }
+
+    function selectPreviewSlide(idx) {
+      activePreviewIndex = idx;
+      renderCreatePostSlides();
+    }
+
+    function removeCreatePostSlide(idx) {
+      createPostSlides.splice(idx, 1);
+      if (activePreviewIndex >= createPostSlides.length) {
+        activePreviewIndex = Math.max(0, createPostSlides.length - 1);
+      }
+      renderCreatePostSlides();
     }
 
     // Modal: Detail Post (Carousel)
@@ -744,14 +993,22 @@
         ? post.slides
         : [{ type: post.mediaType || 'photo', url: post.mediaUrl }];
 
-      const isVideo = slides[0]?.type === 'video' || post.mediaType === 'video';
+      const isVideo = slides[0]?.type === 'video' || post.mediaType === 'video' || isVideoUrl(slides[0]?.url);
       document.getElementById('detail-modal-title').textContent = 
         isVideo ? 'VIDEO PENAMPILAN' :
         (slides[0]?.type === 'audio' || post.mediaType === 'audio') ? 'SAMPEL AUDIO' : 'FOTO PANGGUNG';
 
       const trackEl = document.getElementById('detail-carousel-track');
       trackEl.innerHTML = slides.map((slide, sIdx) => {
-        if (slide.type === 'video') {
+        const ytEmbed = getYouTubeEmbedUrl(slide.url);
+        if (ytEmbed) {
+          return `
+            <div class="post-carousel__slide" data-slide-index="${sIdx}">
+              <iframe src="${ytEmbed}" title="YouTube Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width: 100%; height: 380px; border-radius: 8px;"></iframe>
+            </div>
+          `;
+        }
+        if (slide.type === 'video' || isVideoUrl(slide.url)) {
           return `
             <div class="post-carousel__slide" data-slide-index="${sIdx}">
               <video controls playsinline preload="metadata" src="${escapeHtml(slide.url)}" style="max-height: 380px; width: 100%; object-fit: contain;"></video>
@@ -992,88 +1249,54 @@
         postFileInput.addEventListener('change', async (e) => {
           const file = e.target.files[0];
           if (!file) return;
-
-          const statusEl = document.getElementById('post-upload-status');
-          statusEl.textContent = '⏳ Mengunggah media ke server...';
-
-          const submitBtn = document.getElementById('btn-submit-post');
-          if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span>⏳ Mengunggah Media...</span>';
-          }
-
-          const formData = new FormData();
-          const isPhoto = file.type.startsWith('image/');
-          const uploadEndpoint = isPhoto ? '/api/upload/photo' : '/api/upload/media';
-          formData.append(isPhoto ? 'photo' : 'media', file);
-
-          try {
-            const res = await fetch(uploadEndpoint, {
-              method: 'POST',
-              headers: AuthManager.getAuthHeaders(),
-              body: formData
-            });
-            const data = await res.json();
-            if (data.success && data.fileUrl) {
-              const fullUrl = window.location.origin + data.fileUrl;
-              document.getElementById('post-media-url').value = fullUrl;
-              statusEl.textContent = '✅ Berhasil diunggah!';
-              updateLivePreview();
-            } else {
-              statusEl.textContent = '⚠️ ' + (data.message || 'Gagal mengunggah file');
-            }
-          } catch (err) {
-            statusEl.textContent = '⚠️ Terjadi kesalahan saat mengunggah';
-          } finally {
-            if (submitBtn) {
-              submitBtn.disabled = false;
-              submitBtn.innerHTML = '<span>Unggah Karya</span>';
-            }
-          }
+          await handlePostFileUpload(file);
         });
       }
 
-      // Handle submit create post
+      // Handle submit create post (Multi-Slide Carousel)
       document.getElementById('form-create-post').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const mediaType = document.getElementById('post-media-type').value;
-        const mediaUrl = document.getElementById('post-media-url').value.trim();
-        const caption = document.getElementById('post-caption').value.trim();
 
-        if (!mediaUrl) {
-          showToast('Harap pilih berkas dari perangkat atau masukkan URL media', 'error');
+        if (createPostSlides.length === 0) {
+          showToast('Harap tambahkan minimal 1 foto atau video terlebih dahulu', 'error');
           return;
         }
 
-        const slides = [
-          { type: mediaType, url: mediaUrl }
-        ];
+        const caption = document.getElementById('post-caption').value.trim();
+        const primarySlide = createPostSlides[0];
+        const mediaType = primarySlide.type || 'photo';
+        const mediaUrl = primarySlide.url;
+        const thumbnailUrl = primarySlide.thumb || mediaUrl;
 
         const submitBtn = document.getElementById('btn-submit-post');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Mengunggah...';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span>⏳ Menerbitkan Karya...</span>';
+        }
 
         try {
           const res = await apiCreateBandPost({
             mediaType,
             mediaUrl,
-            thumbnailUrl: mediaUrl,
+            thumbnailUrl,
             caption,
-            slides
+            slides: createPostSlides
           });
 
           if (res.success) {
-            showToast('Karya berhasil diunggah', 'success');
+            showToast('Karya berhasil diterbitkan ke portofolio band!', 'success');
             closeCreatePostModal();
             initBandDashboard();
           } else {
-            showToast(res.message || 'Gagal membuat postingan', 'error');
+            showToast(res.message || 'Gagal menerbitkan postingan karya', 'error');
           }
         } catch (err) {
-          showToast('Terjadi kesalahan saat membuat postingan', 'error');
+          showToast('Terjadi kesalahan saat menerbitkan postingan karya', 'error');
         } finally {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span>Unggah Karya</span>';
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Unggah Karya</span>';
+          }
         }
       });
 

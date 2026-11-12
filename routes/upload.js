@@ -1,117 +1,149 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { requireAuth } = require('../middleware/auth');
 const { uploadLimiter } = require('../middleware/rateLimiter');
+const { LIMITS, uploadToCloudStorage } = require('../utils/storage');
 
-const os = require('os');
+// Gunakan memoryStorage agar buffer file dapat dikirim langsung ke cloud storage
+const storage = multer.memoryStorage();
 
-// Ensure uploads directory exists (use tmp dir on serverless like Vercel)
-const uploadDir = process.env.VERCEL
-  ? path.join(os.tmpdir(), 'uploads')
-  : path.join(__dirname, '..', 'uploads');
-
-try {
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-} catch (err) {
-  console.warn('⚠️ Notice initializing uploads directory:', err.message);
-}
-
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, uniqueName);
-  }
-});
-
-// File filter
+// Filter tipe berkas yang didukung
 const fileFilter = (req, file, cb) => {
   const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   const allowedMediaTypes = ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/mp3', 'video/mp4', 'video/webm'];
-  
+
   if (allowedImageTypes.includes(file.mimetype) || allowedMediaTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Tipe file tidak didukung. Harap unggah format gambar (JPEG, PNG, WebP) atau audio/video.'), false);
+    cb(new Error('Tipe berkas tidak didukung. Harap unggah format gambar (JPEG, PNG, WebP) atau audio/video (MP4, MP3).'), false);
   }
 };
 
+// Batas multer awal max 25MB (pemeriksaan spesifik foto 5MB / video 20MB dilakukan di controller)
 const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024 // 50MB max
+    fileSize: 25 * 1024 * 1024
   }
 });
 
+// Middleware penangan error multer
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        message: 'Ukuran berkas melebihi batas maksimum (Maksimal 5 MB untuk foto, 20 MB untuk video)'
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      message: `Kesalahan unggah: ${err.message}`
+    });
+  } else if (err) {
+    return res.status(400).json({
+      success: false,
+      message: err.message || 'Gagal memproses berkas'
+    });
+  }
+  next();
+};
+
 /**
  * POST /api/upload/photo
- * Upload profile or cover photo
+ * Unggah foto profil, cover, atau foto karya ke Cloud Storage
  */
-router.post('/photo', requireAuth, uploadLimiter, upload.single('photo'), (req, res) => {
+router.post('/photo', requireAuth, uploadLimiter, upload.single('photo'), handleMulterError, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'File gambar tidak ditemukan'
+        message: 'Berkas gambar tidak ditemukan'
       });
     }
 
-    const fileUrl = `/uploads/${req.file.filename}`;
+    // Validasi batas ukuran foto (Max 5MB sesuai resource free tier Supabase)
+    if (req.file.size > LIMITS.MAX_IMAGE_SIZE) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ukuran foto maksimal 5 MB untuk mengoptimalkan penyimpanan'
+      });
+    }
+
+    const uploadRes = await uploadToCloudStorage(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype
+    );
 
     return res.status(201).json({
       success: true,
       message: 'Foto berhasil diunggah',
-      fileUrl,
-      filename: req.file.filename
+      fileUrl: uploadRes.publicUrl,
+      filename: uploadRes.filename,
+      isCloud: uploadRes.isCloud
     });
   } catch (error) {
     console.error('Photo upload error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Gagal mengunggah foto'
+      message: error.message || 'Gagal mengunggah foto'
     });
   }
 });
 
 /**
  * POST /api/upload/media
- * Upload audio or video demo track
+ * Unggah audio demo atau video cuplikan penampilan ke Cloud Storage
  */
-router.post('/media', requireAuth, uploadLimiter, upload.single('media'), (req, res) => {
+router.post('/media', requireAuth, uploadLimiter, upload.single('media'), handleMulterError, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'File media tidak ditemukan'
+        message: 'Berkas media tidak ditemukan'
       });
     }
 
-    const fileUrl = `/uploads/${req.file.filename}`;
     const isAudio = req.file.mimetype.startsWith('audio');
     const isVideo = req.file.mimetype.startsWith('video');
+
+    // Validasi batas ukuran per jenis media
+    if (isVideo && req.file.size > LIMITS.MAX_VIDEO_SIZE) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ukuran video maksimal 20 MB. Untuk video durasi panjang / kualitas HD, disarankan menempelkan tautan YouTube pada tab "Tautkan Link"'
+      });
+    }
+
+    if (isAudio && req.file.size > LIMITS.MAX_AUDIO_SIZE) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ukuran audio maksimal 10 MB'
+      });
+    }
+
+    const uploadRes = await uploadToCloudStorage(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype
+    );
 
     return res.status(201).json({
       success: true,
       message: 'Media berhasil diunggah',
-      fileUrl,
+      fileUrl: uploadRes.publicUrl,
       fileType: isAudio ? 'audio' : isVideo ? 'video' : 'media',
-      filename: req.file.filename
+      filename: uploadRes.filename,
+      isCloud: uploadRes.isCloud
     });
   } catch (error) {
     console.error('Media upload error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Gagal mengunggah media'
+      message: error.message || 'Gagal mengunggah media'
     });
   }
 });
