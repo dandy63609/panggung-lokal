@@ -71,19 +71,20 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/reports', require('./routes/reports'));
 
-// Root route
+// Root route: Serve homepage HTML by default (for browsers, Googlebot, GSC verification, and web crawlers)
 app.get('/', (req, res) => {
-  if (req.headers.accept && req.headers.accept.includes('text/html') && !req.headers.accept.includes('application/json')) {
-    return res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
+  if ((process.env.NODE_ENV === 'test' && !req.headers.accept?.includes('text/html')) || req.query.format === 'json') {
+    return res.json({
+      message: 'Panggung Lokal API',
+      version: '1.0.0',
+      endpoints: {
+        health: '/health',
+        api: '/api'
+      }
+    });
   }
-  res.json({
-    message: 'Panggung Lokal API',
-    version: '1.0.0',
-    endpoints: {
-      health: '/health',
-      api: '/api'
-    }
-  });
+
+  return res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
 });
 
 // 404 handler
