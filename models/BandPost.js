@@ -135,7 +135,18 @@ class BandPost {
       'DELETE FROM band_posts WHERE id = $1 AND band_profile_id = $2 RETURNING *',
       [id, bandProfileId]
     );
-    return result.rows.length > 0;
+    if (result.rows.length > 0) {
+      try {
+        const { deleteFromCloud } = require('../utils/memoryDb');
+        if (typeof deleteFromCloud === 'function') {
+          deleteFromCloud('band_posts', id);
+        }
+      } catch (e) {
+        // ignore
+      }
+      return true;
+    }
+    return false;
   }
 
   /**

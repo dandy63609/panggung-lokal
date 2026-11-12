@@ -10,13 +10,16 @@ const storage = multer.memoryStorage();
 
 // Filter tipe berkas yang didukung
 const fileFilter = (req, file, cb) => {
-  const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-  const allowedMediaTypes = ['audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/mp3', 'video/mp4', 'video/webm'];
+  const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/jpg', 'image/pjpeg'];
+  const allowedMediaTypes = [
+    'audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/mp3', 'audio/x-wav', 'audio/mp4', 'audio/x-m4a', 'audio/aac',
+    'video/mp4', 'video/webm', 'video/quicktime'
+  ];
 
   if (allowedImageTypes.includes(file.mimetype) || allowedMediaTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Tipe berkas tidak didukung. Harap unggah format gambar (JPEG, PNG, WebP) atau audio/video (MP4, MP3).'), false);
+    cb(new Error('Tipe berkas tidak didukung. Harap unggah format gambar (JPEG, PNG, WebP) atau audio/video (MP4, WebM, MOV, MP3, WAV).'), false);
   }
 };
 

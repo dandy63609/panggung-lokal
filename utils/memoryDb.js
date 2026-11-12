@@ -5,9 +5,77 @@ const bcrypt = require('bcrypt');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'panggung_lokal.json');
 
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://awccpftjirfmxbvugqtk.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3Y2NwZnRqaXJmbXhidnVncXRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NjEzNjMsImV4cCI6MjExMDAzNzM2M30.YXnWVV91NjUUDgbfmSiqBPVuSfFCNF-E6SqDh86MfNs';
+
 let memDbInstance = null;
 let poolInstance = null;
 let initPromise = null;
+
+async function fetchFromCloud() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'reports'];
+  const cloudData = {};
+  let totalRows = 0;
+
+  await Promise.all(tables.map(async (table) => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&order=id.asc`, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        signal: AbortSignal.timeout(3000)
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows)) {
+          cloudData[table] = rows;
+          totalRows += rows.length;
+        }
+      }
+    } catch (e) {
+      // cloud fetch timeout or network offline
+    }
+  }));
+
+  return totalRows > 0 ? cloudData : null;
+}
+
+async function syncAllToCloud() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !memDbInstance || process.env.NODE_ENV === 'test') return;
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'reports'];
+  for (const table of tables) {
+    try {
+      const rows = memDbInstance.public.many(`SELECT * FROM ${table}`);
+      if (rows && rows.length > 0) {
+        fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify(rows)
+        }).catch(() => {});
+      }
+    } catch (e) {
+      // ignore background sync errors
+    }
+  }
+}
+
+async function deleteFromCloud(table, id) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !id || process.env.NODE_ENV === 'test') return;
+  fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    }
+  }).catch(() => {});
+}
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS users (
@@ -126,20 +194,37 @@ function getMemoryDb() {
   poolInstance = pool;
 
   initPromise = (async () => {
-    if (fs.existsSync(DATA_FILE)) {
+    let loadedFromCloud = false;
+    if (process.env.NODE_ENV !== 'test') {
       try {
-        const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-        await restoreData(pool, savedData);
-        syncMemoryDbSequences(db);
-        console.log('📦 Restored database from', DATA_FILE);
-      } catch (err) {
-        console.error('⚠️ Could not restore saved data, seeding fresh:', err.message);
+        const cloudData = await fetchFromCloud();
+        if (cloudData && Object.keys(cloudData).length > 0) {
+          await restoreData(pool, cloudData);
+          syncMemoryDbSequences(db);
+          console.log('☁️ Loaded database state directly from Supabase Cloud');
+          loadedFromCloud = true;
+        }
+      } catch (cloudErr) {
+        console.warn('⚠️ Supabase Cloud fetch notice:', cloudErr.message);
+      }
+    }
+
+    if (!loadedFromCloud) {
+      if (fs.existsSync(DATA_FILE)) {
+        try {
+          const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+          await restoreData(pool, savedData);
+          syncMemoryDbSequences(db);
+          console.log('📦 Restored database from', DATA_FILE);
+        } catch (err) {
+          console.error('⚠️ Could not restore saved data, seeding fresh:', err.message);
+          await seedInitialData(pool);
+          syncMemoryDbSequences(db);
+        }
+      } else {
         await seedInitialData(pool);
         syncMemoryDbSequences(db);
       }
-    } else {
-      await seedInitialData(pool);
-      syncMemoryDbSequences(db);
     }
   })();
 
@@ -201,7 +286,13 @@ function saveMemoryDb() {
   try {
     syncMemoryDbSequences(memDbInstance);
     const data = dumpData(memDbInstance);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    try {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    } catch (fsErr) {
+      // Ignore read-only filesystem notice on Vercel Serverless
+    }
+    // Asynchronously synchronize state with Supabase Cloud
+    syncAllToCloud();
   } catch (err) {
     console.error('Failed to save memory database:', err.message);
   }
@@ -566,5 +657,7 @@ async function seedInitialData(pool) {
 module.exports = {
   getMemoryDb,
   saveMemoryDb,
-  syncMemoryDbSequences
+  syncMemoryDbSequences,
+  syncAllToCloud,
+  deleteFromCloud
 };

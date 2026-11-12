@@ -68,7 +68,19 @@ router.post('/:id/wa-click', async (req, res) => {
  */
 router.post('/', requireAuth, requireBand, async (req, res) => {
   try {
-    const bandProfile = await BandProfile.findByUserId(req.user.id);
+    let bandProfile = await BandProfile.findByUserId(req.user.id);
+    if (!bandProfile && req.user.accountType === 'band') {
+      const User = require('../models/User');
+      const user = await User.findById(req.user.id);
+      bandProfile = await BandProfile.create({
+        userId: req.user.id,
+        bandName: (user && user.email) ? user.email.split('@')[0] : 'Band Baru',
+        genre: 'Indie / Pop',
+        locationCity: 'Bandung',
+        bio: 'Profil band di Panggung Lokal'
+      });
+    }
+
     if (!bandProfile) {
       return res.status(404).json({ success: false, message: 'Profil band tidak ditemukan' });
     }

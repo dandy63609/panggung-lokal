@@ -86,6 +86,10 @@ router.post('/register', authLimiter, async (req, res) => {
     // Generate token
     const token = generateToken(newUser);
 
+    const cookieOptions = [`panggung_lokal_token=${encodeURIComponent(token)}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', 'Max-Age=604800'];
+    if (process.env.NODE_ENV === 'production') cookieOptions.push('Secure');
+    res.setHeader('Set-Cookie', cookieOptions.join('; '));
+
     return res.status(201).json({
       success: true,
       message: 'Registrasi berhasil',
@@ -96,12 +100,7 @@ router.post('/register', authLimiter, async (req, res) => {
         accountType: newUser.accountType,
         createdAt: newUser.createdAt
       },
-      bandProfile: bandProfile ? {
-        id: bandProfile.id,
-        bandName: bandProfile.bandName,
-        genre: bandProfile.genre,
-        locationCity: bandProfile.locationCity
-      } : null
+      bandProfile
     });
   } catch (error) {
     console.error('Registration error:', error);

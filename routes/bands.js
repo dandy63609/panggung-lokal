@@ -268,7 +268,19 @@ router.post('/profile', requireBand, async (req, res) => {
  */
 router.put('/profile', requireBand, async (req, res) => {
   try {
-    const profile = await BandProfile.findByUserId(req.user.id);
+    let profile = await BandProfile.findByUserId(req.user.id);
+    if (!profile && req.user.accountType === 'band') {
+      const User = require('../models/User');
+      const user = await User.findById(req.user.id);
+      profile = await BandProfile.create({
+        userId: req.user.id,
+        bandName: (user && user.email) ? user.email.split('@')[0] : 'Band Baru',
+        genre: 'Indie / Pop',
+        locationCity: 'Bandung',
+        bio: 'Profil band di Panggung Lokal'
+      });
+    }
+
     if (!profile) {
       return res.status(404).json({
         success: false,
@@ -352,7 +364,19 @@ router.put('/profile', requireBand, async (req, res) => {
  */
 router.post('/media', requireBand, async (req, res) => {
   try {
-    const profile = await BandProfile.findByUserId(req.user.id);
+    let profile = await BandProfile.findByUserId(req.user.id);
+    if (!profile && req.user.accountType === 'band') {
+      const User = require('../models/User');
+      const user = await User.findById(req.user.id);
+      profile = await BandProfile.create({
+        userId: req.user.id,
+        bandName: (user && user.email) ? user.email.split('@')[0] : 'Band Baru',
+        genre: 'Indie / Pop',
+        locationCity: 'Bandung',
+        bio: 'Profil band di Panggung Lokal'
+      });
+    }
+
     if (!profile) {
       return res.status(404).json({
         success: false,
@@ -414,6 +438,15 @@ router.delete('/media/:id', requireBand, async (req, res) => {
         success: false,
         message: 'Media tidak ditemukan atau bukan milik band Anda'
       });
+    }
+
+    try {
+      const { deleteFromCloud } = require('../utils/memoryDb');
+      if (typeof deleteFromCloud === 'function') {
+        deleteFromCloud('media_files', mediaId);
+      }
+    } catch (e) {
+      // ignore
     }
 
     return res.json({

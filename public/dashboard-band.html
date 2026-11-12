@@ -243,9 +243,9 @@
                 Pilih berkas dari galeri atau komputer Anda
               </div>
               <div style="display: inline-block; padding: 4px 10px; background: rgba(255, 255, 255, 0.05); border-radius: var(--radius-full); font-size: 0.74rem; color: var(--neon-cyan); border: 1px solid rgba(0, 217, 255, 0.2);">
-                📷 Foto maks. 5 MB • 🎬 Video maks. 20 MB
+                📷 Foto maks. 5 MB • 🎬 Video maks. 20 MB • 🎵 Audio maks. 10 MB
               </div>
-              <input type="file" id="post-file-input" style="display: none;" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
+              <input type="file" id="post-file-input" style="display: none;" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp3,audio/wav,audio/ogg">
             </div>
             <div id="post-upload-status" style="font-size: 0.82rem; margin-top: 8px; text-align: center; color: var(--neon-cyan); min-height: 20px;"></div>
           </div>
@@ -883,8 +883,9 @@
           if (statusEl) {
             statusEl.innerHTML = '<span style="color: var(--whatsapp-green);">✅ Berhasil diunggah ke Cloud!</span>';
           }
+          const detectedType = data.fileType || (isPhoto ? 'photo' : isVideo ? 'video' : file.type.startsWith('audio/') ? 'audio' : 'photo');
           createPostSlides.push({
-            type: isPhoto ? 'photo' : 'video',
+            type: detectedType,
             url: data.fileUrl,
             thumb: data.fileUrl
           });
@@ -933,15 +934,18 @@
       tray.innerHTML = createPostSlides.map((slide, idx) => {
         const isActive = idx === activePreviewIndex;
         const isVideo = slide.type === 'video';
+        const isAudio = slide.type === 'audio';
         const thumbUrl = slide.thumb || slide.url;
         return `
           <div style="position: relative; flex: 0 0 76px; width: 76px; height: 76px; border-radius: var(--radius-sm); overflow: hidden; border: 2px solid ${isActive ? 'var(--neon-cyan)' : 'var(--surface-border)'}; cursor: pointer; background: #000;" onclick="selectPreviewSlide(${idx})">
-            ${isVideo && !thumbUrl.includes('img.youtube.com') 
+            ${isAudio 
+              ? `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; background: #1a1a1a;">🎵</div>`
+              : isVideo && !thumbUrl.includes('img.youtube.com') 
               ? `<video src="${escapeHtml(thumbUrl)}" style="width: 100%; height: 100%; object-fit: cover;"></video>`
               : `<img src="${escapeHtml(thumbUrl)}" alt="Slide ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;">`
             }
             <span style="position: absolute; bottom: 2px; left: 2px; font-size: 0.65rem; background: rgba(0,0,0,0.75); padding: 1px 4px; border-radius: 2px; color: #fff;">
-              ${isVideo ? '🎬' : '📷'} ${idx + 1}
+              ${isAudio ? '🎵' : isVideo ? '🎬' : '📷'} ${idx + 1}
             </span>
             <button type="button" onclick="event.stopPropagation(); removeCreatePostSlide(${idx})" style="position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: rgba(224,30,55,0.9); color: #fff; border: none; border-radius: 50%; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;" aria-label="Hapus slide">&times;</button>
           </div>
@@ -959,6 +963,13 @@
       } else if (activeSlide.type === 'video' || isVideoUrl(activeSlide.url)) {
         previewContainer.innerHTML = `
           <video controls playsinline src="${escapeHtml(activeSlide.url)}" style="max-height: 220px; max-width: 100%; border-radius: 4px;"></video>
+        `;
+      } else if (activeSlide.type === 'audio') {
+        previewContainer.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; gap: 12px; background: #111; border-radius: 4px; padding: 16px;">
+            <div style="font-size: 2.8rem;">🎵</div>
+            <audio controls src="${escapeHtml(activeSlide.url)}" style="width: 90%; max-width: 320px;"></audio>
+          </div>
         `;
       } else {
         previewContainer.innerHTML = `
