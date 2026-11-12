@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /dashboard-band.html
+Disallow: /dashboard-organizer.html
+Disallow: /reset-password.html
+Disallow: /api/
+
+Sitemap: https://reffband.studio/sitemap.xml
