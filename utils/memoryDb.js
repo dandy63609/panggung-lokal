@@ -130,13 +130,16 @@ function getMemoryDb() {
       try {
         const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
         await restoreData(pool, savedData);
+        syncMemoryDbSequences(db);
         console.log('📦 Restored database from', DATA_FILE);
       } catch (err) {
         console.error('⚠️ Could not restore saved data, seeding fresh:', err.message);
         await seedInitialData(pool);
+        syncMemoryDbSequences(db);
       }
     } else {
       await seedInitialData(pool);
+      syncMemoryDbSequences(db);
     }
   })();
 
@@ -172,9 +175,31 @@ function dumpData(db) {
   return dump;
 }
 
+function syncMemoryDbSequences(memDb = memDbInstance) {
+  if (!memDb || !memDb.public || !memDb.data) return;
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports'];
+  for (const tableName of tables) {
+    try {
+      const table = memDb.public.getTable(tableName);
+      if (!table || !table.serialsId) continue;
+      let serials = memDb.data.getMap(table.serialsId);
+      if (!serials) continue;
+      for (const colName of serials.keys()) {
+        const rows = memDb.public.many('SELECT COALESCE(MAX(' + colName + '), 0) AS max_val FROM ' + tableName);
+        const maxVal = rows && rows[0] && rows[0].max_val ? parseInt(rows[0].max_val, 10) : 0;
+        serials = serials.set(colName, maxVal);
+      }
+      memDb.data.set(table.serialsId, serials);
+    } catch (e) {
+      // ignore
+    }
+  }
+}
+
 function saveMemoryDb() {
   if (!memDbInstance) return;
   try {
+    syncMemoryDbSequences(memDbInstance);
     const data = dumpData(memDbInstance);
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (err) {
@@ -540,5 +565,6 @@ async function seedInitialData(pool) {
 
 module.exports = {
   getMemoryDb,
-  saveMemoryDb
+  saveMemoryDb,
+  syncMemoryDbSequences
 };
