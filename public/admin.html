@@ -244,10 +244,18 @@
           } else {
             reportsTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--graphite); padding: 25px;">Tidak ada laporan yang perlu ditinjau.</td></tr>';
           }
+        } else {
+          showToast(res.message || 'Akses khusus admin. Silakan login.', 'error');
+          setTimeout(() => {
+            window.location.href = '/login.html?redirect=/admin.html';
+          }, 1200);
         }
       } catch (err) {
         console.error('Error loading admin metrics:', err);
-        showToast('Gagal memuat metrik bisnis', 'error');
+        showToast('Gagal memuat metrik bisnis. Pastikan Anda telah login sebagai admin.', 'error');
+        setTimeout(() => {
+          window.location.href = '/login.html?redirect=/admin.html';
+        }, 1500);
       }
     }
 

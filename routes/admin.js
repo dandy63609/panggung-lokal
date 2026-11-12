@@ -16,7 +16,18 @@ router.get('/metrics', async (req, res) => {
     const totalBandsResult = await db.query('SELECT COUNT(*) as count FROM users WHERE account_type = $1', ['band']);
     const totalOrganizersResult = await db.query('SELECT COUNT(*) as count FROM users WHERE account_type = $1', ['organizer']);
     const totalBandProfilesResult = await db.query('SELECT COUNT(*) as count FROM band_profiles');
-    const totalAvailabilityResult = await db.query('SELECT COUNT(*) as count FROM availability_posts WHERE is_active = true');
+    let totalPosts = 0;
+    try {
+      const postsRes = await db.query('SELECT COUNT(*) as count FROM band_posts');
+      totalPosts = parseInt(postsRes.rows[0].count, 10) || 0;
+    } catch (e) {
+      try {
+        const legacyRes = await db.query('SELECT COUNT(*) as count FROM availability_posts WHERE is_active = true');
+        totalPosts = parseInt(legacyRes.rows[0].count, 10) || 0;
+      } catch (err) {
+        totalPosts = 0;
+      }
+    }
     const totalConnectionsResult = await db.query('SELECT COUNT(*) as count FROM connections');
     const totalViewsResult = await db.query('SELECT COALESCE(SUM(profile_views), 0) as views FROM band_profiles');
 
@@ -40,7 +51,7 @@ router.get('/metrics', async (req, res) => {
           totalBands: parseInt(totalBandsResult.rows[0].count, 10),
           totalOrganizers: parseInt(totalOrganizersResult.rows[0].count, 10),
           totalBandProfiles: parseInt(totalBandProfilesResult.rows[0].count, 10),
-          totalActivePosts: parseInt(totalAvailabilityResult.rows[0].count, 10),
+          totalActivePosts: totalPosts,
           totalConnections,
           totalProfileViews: totalViews,
           conversionRate: `${conversionRate}%`

@@ -53,8 +53,8 @@ const verifyToken = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, getJwtSecret());
 
-    // Temporary demo admin is signed by the server and does not have a DB row.
-    if (decoded.mockAdmin === true && decoded.id === 'mock-admin' && decoded.email === 'admin@admin.com' && decoded.accountType === 'admin') {
+    // Configured admin token signed by server
+    if (decoded.mockAdmin === true && decoded.id === 'mock-admin' && decoded.accountType === 'admin') {
       req.user = { id: decoded.id, email: decoded.email, accountType: decoded.accountType };
       return next();
     }

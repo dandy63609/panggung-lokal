@@ -127,9 +127,12 @@ router.post('/login', authLimiter, async (req, res) => {
       });
     }
 
-    // Temporary admin account for the demo environment.
-    if (email.toLowerCase().trim() === 'admin@admin.com' && password === 'admin') {
-      const admin = { id: 'mock-admin', email: 'admin@admin.com', accountType: 'admin', mockAdmin: true };
+    // Admin account via environment variables or default demo credentials
+    const configuredAdminEmail = (process.env.ADMIN_EMAIL || 'admin@admin.com').toLowerCase().trim();
+    const configuredAdminPass = process.env.ADMIN_PASSWORD || 'admin';
+
+    if (email.toLowerCase().trim() === configuredAdminEmail && password === configuredAdminPass) {
+      const admin = { id: 'mock-admin', email: configuredAdminEmail, accountType: 'admin', mockAdmin: true };
       const token = generateToken(admin);
       const cookieOptions = [`panggung_lokal_token=${encodeURIComponent(token)}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', 'Max-Age=604800'];
       if (process.env.NODE_ENV === 'production') cookieOptions.push('Secure');
