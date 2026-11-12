@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const crypto = require('crypto');
 const User = require('../models/User');
 const BandProfile = require('../models/BandProfile');
-const db = require('../utils/db');
+const AuthService = require('../services/authService');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { validateEmail } = require('../utils/validation');
 const { generateToken, verifyToken } = require('../middleware/auth');
@@ -17,7 +16,6 @@ router.post('/register', authLimiter, async (req, res) => {
   try {
     const { email, password, accountType, bandName, genre, locationCity } = req.body;
 
-    // Validate required fields
     if (!email || !password || !accountType) {
       return res.status(400).json({
         success: false,
@@ -25,7 +23,6 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    // Validate email format
     if (!validateEmail(email)) {
       return res.status(400).json({
         success: false,
@@ -33,7 +30,6 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    // Validate password length
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
@@ -41,7 +37,6 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    // Validate account type
     let normalizedType = accountType.toLowerCase();
     if (normalizedType === 'organizer') normalizedType = 'general';
 
@@ -52,8 +47,8 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    // Check if email already registered
-    const existingUser = await User.findByEmail(email.toLowerCase().trim());
+    const cleanEmail = email.toLowerCase().trim();
+    const existingUser = await User.findByEmail(cleanEmail);
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -61,34 +56,22 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await hashPassword(password);
-
-    // Create user
-    const newUser = await User.create(
-      email.toLowerCase().trim(),
-      hashedPassword,
-      normalizedType
-    );
+    const newUser = await User.create(cleanEmail, hashedPassword, normalizedType);
 
     let bandProfile = null;
-    // If band, create initial profile
     if (normalizedType === 'band') {
       bandProfile = await BandProfile.create({
         userId: newUser.id,
-        bandName: bandName || email.split('@')[0],
+        bandName: bandName || cleanEmail.split('@')[0],
         genre: genre || 'Indie / Pop',
         locationCity: locationCity || 'Bandung',
         bio: 'Profil band baru di Panggung Lokal'
       });
     }
 
-    // Generate token
     const token = generateToken(newUser);
-
-    const cookieOptions = [`panggung_lokal_token=${encodeURIComponent(token)}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', 'Max-Age=604800'];
-    if (process.env.NODE_ENV === 'production') cookieOptions.push('Secure');
-    res.setHeader('Set-Cookie', cookieOptions.join('; '));
+    AuthService.setAuthCookie(res, token);
 
     return res.status(201).json({
       success: true,
@@ -126,58 +109,38 @@ router.post('/login', authLimiter, async (req, res) => {
       });
     }
 
-    // Admin account via environment variables or default demo credentials
-    const configuredAdminEmail = (process.env.ADMIN_EMAIL || 'admin@admin.com').toLowerCase().trim();
-    const configuredAdminPass = process.env.ADMIN_PASSWORD || 'admin';
-    const emailLower = email.toLowerCase().trim();
-
-    const isAdminEmail = emailLower === configuredAdminEmail ||
-                         emailLower === 'admin@admin.com' ||
-                         emailLower === 'admin@panggunglokal.id';
-
-    const isAdminPass = password === configuredAdminPass ||
-                        password === 'admin' ||
-                        password === 'Password123!';
-
-    if (isAdminEmail && isAdminPass) {
-      const admin = { id: 'mock-admin', email: emailLower, accountType: 'admin', mockAdmin: true };
-      const token = generateToken(admin);
-      const cookieOptions = [`panggung_lokal_token=${encodeURIComponent(token)}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', 'Max-Age=604800'];
-      if (process.env.NODE_ENV === 'production') cookieOptions.push('Secure');
-      res.setHeader('Set-Cookie', cookieOptions.join('; '));
+    // 1. Check for configured administrative credentials
+    const adminCheck = AuthService.checkAdminCredentials(email, password);
+    if (adminCheck.isAdmin) {
+      const token = generateToken(adminCheck.adminUser);
+      AuthService.setAuthCookie(res, token);
       return res.json({
         success: true,
         message: 'Login admin berhasil',
         token,
-        user: { id: admin.id, email: admin.email, accountType: admin.accountType }
+        user: adminCheck.adminUser
       });
     }
 
-    // Find user
-    const userResult = await db.query(
-      'SELECT * FROM users WHERE email = $1',
-      [email.toLowerCase().trim()]
-    );
+    // 2. Authenticate regular user
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findByEmail(cleanEmail);
 
-    if (userResult.rows.length === 0) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'Email atau password salah'
       });
     }
 
-    const userData = userResult.rows[0];
-
-    // Check active
-    if (!userData.is_active) {
+    if (!user.isActive) {
       return res.status(403).json({
         success: false,
         message: 'Akun Anda telah dinonaktifkan. Hubungi admin untuk bantuan.'
       });
     }
 
-    // Verify password
-    const isPasswordValid = await verifyPassword(password, userData.password_hash);
+    const isPasswordValid = await verifyPassword(password, user.passwordHash);
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
@@ -185,21 +148,15 @@ router.post('/login', authLimiter, async (req, res) => {
       });
     }
 
-    const user = new User(userData);
     await user.updateLastLogin();
 
-    // If band, get profile
     let bandProfile = null;
     if (user.isBand()) {
       bandProfile = await BandProfile.findByUserId(user.id);
     }
 
-    // Generate JWT
     const token = generateToken(user);
-
-    const cookieOptions = [`panggung_lokal_token=${encodeURIComponent(token)}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', 'Max-Age=604800'];
-    if (process.env.NODE_ENV === 'production') cookieOptions.push('Secure');
-    res.setHeader('Set-Cookie', cookieOptions.join('; '));
+    AuthService.setAuthCookie(res, token);
 
     return res.json({
       success: true,
@@ -222,8 +179,12 @@ router.post('/login', authLimiter, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/logout
+ * Clear session cookie
+ */
 router.post('/logout', (req, res) => {
-  res.setHeader('Set-Cookie', 'panggung_lokal_token=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+  AuthService.clearAuthCookie(res);
   return res.json({ success: true });
 });
 
@@ -244,30 +205,19 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
 
     const user = await User.findByEmail(email.toLowerCase().trim());
     if (!user) {
-      // Security best practice: don't reveal if email exists
       return res.json({
         success: true,
         message: 'Jika email terdaftar, instruksi reset password telah dikirim.'
       });
     }
 
-    // Generate random reset token
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-    await db.query(
-      `INSERT INTO password_reset_tokens (user_id, token, expires_at)
-       VALUES ($1, $2, $3)`,
-      [user.id, token, expiresAt]
-    );
-
-    // In production, send email; in development/MVP, log and return token for convenience
+    const token = await AuthService.createPasswordResetToken(user.id);
     console.log(`🔑 Password reset link generated for ${email}: /reset-password.html?token=${token}`);
 
     return res.json({
       success: true,
       message: 'Instruksi reset password telah dikirim ke email Anda',
-      resetToken: token // Available for easy demo testing
+      resetToken: token
     });
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -300,33 +250,19 @@ router.post('/reset-password', authLimiter, async (req, res) => {
       });
     }
 
-    // Verify token
-    const tokenResult = await db.query(
-      `SELECT * FROM password_reset_tokens 
-       WHERE token = $1 AND used = false AND expires_at > CURRENT_TIMESTAMP`,
-      [token]
-    );
-
-    if (tokenResult.rows.length === 0) {
+    const resetRecord = await AuthService.findValidResetToken(token);
+    if (!resetRecord) {
       return res.status(400).json({
         success: false,
         message: 'Token reset password tidak valid atau telah kadaluarsa'
       });
     }
 
-    const resetRecord = tokenResult.rows[0];
-
-    // Hash new password
     const hashedPassword = await hashPassword(newPassword);
-
-    // Update user password
-    await User.updatePassword(resetRecord.user_id, hashedPassword);
-
-    // Mark token as used
-    await db.query(
-      'UPDATE password_reset_tokens SET used = true WHERE id = $1',
-      [resetRecord.id]
-    );
+    await Promise.all([
+      User.updatePassword(resetRecord.user_id, hashedPassword),
+      AuthService.markResetTokenUsed(resetRecord.id)
+    ]);
 
     return res.json({
       success: true,

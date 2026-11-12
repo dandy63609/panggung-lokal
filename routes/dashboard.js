@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const BandProfile = require('../models/BandProfile');
 const BandPost = require('../models/BandPost');
 const Connection = require('../models/Connection');
+const BandService = require('../services/bandService');
 const { requireBand, verifyToken } = require('../middleware/auth');
 
 /**
@@ -11,19 +11,7 @@ const { requireBand, verifyToken } = require('../middleware/auth');
  */
 router.get('/band', requireBand, async (req, res) => {
   try {
-    let bandProfile = await BandProfile.findByUserId(req.user.id);
-    if (!bandProfile && req.user.accountType === 'band') {
-      const User = require('../models/User');
-      const user = await User.findById(req.user.id);
-      bandProfile = await BandProfile.create({
-        userId: req.user.id,
-        bandName: (user && user.email) ? user.email.split('@')[0] : 'Band Baru',
-        genre: 'Indie / Pop',
-        locationCity: 'Bandung',
-        bio: 'Profil band di Panggung Lokal'
-      });
-    }
-
+    const bandProfile = await BandService.getOrCreateProfile(req.user.id);
     if (!bandProfile) {
       return res.status(404).json({
         success: false,
@@ -31,15 +19,13 @@ router.get('/band', requireBand, async (req, res) => {
       });
     }
 
-    // Instagram-style posts and performance analytics
-    const performance = await BandPost.getPerformanceSummaryByBandId(bandProfile.id);
-
-    // Media files (audio tracks & stage documentation)
-    const mediaFiles = await bandProfile.getMediaFiles();
-
-    // Recent inquiries / WhatsApp connections
-    const recentConnections = await Connection.getByBandProfile(bandProfile.id, 10);
-    const connectionStats = await Connection.getStatsForBand(bandProfile.id);
+    // Fetch dashboard components in parallel for optimal throughput
+    const [performance, mediaFiles, recentConnections, connectionStats] = await Promise.all([
+      BandPost.getPerformanceSummaryByBandId(bandProfile.id),
+      bandProfile.getMediaFiles(),
+      Connection.getByBandProfile(bandProfile.id, 10),
+      Connection.getStatsForBand(bandProfile.id)
+    ]);
 
     return res.json({
       success: true,

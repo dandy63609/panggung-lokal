@@ -10,6 +10,7 @@ class User {
     this.id = data.id;
     this.email = data.email;
     this.accountType = data.account_type;
+    this.passwordHash = data.password_hash;
     this.createdAt = data.created_at;
     this.lastLogin = data.last_login;
     this.isActive = data.is_active;
@@ -30,7 +31,7 @@ class User {
 
   /**
    * Find a user by ID
-   * @param {number} id - User ID
+   * @param {number|string} id - User ID
    * @returns {Promise<User|null>} User instance or null if not found
    */
   static async findById(id) {
@@ -45,7 +46,7 @@ class User {
    * Create a new user account
    * @param {string} email - User's email address
    * @param {string} passwordHash - Hashed password
-   * @param {string} accountType - Account type ('band' or 'organizer')
+   * @param {string} accountType - Account type ('band' or 'organizer'/'general')
    * @returns {Promise<User>} Created user instance
    */
   static async create(email, passwordHash, accountType) {
@@ -60,7 +61,7 @@ class User {
 
   /**
    * Update the user's password
-   * @param {number} id - User ID
+   * @param {number|string} id - User ID
    * @param {string} passwordHash - New hashed password
    * @returns {Promise<void>}
    */

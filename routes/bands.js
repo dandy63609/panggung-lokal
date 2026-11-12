@@ -1,25 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const BandProfile = require('../models/BandProfile');
 const BandPost = require('../models/BandPost');
-const db = require('../utils/db');
-const { verifyToken, requireBand } = require('../middleware/auth');
-
-function getAuthenticatedUser(req) {
-  try {
-    const cookieToken = req.headers.cookie
-      ? req.headers.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('panggung_lokal_token='))?.split('=')[1]
-      : null;
-    const authHeader = req.headers.authorization || (cookieToken ? `Bearer ${decodeURIComponent(cookieToken)}` : null);
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-    const token = authHeader.substring(7);
-    const secret = process.env.JWT_SECRET || 'panggung-lokal-dev-secret-key-2026';
-    return jwt.verify(token, secret);
-  } catch (e) {
-    return null;
-  }
-}
+const BandService = require('../services/bandService');
+const { optionalAuth, requireBand } = require('../middleware/auth');
 
 /**
  * GET /api/bands/stats
@@ -45,11 +29,11 @@ router.get('/stats', async (req, res) => {
  * GET /api/bands/search
  * Search bands with filters and sneak peek gating for guests
  */
-router.get('/search', async (req, res) => {
+router.get('/search', optionalAuth, async (req, res) => {
   try {
     const { genre, location, budgetMin, budgetMax, search, page, limit } = req.query;
-    const user = getAuthenticatedUser(req);
-    const isAuthenticated = !!user;
+    const isAuthenticated = !!req.user;
+    const isSneakPeek = !isAuthenticated;
 
     const result = await BandProfile.search({
       genre,
@@ -61,13 +45,7 @@ router.get('/search', async (req, res) => {
       limit: isAuthenticated ? limit : 2
     });
 
-    const isSneakPeek = !isAuthenticated;
-    const responseBands = isSneakPeek
-      ? result.bands.slice(0, 2).map(b => ({
-          ...b,
-          phone: b.phone ? (b.phone.substring(0, 8) + 'xxxx') : null
-        }))
-      : result.bands;
+    const responseBands = BandService.formatBandList(result.bands, isAuthenticated, 2);
 
     return res.json({
       success: true,
@@ -94,26 +72,19 @@ router.get('/search', async (req, res) => {
  * GET /api/bands/recent
  * Get recent bands for homepage (sneak peek for guests)
  */
-router.get('/recent', async (req, res) => {
+router.get('/recent', optionalAuth, async (req, res) => {
   try {
-    const user = getAuthenticatedUser(req);
-    const isAuthenticated = !!user;
+    const isAuthenticated = !!req.user;
     const requestedLimit = parseInt(req.query.limit, 10) || 6;
     const limit = isAuthenticated ? requestedLimit : 2;
-    const bands = await BandProfile.getRecent(limit);
 
-    const isSneakPeek = !isAuthenticated;
-    const responseBands = isSneakPeek
-      ? bands.slice(0, 2).map(b => ({
-          ...b,
-          phone: b.phone ? (b.phone.substring(0, 8) + 'xxxx') : null
-        }))
-      : bands;
+    const bands = await BandProfile.getRecent(limit);
+    const responseBands = BandService.formatBandList(bands, isAuthenticated, 2);
 
     return res.json({
       success: true,
       data: responseBands,
-      isSneakPeek
+      isSneakPeek: !isAuthenticated
     });
   } catch (error) {
     console.error('Get recent bands error:', error);
@@ -128,7 +99,7 @@ router.get('/recent', async (req, res) => {
  * GET /api/bands/profile/:id
  * Get full band profile with Instagram-style posts and media
  */
-router.get('/profile/:id', async (req, res) => {
+router.get('/profile/:id', optionalAuth, async (req, res) => {
   try {
     const profileId = parseInt(req.params.id, 10);
     if (isNaN(profileId)) {
@@ -149,24 +120,22 @@ router.get('/profile/:id', async (req, res) => {
     // Increment profile view count asynchronously
     BandProfile.incrementViews(profileId).catch(err => console.error('Error incrementing views:', err));
 
-    const user = getAuthenticatedUser(req);
-    const isAuthenticated = !!user;
+    const isAuthenticated = !!req.user;
     const isSneakPeek = !isAuthenticated;
 
-    // Fetch Instagram-style posts and media files
-    const posts = await BandPost.findByBandProfileId(band.id);
-    const mediaFiles = await band.getMediaFiles();
+    // Fetch Instagram-style posts and media files in parallel
+    const [posts, mediaFiles] = await Promise.all([
+      BandPost.findByBandProfileId(band.id),
+      band.getMediaFiles()
+    ]);
 
-    const displayPhone = isSneakPeek && band.phone
-      ? (band.phone.substring(0, 8) + 'xxxx')
-      : band.phone;
+    const formattedBand = BandService.formatBand(band, isAuthenticated);
 
     return res.json({
       success: true,
       isSneakPeek,
       data: {
-        ...band,
-        phone: displayPhone,
+        ...formattedBand,
         profileViews: band.profileViews + 1,
         posts,
         mediaFiles
@@ -216,7 +185,6 @@ router.post('/profile', requireBand, async (req, res) => {
       });
     }
 
-    // Check if user already has a profile
     const existing = await BandProfile.findByUserId(req.user.id);
     if (existing) {
       return res.status(409).json({
@@ -268,19 +236,7 @@ router.post('/profile', requireBand, async (req, res) => {
  */
 router.put('/profile', requireBand, async (req, res) => {
   try {
-    let profile = await BandProfile.findByUserId(req.user.id);
-    if (!profile && req.user.accountType === 'band') {
-      const User = require('../models/User');
-      const user = await User.findById(req.user.id);
-      profile = await BandProfile.create({
-        userId: req.user.id,
-        bandName: (user && user.email) ? user.email.split('@')[0] : 'Band Baru',
-        genre: 'Indie / Pop',
-        locationCity: 'Bandung',
-        bio: 'Profil band di Panggung Lokal'
-      });
-    }
-
+    const profile = await BandService.getOrCreateProfile(req.user.id);
     if (!profile) {
       return res.status(404).json({
         success: false,
@@ -314,10 +270,11 @@ router.put('/profile', requireBand, async (req, res) => {
     const parsedBudgetMin = budgetMin !== undefined ? (budgetMin ? parseInt(budgetMin, 10) : null) : profile.budgetMin;
     const parsedBudgetMax = budgetMax !== undefined ? (budgetMax ? parseInt(budgetMax, 10) : null) : profile.budgetMax;
 
-    if (parsedBudgetMin !== null && parsedBudgetMax !== null && !isNaN(parsedBudgetMin) && !isNaN(parsedBudgetMax) && parsedBudgetMin > parsedBudgetMax) {
+    const budgetValidation = BandService.validateBudgetRange(parsedBudgetMin, parsedBudgetMax);
+    if (!budgetValidation.valid) {
       return res.status(400).json({
         success: false,
-        message: 'Tarif minimum tidak boleh lebih besar dari tarif maksimum'
+        message: budgetValidation.error
       });
     }
 
@@ -364,19 +321,7 @@ router.put('/profile', requireBand, async (req, res) => {
  */
 router.post('/media', requireBand, async (req, res) => {
   try {
-    let profile = await BandProfile.findByUserId(req.user.id);
-    if (!profile && req.user.accountType === 'band') {
-      const User = require('../models/User');
-      const user = await User.findById(req.user.id);
-      profile = await BandProfile.create({
-        userId: req.user.id,
-        bandName: (user && user.email) ? user.email.split('@')[0] : 'Band Baru',
-        genre: 'Indie / Pop',
-        locationCity: 'Bandung',
-        bio: 'Profil band di Panggung Lokal'
-      });
-    }
-
+    const profile = await BandService.getOrCreateProfile(req.user.id);
     if (!profile) {
       return res.status(404).json({
         success: false,
@@ -428,25 +373,13 @@ router.delete('/media/:id', requireBand, async (req, res) => {
     }
 
     const mediaId = parseInt(req.params.id, 10);
-    const result = await db.query(
-      'DELETE FROM media_files WHERE id = $1 AND band_profile_id = $2 RETURNING id',
-      [mediaId, profile.id]
-    );
+    const deleted = await BandProfile.deleteMediaFile(mediaId, profile.id);
 
-    if (result.rows.length === 0) {
+    if (!deleted) {
       return res.status(404).json({
         success: false,
         message: 'Media tidak ditemukan atau bukan milik band Anda'
       });
-    }
-
-    try {
-      const { deleteFromCloud } = require('../utils/memoryDb');
-      if (typeof deleteFromCloud === 'function') {
-        deleteFromCloud('media_files', mediaId);
-      }
-    } catch (e) {
-      // ignore
     }
 
     return res.json({

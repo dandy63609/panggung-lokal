@@ -1,8 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const BandPost = require('../models/BandPost');
-const BandProfile = require('../models/BandProfile');
-const { requireAuth, requireBand } = require('../middleware/auth');
+const BandService = require('../services/bandService');
+const { requireBand } = require('../middleware/auth');
+
+/**
+ * Validate media URL safety
+ * @param {string} url
+ * @returns {boolean}
+ */
+const isSafeMediaUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  return url.startsWith('/') || /^https?:\/\//i.test(url);
+};
 
 /**
  * GET /api/posts/band/:bandId
@@ -66,27 +76,15 @@ router.post('/:id/wa-click', async (req, res) => {
  * POST /api/posts
  * Create a new post (Band account only)
  */
-router.post('/', requireAuth, requireBand, async (req, res) => {
+router.post('/', requireBand, async (req, res) => {
   try {
-    let bandProfile = await BandProfile.findByUserId(req.user.id);
-    if (!bandProfile && req.user.accountType === 'band') {
-      const User = require('../models/User');
-      const user = await User.findById(req.user.id);
-      bandProfile = await BandProfile.create({
-        userId: req.user.id,
-        bandName: (user && user.email) ? user.email.split('@')[0] : 'Band Baru',
-        genre: 'Indie / Pop',
-        locationCity: 'Bandung',
-        bio: 'Profil band di Panggung Lokal'
-      });
-    }
-
+    const bandProfile = await BandService.getOrCreateProfile(req.user.id);
     if (!bandProfile) {
       return res.status(404).json({ success: false, message: 'Profil band tidak ditemukan' });
     }
 
     const { mediaType, mediaUrl, thumbnailUrl, caption, slides } = req.body;
-    
+
     let parsedSlides = slides;
     if (typeof parsedSlides === 'string') {
       try { parsedSlides = JSON.parse(parsedSlides); } catch (e) { parsedSlides = []; }
@@ -98,8 +96,7 @@ router.post('/', requireAuth, requireBand, async (req, res) => {
       return res.status(400).json({ success: false, message: 'URL gambar/media wajib diisi' });
     }
 
-    const isSafeUrl = finalMediaUrl.startsWith('/') || /^https?:\/\//i.test(finalMediaUrl);
-    if (!isSafeUrl) {
+    if (!isSafeMediaUrl(finalMediaUrl)) {
       return res.status(400).json({ success: false, message: 'Format URL media tidak aman atau tidak valid' });
     }
 
@@ -127,9 +124,9 @@ router.post('/', requireAuth, requireBand, async (req, res) => {
  * DELETE /api/posts/:id
  * Delete a post (Band account only, must own the post)
  */
-router.delete('/:id', requireAuth, requireBand, async (req, res) => {
+router.delete('/:id', requireBand, async (req, res) => {
   try {
-    const bandProfile = await BandProfile.findByUserId(req.user.id);
+    const bandProfile = await BandService.getOrCreateProfile(req.user.id);
     if (!bandProfile) {
       return res.status(404).json({ success: false, message: 'Profil band tidak ditemukan' });
     }
@@ -154,21 +151,21 @@ router.delete('/:id', requireAuth, requireBand, async (req, res) => {
  * GET /api/posts/my-performance
  * Get performance and analytics breakdown for the logged-in band's posts
  */
-router.get('/my-performance', requireAuth, requireBand, async (req, res) => {
+router.get('/my-performance', requireBand, async (req, res) => {
   try {
-    const bandProfile = await BandProfile.findByUserId(req.user.id);
+    const bandProfile = await BandService.getOrCreateProfile(req.user.id);
     if (!bandProfile) {
       return res.status(404).json({ success: false, message: 'Profil band tidak ditemukan' });
     }
 
-    const performance = await BandPost.getPerformanceSummaryByBandId(bandProfile.id);
+    const summary = await BandPost.getPerformanceSummaryByBandId(bandProfile.id);
     return res.json({
       success: true,
-      data: performance
+      data: summary
     });
   } catch (error) {
-    console.error('Error fetching post performance:', error);
-    return res.status(500).json({ success: false, message: 'Gagal mengambil data performa postingan' });
+    console.error('Error fetching performance:', error);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil performa postingan' });
   }
 });
 

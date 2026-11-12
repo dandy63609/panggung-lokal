@@ -28,44 +28,86 @@ class BandProfile {
     this.riderInstruments = data.rider_instruments;
     this.riderHospitality = data.rider_hospitality;
 
-    // Parse customizable rider items
-    let parsedRiderItems = [];
+    this.riderItems = BandProfile.parseRiderItems(data);
+    this.profileViews = data.profile_views || 0;
+    this.createdAt = data.created_at;
+    this.updatedAt = data.updated_at;
+  }
+
+  /**
+   * Helper: Parse & format customizable technical rider items
+   * Handles JSON, array, legacy fields, and sensible defaults
+   * @param {Object} data
+   * @returns {Array<{ title: string, description: string }>}
+   */
+  static parseRiderItems(data) {
+    let parsed = [];
     if (Array.isArray(data.rider_items)) {
-      parsedRiderItems = data.rider_items;
+      parsed = data.rider_items;
     } else if (typeof data.rider_items === 'string' && data.rider_items.trim()) {
       try {
-        parsedRiderItems = JSON.parse(data.rider_items);
+        parsed = JSON.parse(data.rider_items);
       } catch (e) {
-        parsedRiderItems = [];
+        parsed = [];
       }
     }
 
-    if (Array.isArray(parsedRiderItems) && parsedRiderItems.length > 0) {
-      this.riderItems = parsedRiderItems
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed
         .filter(item => item && typeof item === 'object')
         .map(item => ({
           title: item.title || 'Kebutuhan Panggung',
           description: item.description || ''
         }));
-    } else {
-      const legacyList = [
-        { title: 'Input Audio Channel', description: this.riderChannelInputs || '' },
-        { title: 'Kebutuhan Sound System', description: this.riderSoundSystem || '' },
-        { title: 'Peralatan & Backline', description: this.riderInstruments || '' },
-        { title: 'Hospitality & Konsumsi', description: this.riderHospitality || '' }
-      ].filter(item => item.description.trim() !== '');
-
-      this.riderItems = legacyList.length > 0 ? legacyList : [
-        { title: 'Input Audio Channel', description: 'Dapat dinegosiasikan (Standar 8-16 Channel)' },
-        { title: 'Kebutuhan Sound System', description: 'FOH PA System & Active Stage Monitor standar venue' },
-        { title: 'Peralatan & Backline', description: 'Musisi membawa instrumen utama. Venue menyediakan drum kit dan amplifier.' },
-        { title: 'Hospitality & Konsumsi', description: 'Ruang tunggu bersih, air mineral botol, konsumsi tim/kru.' }
-      ];
     }
 
-    this.profileViews = data.profile_views || 0;
-    this.createdAt = data.created_at;
-    this.updatedAt = data.updated_at;
+    const legacyList = [
+      { title: 'Input Audio Channel', description: data.rider_channel_inputs || '' },
+      { title: 'Kebutuhan Sound System', description: data.rider_sound_system || '' },
+      { title: 'Peralatan & Backline', description: data.rider_instruments || '' },
+      { title: 'Hospitality & Konsumsi', description: data.rider_hospitality || '' }
+    ].filter(item => item.description.trim() !== '');
+
+    if (legacyList.length > 0) return legacyList;
+
+    return [
+      { title: 'Input Audio Channel', description: 'Dapat dinegosiasikan (Standar 8-16 Channel)' },
+      { title: 'Kebutuhan Sound System', description: 'FOH PA System & Active Stage Monitor standar venue' },
+      { title: 'Peralatan & Backline', description: 'Musisi membawa instrumen utama. Venue menyediakan drum kit dan amplifier.' },
+      { title: 'Hospitality & Konsumsi', description: 'Ruang tunggu bersih, air mineral botol, konsumsi tim/kru.' }
+    ];
+  }
+
+  /**
+   * Helper: Sanitize rider items payload for updates
+   * @param {any} items
+   * @param {Object} existingRider
+   * @returns {{ json: string|null, channel?: string, sound?: string, inst?: string, hosp?: string }}
+   */
+  static sanitizeRiderItems(items, existingRider = {}) {
+    let raw = items;
+    if (typeof raw === 'string') {
+      try { raw = JSON.parse(raw); } catch (e) { raw = []; }
+    }
+
+    if (!Array.isArray(raw)) {
+      return { json: null, ...existingRider };
+    }
+
+    const sanitized = raw
+      .filter(it => it && typeof it === 'object')
+      .map(it => ({
+        title: String(it.title || 'Kebutuhan Panggung').trim(),
+        description: String(it.description || '').trim()
+      }));
+
+    return {
+      json: JSON.stringify(sanitized),
+      channel: existingRider.riderChannel ?? sanitized[0]?.description,
+      sound: existingRider.riderSound ?? sanitized[1]?.description,
+      inst: existingRider.riderInst ?? sanitized[2]?.description,
+      hosp: existingRider.riderHosp ?? sanitized[3]?.description
+    };
   }
 
   /**
@@ -140,30 +182,24 @@ class BandProfile {
    * Update band profile
    */
   static async update(id, data) {
-    let riderItemsJson = null;
     let riderChannel = data.riderChannelInputs;
     let riderSound = data.riderSoundSystem;
     let riderInst = data.riderInstruments;
     let riderHosp = data.riderHospitality;
+    let riderItemsJson = null;
 
     if (data.riderItems !== undefined) {
-      let items = data.riderItems;
-      if (typeof items === 'string') {
-        try { items = JSON.parse(items); } catch (e) { items = []; }
-      }
-      if (Array.isArray(items)) {
-        const sanitizedItems = items
-          .filter(it => it && typeof it === 'object')
-          .map(it => ({
-            title: String(it.title || 'Kebutuhan Panggung').trim(),
-            description: String(it.description || '').trim()
-          }));
-        riderItemsJson = JSON.stringify(sanitizedItems);
-        if (sanitizedItems[0] && riderChannel === undefined) riderChannel = sanitizedItems[0].description;
-        if (sanitizedItems[1] && riderSound === undefined) riderSound = sanitizedItems[1].description;
-        if (sanitizedItems[2] && riderInst === undefined) riderInst = sanitizedItems[2].description;
-        if (sanitizedItems[3] && riderHosp === undefined) riderHosp = sanitizedItems[3].description;
-      }
+      const sanitized = BandProfile.sanitizeRiderItems(data.riderItems, {
+        riderChannel,
+        riderSound,
+        riderInst,
+        riderHosp
+      });
+      riderItemsJson = sanitized.json;
+      riderChannel = sanitized.channel;
+      riderSound = sanitized.sound;
+      riderInst = sanitized.inst;
+      riderHosp = sanitized.hosp;
     }
 
     const result = await db.query(
@@ -212,7 +248,7 @@ class BandProfile {
         riderInst,
         riderHosp,
         riderItemsJson,
-        id,
+        id
       ]
     );
     return result.rows[0] ? new BandProfile(result.rows[0]) : null;
@@ -283,70 +319,88 @@ class BandProfile {
   }
 
   /**
-   * Search band profiles with multiple filters and pagination
-   * (Event date filter removed as per peer-review evaluation)
+   * Delete a media file owned by a band
+   * @param {number} mediaId
+   * @param {number} bandProfileId
+   * @returns {Promise<boolean>}
    */
-  static async search(filters = {}) {
-    const {
-      genre,
-      location,
-      budgetMin,
-      budgetMax,
-      search,
-      page = 1,
-      limit = 20
-    } = filters;
+  static async deleteMediaFile(mediaId, bandProfileId) {
+    const result = await db.query(
+      'DELETE FROM media_files WHERE id = $1 AND band_profile_id = $2 RETURNING id',
+      [mediaId, bandProfileId]
+    );
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
-    const offset = (pageNum - 1) * limitNum;
+    if (result.rows.length === 0) return false;
 
-    let baseQuery = `
-      FROM band_profiles bp
-    `;
+    try {
+      const { deleteFromCloud } = require('../utils/memoryDb');
+      if (typeof deleteFromCloud === 'function') {
+        deleteFromCloud('media_files', mediaId);
+      }
+    } catch (e) {
+      // ignore
+    }
+    return true;
+  }
+
+  /**
+   * Query builder helper for band search filters
+   * @private
+   */
+  static buildSearchQuery(filters) {
     const conditions = [];
     const params = [];
     let paramIndex = 1;
 
-    if (genre && genre.trim() !== '') {
-      conditions.push(`bp.genre ILIKE $${paramIndex}`);
-      params.push(`%${genre.trim()}%`);
-      paramIndex += 1;
+    if (filters.genre?.trim()) {
+      conditions.push(`bp.genre ILIKE $${paramIndex++}`);
+      params.push(`%${filters.genre.trim()}%`);
     }
 
-    if (location && location.trim() !== '') {
+    if (filters.location?.trim()) {
       conditions.push(`(bp.location_city ILIKE $${paramIndex} OR bp.location_region ILIKE $${paramIndex})`);
-      params.push(`%${location.trim()}%`);
-      paramIndex += 1;
+      paramIndex++;
+      params.push(`%${filters.location.trim()}%`);
     }
 
-    if (budgetMin !== undefined && budgetMin !== null && budgetMin !== '') {
-      conditions.push(`(bp.budget_max >= $${paramIndex} OR bp.budget_max IS NULL)`);
-      params.push(parseInt(budgetMin, 10));
-      paramIndex += 1;
+    if (filters.budgetMin !== undefined && filters.budgetMin !== null && filters.budgetMin !== '') {
+      conditions.push(`(bp.budget_max >= $${paramIndex++} OR bp.budget_max IS NULL)`);
+      params.push(parseInt(filters.budgetMin, 10));
     }
 
-    if (budgetMax !== undefined && budgetMax !== null && budgetMax !== '') {
-      conditions.push(`(bp.budget_min <= $${paramIndex} OR bp.budget_min IS NULL)`);
-      params.push(parseInt(budgetMax, 10));
-      paramIndex += 1;
+    if (filters.budgetMax !== undefined && filters.budgetMax !== null && filters.budgetMax !== '') {
+      conditions.push(`(bp.budget_min <= $${paramIndex++} OR bp.budget_min IS NULL)`);
+      params.push(parseInt(filters.budgetMax, 10));
     }
 
-    if (search && search.trim() !== '') {
+    if (filters.search?.trim()) {
       conditions.push(`(
         bp.band_name ILIKE $${paramIndex} OR 
         bp.genre ILIKE $${paramIndex} OR 
         bp.location_city ILIKE $${paramIndex} OR 
         bp.bio ILIKE $${paramIndex}
       )`);
-      params.push(`%${search.trim()}%`);
-      paramIndex += 1;
+      paramIndex++;
+      params.push(`%${filters.search.trim()}%`);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    return { whereClause, params, nextParamIndex: paramIndex };
+  }
+
+  /**
+   * Search band profiles with multiple filters and pagination
+   */
+  static async search(filters = {}) {
+    const pageNum = Math.max(1, parseInt(filters.page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(filters.limit, 10) || 20));
+    const offset = (pageNum - 1) * limitNum;
+
+    const { whereClause, params, nextParamIndex } = this.buildSearchQuery(filters);
+    const baseFrom = 'FROM band_profiles bp';
 
     // Count total query
-    const countSql = `SELECT COUNT(DISTINCT bp.id) as total ${baseQuery} ${whereClause}`;
+    const countSql = `SELECT COUNT(DISTINCT bp.id) as total ${baseFrom} ${whereClause}`;
     const countResult = await db.query(countSql, params);
     const total = parseInt(countResult.rows[0].total, 10);
     const totalPages = Math.ceil(total / limitNum) || 1;
@@ -354,10 +408,10 @@ class BandProfile {
     // Results query
     const selectSql = `
       SELECT DISTINCT bp.* 
-      ${baseQuery} 
+      ${baseFrom} 
       ${whereClause} 
       ORDER BY bp.profile_views DESC, bp.created_at DESC 
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      LIMIT $${nextParamIndex} OFFSET $${nextParamIndex + 1}
     `;
     const resultParams = [...params, limitNum, offset];
     const result = await db.query(selectSql, resultParams);

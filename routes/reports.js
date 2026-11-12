@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const Report = require('../models/Report');
-const { verifyToken } = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
 
 /**
  * POST /api/reports
  * Submit a report against a band profile or user
  */
-router.post('/', async (req, res) => {
+router.post('/', optionalAuth, async (req, res) => {
   try {
     const { reportedEntityType, reportedEntityId, reason } = req.body;
 
@@ -18,19 +18,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    let reporterUserId = null;
-    // Optional auth check
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const jwt = require('jsonwebtoken');
-        const jwtSecret = process.env.JWT_SECRET || 'panggung-lokal-dev-secret-key-2026';
-        const decoded = jwt.verify(authHeader.substring(7), jwtSecret);
-        reporterUserId = decoded.id;
-      } catch (e) {
-        // Continue anonymously
-      }
-    }
+    const reporterUserId = req.user?.id || null;
 
     const report = await Report.create({
       reporterUserId,

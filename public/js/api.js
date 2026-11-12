@@ -46,7 +46,7 @@ const AuthManager = {
 
   isOrganizer() {
     const user = this.getUser();
-    return user && user.accountType === 'organizer';
+    return user && (user.accountType === 'organizer' || user.accountType === 'general');
   },
 
   async logout() {
@@ -104,7 +104,7 @@ const AuthManager = {
     let mobileHtml = '';
 
     if (this.isAuthenticated()) {
-      const user = this.getUser();
+      const user = this.getUser() || {};
       const isBand = user.accountType === 'band';
       const isAdmin = user.accountType === 'admin';
 
@@ -166,7 +166,30 @@ const AuthManager = {
   }
 };
 
-// API Helpers
+/**
+ * Clean HTTP client helper for API calls
+ * @private
+ */
+async function apiClient(endpoint, options = {}) {
+  const { method = 'GET', data, requiresAuth = false, headers = {} } = options;
+  const config = {
+    method,
+    headers: {
+      ...(requiresAuth ? AuthManager.getAuthHeaders() : {}),
+      ...headers
+    }
+  };
+
+  if (data !== undefined) {
+    config.headers['Content-Type'] = 'application/json';
+    config.body = JSON.stringify(data);
+  }
+
+  const res = await fetch(endpoint, config);
+  return await res.json();
+}
+
+// API Functions
 async function apiGetBands(queryParams = {}) {
   const url = new URL('/api/bands/search', window.location.origin);
   Object.keys(queryParams).forEach(key => {
@@ -175,159 +198,113 @@ async function apiGetBands(queryParams = {}) {
     }
   });
 
-  const res = await fetch(url.toString(), {
-    headers: AuthManager.getAuthHeaders()
-  });
-  return await res.json();
+  return apiClient(url.toString(), { requiresAuth: true });
 }
 
 async function apiGetRecentBands(limit = 6) {
-  const res = await fetch(`/api/bands/recent?limit=${limit}`, {
-    headers: AuthManager.getAuthHeaders()
-  });
-  return await res.json();
+  return apiClient(`/api/bands/recent?limit=${limit}`, { requiresAuth: true });
 }
 
 async function apiGetBandProfile(id) {
-  const res = await fetch(`/api/bands/profile/${id}`, {
-    headers: AuthManager.getAuthHeaders()
+  return apiClient(`/api/bands/profile/${id}`, { requiresAuth: true });
+}
+
+async function apiGetPlatformStats() {
+  return apiClient('/api/bands/stats');
+}
+
+async function apiUpdateBandProfile(profileData) {
+  return apiClient('/api/bands/profile', {
+    method: 'PUT',
+    data: profileData,
+    requiresAuth: true
   });
-  return await res.json();
+}
+
+async function apiAddBandMedia(mediaData) {
+  return apiClient('/api/bands/media', {
+    method: 'POST',
+    data: mediaData,
+    requiresAuth: true
+  });
+}
+
+async function apiDeleteBandMedia(mediaId) {
+  return apiClient(`/api/bands/media/${mediaId}`, {
+    method: 'DELETE',
+    requiresAuth: true
+  });
 }
 
 // Instagram-Style Band Posts API Client
 async function apiGetBandPosts(bandId) {
-  const res = await fetch(`/api/posts/band/${bandId}`);
-  return await res.json();
+  return apiClient(`/api/posts/band/${bandId}`);
 }
 
 async function apiCreateBandPost(postData) {
-  const res = await fetch('/api/posts', {
+  return apiClient('/api/posts', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...AuthManager.getAuthHeaders()
-    },
-    body: JSON.stringify(postData)
+    data: postData,
+    requiresAuth: true
   });
-  return await res.json();
 }
 
 async function apiDeleteBandPost(postId) {
-  const res = await fetch(`/api/posts/${postId}`, {
+  return apiClient(`/api/posts/${postId}`, {
     method: 'DELETE',
-    headers: AuthManager.getAuthHeaders()
+    requiresAuth: true
   });
-  return await res.json();
 }
 
 async function apiTrackPostView(postId) {
   try {
-    const res = await fetch(`/api/posts/${postId}/view`, { method: 'POST' });
-    return await res.json();
+    return await apiClient(`/api/posts/${postId}/view`, { method: 'POST' });
   } catch (e) {
     return { success: false };
   }
 }
 
 async function apiTrackPostWaClick(postId) {
-  const res = await fetch(`/api/posts/${postId}/wa-click`, { method: 'POST' });
-  return await res.json();
+  return apiClient(`/api/posts/${postId}/wa-click`, { method: 'POST' });
 }
 
 async function apiGetMyPostsPerformance() {
-  const res = await fetch('/api/posts/my-performance', {
-    headers: AuthManager.getAuthHeaders()
-  });
-  return await res.json();
+  return apiClient('/api/posts/my-performance', { requiresAuth: true });
 }
 
 async function apiCreateConnection(bandProfileId, notes = '') {
-  const res = await fetch('/api/connections', {
+  return apiClient('/api/connections', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...AuthManager.getAuthHeaders()
-    },
-    body: JSON.stringify({ bandProfileId, notes })
+    data: { bandProfileId, notes },
+    requiresAuth: true
   });
-  return await res.json();
 }
 
 async function apiCreateAvailability(startDate, endDate, notes = '') {
-  const res = await fetch('/api/availability', {
+  return apiClient('/api/availability', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...AuthManager.getAuthHeaders()
-    },
-    body: JSON.stringify({ startDate, endDate, notes })
+    data: { startDate, endDate, notes },
+    requiresAuth: true
   });
-  return await res.json();
 }
 
 async function apiDeleteAvailability(id) {
-  const res = await fetch(`/api/availability/${id}`, {
+  return apiClient(`/api/availability/${id}`, {
     method: 'DELETE',
-    headers: AuthManager.getAuthHeaders()
+    requiresAuth: true
   });
-  return await res.json();
 }
 
 async function apiGetBandDashboard() {
-  const res = await fetch('/api/dashboard/band', {
-    headers: AuthManager.getAuthHeaders()
-  });
-  return await res.json();
+  return apiClient('/api/dashboard/band', { requiresAuth: true });
 }
 
 async function apiGetOrganizerDashboard() {
-  const res = await fetch('/api/dashboard/organizer', {
-    headers: AuthManager.getAuthHeaders()
-  });
-  return await res.json();
-}
-
-async function apiUpdateBandProfile(profileData) {
-  const res = await fetch('/api/bands/profile', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...AuthManager.getAuthHeaders()
-    },
-    body: JSON.stringify(profileData)
-  });
-  return await res.json();
+  return apiClient('/api/dashboard/organizer', { requiresAuth: true });
 }
 
 async function apiGetAdminMetrics() {
-  const res = await fetch('/api/admin/metrics', { headers: AuthManager.getAuthHeaders() });
-  return await res.json();
-}
-
-async function apiGetPlatformStats() {
-  const res = await fetch('/api/bands/stats');
-  return await res.json();
-}
-
-async function apiAddBandMedia(mediaData) {
-  const res = await fetch('/api/bands/media', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...AuthManager.getAuthHeaders()
-    },
-    body: JSON.stringify(mediaData)
-  });
-  return await res.json();
-}
-
-async function apiDeleteBandMedia(mediaId) {
-  const res = await fetch(`/api/bands/media/${mediaId}`, {
-    method: 'DELETE',
-    headers: AuthManager.getAuthHeaders()
-  });
-  return await res.json();
+  return apiClient('/api/admin/metrics', { requiresAuth: true });
 }
 
 // Auto init navbar
@@ -362,6 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// Window assignments for HTML scripts
 window.AuthManager = AuthManager;
 window.apiGetBands = apiGetBands;
 window.apiGetRecentBands = apiGetRecentBands;

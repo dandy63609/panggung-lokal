@@ -7,56 +7,69 @@ const { requireAdmin } = require('../middleware/auth');
 router.use(requireAdmin);
 
 /**
+ * Fetch total posts across posts table or legacy availability table
+ * @private
+ */
+async function fetchTotalPosts() {
+  try {
+    const postsRes = await db.query('SELECT COUNT(*) as count FROM band_posts');
+    return parseInt(postsRes.rows[0].count, 10) || 0;
+  } catch (e) {
+    try {
+      const legacyRes = await db.query('SELECT COUNT(*) as count FROM availability_posts WHERE is_active = true');
+      return parseInt(legacyRes.rows[0].count, 10) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+}
+
+/**
  * GET /api/admin/metrics
  * Comprehensive business metrics for digital business analysis
  */
 router.get('/metrics', async (req, res) => {
   try {
-    const totalUsersResult = await db.query('SELECT COUNT(*) as count FROM users');
-    const totalBandsResult = await db.query('SELECT COUNT(*) as count FROM users WHERE account_type = $1', ['band']);
-    const totalOrganizersResult = await db.query('SELECT COUNT(*) as count FROM users WHERE account_type = $1', ['organizer']);
-    const totalBandProfilesResult = await db.query('SELECT COUNT(*) as count FROM band_profiles');
-    let totalPosts = 0;
-    try {
-      const postsRes = await db.query('SELECT COUNT(*) as count FROM band_posts');
-      totalPosts = parseInt(postsRes.rows[0].count, 10) || 0;
-    } catch (e) {
-      try {
-        const legacyRes = await db.query('SELECT COUNT(*) as count FROM availability_posts WHERE is_active = true');
-        totalPosts = parseInt(legacyRes.rows[0].count, 10) || 0;
-      } catch (err) {
-        totalPosts = 0;
-      }
-    }
-    const totalConnectionsResult = await db.query('SELECT COUNT(*) as count FROM connections');
-    const totalViewsResult = await db.query('SELECT COALESCE(SUM(profile_views), 0) as views FROM band_profiles');
+    const [
+      totalUsersRes,
+      totalBandsRes,
+      totalOrganizersRes,
+      totalBandProfilesRes,
+      totalConnectionsRes,
+      totalViewsRes,
+      recentUsersRes,
+      pendingReports,
+      totalPosts
+    ] = await Promise.all([
+      db.query('SELECT COUNT(*) as count FROM users'),
+      db.query('SELECT COUNT(*) as count FROM users WHERE account_type = $1', ['band']),
+      db.query('SELECT COUNT(*) as count FROM users WHERE account_type = $1', ['organizer']),
+      db.query('SELECT COUNT(*) as count FROM band_profiles'),
+      db.query('SELECT COUNT(*) as count FROM connections'),
+      db.query('SELECT COALESCE(SUM(profile_views), 0) as views FROM band_profiles'),
+      db.query('SELECT id, email, account_type, created_at, is_active FROM users ORDER BY created_at DESC LIMIT 10'),
+      Report.findPending(),
+      fetchTotalPosts()
+    ]);
 
-    const totalViews = parseInt(totalViewsResult.rows[0].views, 10) || 0;
-    const totalConnections = parseInt(totalConnectionsResult.rows[0].count, 10) || 0;
+    const totalViews = parseInt(totalViewsRes.rows[0].views, 10) || 0;
+    const totalConnections = parseInt(totalConnectionsRes.rows[0].count, 10) || 0;
     const conversionRate = totalViews > 0 ? ((totalConnections / totalViews) * 100).toFixed(2) : '0.00';
-
-    // Recent signups
-    const recentUsersResult = await db.query(
-      'SELECT id, email, account_type, created_at, is_active FROM users ORDER BY created_at DESC LIMIT 10'
-    );
-
-    // Pending reports
-    const pendingReports = await Report.findPending();
 
     return res.json({
       success: true,
       data: {
         summary: {
-          totalUsers: parseInt(totalUsersResult.rows[0].count, 10),
-          totalBands: parseInt(totalBandsResult.rows[0].count, 10),
-          totalOrganizers: parseInt(totalOrganizersResult.rows[0].count, 10),
-          totalBandProfiles: parseInt(totalBandProfilesResult.rows[0].count, 10),
+          totalUsers: parseInt(totalUsersRes.rows[0].count, 10),
+          totalBands: parseInt(totalBandsRes.rows[0].count, 10),
+          totalOrganizers: parseInt(totalOrganizersRes.rows[0].count, 10),
+          totalBandProfiles: parseInt(totalBandProfilesRes.rows[0].count, 10),
           totalActivePosts: totalPosts,
           totalConnections,
           totalProfileViews: totalViews,
           conversionRate: `${conversionRate}%`
         },
-        recentUsers: recentUsersResult.rows,
+        recentUsers: recentUsersRes.rows,
         pendingReports
       }
     });

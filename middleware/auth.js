@@ -5,15 +5,39 @@ const getJwtSecret = () => process.env.JWT_SECRET || 'panggung-lokal-dev-secret-
 const getJwtExpiresIn = () => process.env.JWT_EXPIRES_IN || '7d';
 
 /**
- * JWT Authentication Middleware
- * Provides token generation, verification, and route protection
- * Requirements: 1.3 (User authentication and session management)
+ * Extract cookie value by name from request
+ * @param {Object} req - Express request
+ * @param {string} name - Cookie key
+ * @returns {string|null}
  */
+const getCookie = (req, name) => {
+  const cookie = req.headers?.cookie || '';
+  const item = cookie
+    .split(';')
+    .map(value => value.trim())
+    .find(value => value.startsWith(`${name}=`));
+  return item ? decodeURIComponent(item.slice(name.length + 1)) : null;
+};
+
+/**
+ * Extract bearer token from Authorization header or HTTP cookie
+ * @param {Object} req - Express request
+ * @returns {string|null}
+ */
+const extractToken = (req) => {
+  const cookieToken = getCookie(req, 'panggung_lokal_token');
+  const authHeader = req.headers?.authorization || (cookieToken ? `Bearer ${cookieToken}` : null);
+
+  if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.trim() === 'Bearer') {
+    return null;
+  }
+  return authHeader.substring(7);
+};
 
 /**
  * Generate a JWT token for a user
  * @param {Object} user - User object with id, email, and accountType
- * @returns {string} JWT token with 7-day expiration
+ * @returns {string} JWT token
  */
 const generateToken = (user) => {
   const payload = {
@@ -29,28 +53,20 @@ const generateToken = (user) => {
 };
 
 /**
- * Middleware to verify JWT token from Authorization header
+ * Verify JWT token from Authorization header or cookie
  * Adds decoded user data to req.user
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
  */
 const verifyToken = async (req, res, next) => {
   try {
-    // Extract token from Authorization header or cookie
-    const cookieToken = getCookie(req, 'panggung_lokal_token');
-    const authHeader = req.headers.authorization || (cookieToken ? `Bearer ${cookieToken}` : null);
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.trim() === 'Bearer') {
+    const token = extractToken(req);
+
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: 'Token autentikasi tidak ditemukan'
       });
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Verify token
     const decoded = jwt.verify(token, getJwtSecret());
 
     // Configured admin token signed by server
@@ -59,7 +75,7 @@ const verifyToken = async (req, res, next) => {
       return next();
     }
 
-    // Fetch user from database to ensure they still exist and are active
+    // Fetch user from database to ensure active state
     const result = await db.query(
       'SELECT id, email, account_type, is_active FROM users WHERE id = $1',
       [decoded.id]
@@ -81,7 +97,6 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Add user data to request object
     req.user = {
       id: user.id,
       email: user.email,
@@ -112,23 +127,58 @@ const verifyToken = async (req, res, next) => {
 };
 
 /**
- * Middleware to require authentication
- * Use this middleware on routes that require any authenticated user
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
+ * Optional Authentication Middleware
+ * Populates req.user if valid token exists, but doesn't block unauthenticated guests
  */
-const requireAuth = verifyToken;
+const optionalAuth = (req, res, next) => {
+  const token = extractToken(req);
+  if (!token) {
+    req.user = null;
+    return next();
+  }
 
-const getCookie = (req, name) => {
-  const cookie = req.headers.cookie || '';
-  const item = cookie.split(';').map(value => value.trim()).find(value => value.startsWith(`${name}=`));
-  return item ? decodeURIComponent(item.slice(name.length + 1)) : null;
+  try {
+    const decoded = jwt.verify(token, getJwtSecret());
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      accountType: decoded.accountType
+    };
+  } catch (e) {
+    req.user = null;
+  }
+  next();
 };
+
+/**
+ * Middleware factory to enforce specific account role
+ * @param {string} role - Allowed role
+ * @param {string} denyMessage - Error message when role does not match
+ */
+const requireRole = (role, denyMessage) => {
+  return async (req, res, next) => {
+    await verifyToken(req, res, (error) => {
+      if (error) return;
+
+      if (req.user?.accountType !== role) {
+        return res.status(403).json({
+          success: false,
+          message: denyMessage
+        });
+      }
+
+      next();
+    });
+  };
+};
+
+const requireAuth = verifyToken;
+const requireBand = requireRole('band', 'Akses ditolak. Hanya untuk akun band');
+const requireOrganizer = requireRole('organizer', 'Akses ditolak. Hanya untuk akun penyelenggara');
 
 const requireAdmin = async (req, res, next) => {
   await verifyToken(req, res, () => {
-    if (req.user.accountType !== 'admin') {
+    if (req.user?.accountType !== 'admin') {
       return res.status(403).json({ success: false, message: 'Akses khusus admin' });
     }
     next();
@@ -153,61 +203,12 @@ const requireAdminPage = (req, res, next) => {
   return requireAdmin(req, pageResponse, next);
 };
 
-/**
- * Middleware to require band account type
- * Use this middleware on routes that only bands should access
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- */
-const requireBand = async (req, res, next) => {
-  // First verify the token
-  await verifyToken(req, res, (error) => {
-    if (error) {
-      return;
-    }
-
-    // Check if user is a band
-    if (req.user.accountType !== 'band') {
-      return res.status(403).json({
-        success: false,
-        message: 'Akses ditolak. Hanya untuk akun band'
-      });
-    }
-
-    next();
-  });
-};
-
-/**
- * Middleware to require organizer account type
- * Use this middleware on routes that only organizers should access
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- */
-const requireOrganizer = async (req, res, next) => {
-  // First verify the token
-  await verifyToken(req, res, (error) => {
-    if (error) {
-      return;
-    }
-
-    // Check if user is an organizer
-    if (req.user.accountType !== 'organizer') {
-      return res.status(403).json({
-        success: false,
-        message: 'Akses ditolak. Hanya untuk akun penyelenggara'
-      });
-    }
-
-    next();
-  });
-};
-
 module.exports = {
+  extractToken,
   generateToken,
   verifyToken,
+  optionalAuth,
+  requireRole,
   requireAuth,
   requireBand,
   requireOrganizer,

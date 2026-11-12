@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Connection = require('../models/Connection');
 const BandProfile = require('../models/BandProfile');
-const { verifyToken, requireOrganizer, requireBand } = require('../middleware/auth');
+const WhatsAppService = require('../services/whatsappService');
+const { verifyToken, requireBand } = require('../middleware/auth');
 
 /**
  * POST /api/connections
@@ -27,7 +28,6 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
-    // Record connection
     const connection = await Connection.create({
       organizerUserId: req.user.id,
       bandProfileId: band.id,
@@ -35,14 +35,7 @@ router.post('/', verifyToken, async (req, res) => {
       notes: notes || null
     });
 
-    // Format WhatsApp link if phone is present
-    let whatsappUrl = null;
-    if (band.phone) {
-      const cleanPhone = band.phone.replace(/[^0-9]/g, '');
-      const waNumber = cleanPhone.startsWith('0') ? '62' + cleanPhone.substring(1) : cleanPhone;
-      const message = encodeURIComponent(`Halo ${band.bandName}, kami menemukan profil band Anda di Panggung Lokal dan tertarik untuk mengundang Anda manggung.`);
-      whatsappUrl = `https://wa.me/${waNumber}?text=${message}`;
-    }
+    const whatsappUrl = WhatsAppService.buildContactUrl(band.phone, band.bandName);
 
     return res.status(201).json({
       success: true,
@@ -83,8 +76,10 @@ router.get('/band/:bandProfileId', requireBand, async (req, res) => {
       });
     }
 
-    const connections = await Connection.getByBandProfile(bandProfileId);
-    const stats = await Connection.getStatsForBand(bandProfileId);
+    const [connections, stats] = await Promise.all([
+      Connection.getByBandProfile(bandProfileId),
+      Connection.getStatsForBand(bandProfileId)
+    ]);
 
     return res.json({
       success: true,
@@ -107,7 +102,6 @@ router.get('/band/:bandProfileId', requireBand, async (req, res) => {
 router.get('/organizer', verifyToken, async (req, res) => {
   try {
     const connections = await Connection.getByOrganizer(req.user.id);
-
     return res.json({
       success: true,
       data: connections
