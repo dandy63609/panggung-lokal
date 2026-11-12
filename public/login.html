@@ -125,7 +125,7 @@
           <button type="button" class="btn btn--secondary btn--sm" onclick="demoLogin('kafe.selatan@gmail.com', 'Password123!')">
             EO/Umum
           </button>
-          <button type="button" class="btn btn--secondary btn--sm" onclick="demoLogin('admin@admin.com', 'admin')">
+          <button type="button" class="btn btn--secondary btn--sm" onclick="prepareAdminLogin()">
             Admin
           </button>
         </div>
@@ -177,6 +177,15 @@
       document.getElementById('login-email').value = email;
       document.getElementById('login-password').value = password;
       doLogin(email, password);
+    }
+
+    function prepareAdminLogin() {
+      const emailInput = document.getElementById('login-email');
+      const passInput = document.getElementById('login-password');
+      emailInput.value = '';
+      passInput.value = '';
+      emailInput.focus();
+      showToast('Silakan masukkan email dan kata sandi admin secara manual', 'info');
     }
 
     document.addEventListener('DOMContentLoaded', () => {
