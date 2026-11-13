@@ -4,6 +4,7 @@ const Connection = require('../models/Connection');
 const BandProfile = require('../models/BandProfile');
 const WhatsAppService = require('../services/whatsappService');
 const { verifyToken, requireBand } = require('../middleware/auth');
+const { parsePositiveInt } = require('../utils/validation');
 
 /**
  * POST /api/connections
@@ -12,15 +13,16 @@ const { verifyToken, requireBand } = require('../middleware/auth');
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { bandProfileId, notes, connectionType } = req.body;
+    const parsedBandProfileId = parsePositiveInt(bandProfileId);
 
-    if (!bandProfileId) {
+    if (!parsedBandProfileId) {
       return res.status(400).json({
         success: false,
-        message: 'ID profil band wajib disertakan'
+        message: 'ID profil band tidak valid atau wajib disertakan'
       });
     }
 
-    const band = await BandProfile.findById(bandProfileId);
+    const band = await BandProfile.findById(parsedBandProfileId);
     if (!band) {
       return res.status(404).json({
         success: false,
@@ -66,7 +68,13 @@ router.post('/', verifyToken, async (req, res) => {
  */
 router.get('/band/:bandProfileId', requireBand, async (req, res) => {
   try {
-    const bandProfileId = parseInt(req.params.bandProfileId, 10);
+    const bandProfileId = parsePositiveInt(req.params.bandProfileId);
+    if (!bandProfileId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID profil band tidak valid'
+      });
+    }
     const profile = await BandProfile.findByUserId(req.user.id);
 
     if (!profile || profile.id !== bandProfileId) {

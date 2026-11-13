@@ -32,8 +32,26 @@ app.use(helmet({
 }));
 
 // CORS configuration
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
+      return callback(null, true);
+    }
+    if (
+      /^https:\/\/([a-z0-9-]+\.)?reffband\.studio$/i.test(origin) ||
+      /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   credentials: true
 }));
 

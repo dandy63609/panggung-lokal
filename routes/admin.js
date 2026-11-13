@@ -3,6 +3,9 @@ const router = express.Router();
 const db = require('../utils/db');
 const Report = require('../models/Report');
 const { requireAdmin } = require('../middleware/auth');
+const { parsePositiveInt } = require('../utils/validation');
+
+const ALLOWED_REPORT_STATUSES = ['pending', 'resolved', 'dismissed'];
 
 router.use(requireAdmin);
 
@@ -43,7 +46,7 @@ router.get('/metrics', async (req, res) => {
     ] = await Promise.all([
       db.query('SELECT COUNT(*) as count FROM users'),
       db.query('SELECT COUNT(*) as count FROM users WHERE account_type = $1', ['band']),
-      db.query('SELECT COUNT(*) as count FROM users WHERE account_type = $1', ['organizer']),
+      db.query("SELECT COUNT(*) as count FROM users WHERE account_type IN ('organizer', 'general')"),
       db.query('SELECT COUNT(*) as count FROM band_profiles'),
       db.query('SELECT COUNT(*) as count FROM connections'),
       db.query('SELECT COALESCE(SUM(profile_views), 0) as views FROM band_profiles'),
@@ -108,8 +111,21 @@ router.get('/reports', async (req, res) => {
  */
 router.put('/reports/:id', async (req, res) => {
   try {
-    const reportId = parseInt(req.params.id, 10);
+    const reportId = parsePositiveInt(req.params.id);
+    if (!reportId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID laporan tidak valid'
+      });
+    }
+
     const { status, adminNotes } = req.body;
+    if (!status || !ALLOWED_REPORT_STATUSES.includes(String(status))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status laporan tidak valid'
+      });
+    }
 
     const updated = await Report.updateStatus(reportId, status, adminNotes);
     if (!updated) {
@@ -139,12 +155,29 @@ router.put('/reports/:id', async (req, res) => {
  */
 router.put('/users/:id/suspend', async (req, res) => {
   try {
-    const userId = parseInt(req.params.id, 10);
-    await db.query('UPDATE users SET is_active = false WHERE id = $1', [userId]);
+    const userId = parsePositiveInt(req.params.id);
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID pengguna tidak valid'
+      });
+    }
+
+    const result = await db.query(
+      'UPDATE users SET is_active = false WHERE id = $1 RETURNING id, email, is_active',
+      [userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pengguna tidak ditemukan'
+      });
+    }
 
     return res.json({
       success: true,
-      message: 'Akun berhasil dinonaktifkan'
+      message: 'Akun berhasil dinonaktifkan',
+      data: result.rows[0]
     });
   } catch (error) {
     console.error('Suspend user error:', error);

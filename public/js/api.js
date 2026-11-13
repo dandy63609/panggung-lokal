@@ -130,10 +130,13 @@ const AuthManager = {
         </button>
       `;
 
+      const safeUserLabel = typeof escapeHtml === 'function'
+        ? escapeHtml(user.name || user.email || '')
+        : String(user.name || user.email || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
       mobileHtml = `
         <div class="navbar__mobile-user-info">
           <span class="navbar__user-badge">${roleBadge}</span>
-          <span style="font-size: 0.85rem; color: var(--graphite); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.name || user.email || ''}</span>
+          <span style="font-size: 0.85rem; color: var(--graphite); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeUserLabel}</span>
         </div>
         ${primaryActionMobileHtml}
         <button id="btn-logout-mobile" class="btn btn--outline btn--block" onclick="AuthManager.logout()">
@@ -280,21 +283,6 @@ async function apiCreateConnection(bandProfileId, notes = '') {
   });
 }
 
-async function apiCreateAvailability(startDate, endDate, notes = '') {
-  return apiClient('/api/availability', {
-    method: 'POST',
-    data: { startDate, endDate, notes },
-    requiresAuth: true
-  });
-}
-
-async function apiDeleteAvailability(id) {
-  return apiClient(`/api/availability/${id}`, {
-    method: 'DELETE',
-    requiresAuth: true
-  });
-}
-
 async function apiGetBandDashboard() {
   return apiClient('/api/dashboard/band', { requiresAuth: true });
 }
@@ -352,8 +340,6 @@ window.apiTrackPostWaClick = apiTrackPostWaClick;
 window.apiGetMyPostsPerformance = apiGetMyPostsPerformance;
 window.apiGetPlatformStats = apiGetPlatformStats;
 window.apiCreateConnection = apiCreateConnection;
-window.apiCreateAvailability = apiCreateAvailability;
-window.apiDeleteAvailability = apiDeleteAvailability;
 window.apiGetBandDashboard = apiGetBandDashboard;
 window.apiGetOrganizerDashboard = apiGetOrganizerDashboard;
 window.apiUpdateBandProfile = apiUpdateBandProfile;

@@ -1,6 +1,6 @@
 const { Pool: PgPool } = require('pg');
 require('dotenv').config();
-const { getMemoryDb, saveMemoryDb } = require('./memoryDb');
+const { getMemoryDb, saveMemoryDb, deleteFromCloud } = require('./memoryDb');
 
 let activePool = null;
 let isUsingMemory = false;
@@ -78,6 +78,14 @@ const query = async (text, params) => {
     
     // Auto save if memory db and modifying
     if (isUsingMemory && /^\s*(INSERT|UPDATE|DELETE|DROP|ALTER)/i.test(text)) {
+      const deleteMatch = text.match(/^\s*DELETE\s+FROM\s+([a-zA-Z_][a-zA-Z0-9_]*)/i);
+      if (deleteMatch && Array.isArray(res.rows) && res.rows.length > 0 && typeof deleteFromCloud === 'function') {
+        for (const row of res.rows) {
+          if (row && row.id !== undefined) {
+            deleteFromCloud(deleteMatch[1], row.id);
+          }
+        }
+      }
       saveMemoryDb();
     }
     

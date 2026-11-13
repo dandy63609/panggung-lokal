@@ -24,19 +24,12 @@ class Connection {
    * Create a new connection
    */
   static async create(data) {
-    let nextId = data.id;
-    if (!nextId) {
-      const maxRes = await db.query('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM connections');
-      nextId = parseInt(maxRes.rows[0].next_id, 10);
-    }
-
     const result = await db.query(
       `INSERT INTO connections (
-        id, organizer_user_id, band_profile_id, connection_type, notes
-      ) VALUES ($1, $2, $3, $4, $5)
+        organizer_user_id, band_profile_id, connection_type, notes
+      ) VALUES ($1, $2, $3, $4)
       RETURNING *`,
       [
-        nextId,
         data.organizerUserId,
         data.bandProfileId,
         data.connectionType || 'contact_view',

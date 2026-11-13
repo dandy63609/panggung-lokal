@@ -212,12 +212,13 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
     }
 
     const token = await AuthService.createPasswordResetToken(user.id);
-    console.log(`🔑 Password reset link generated for ${email}: /reset-password.html?token=${token}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🔑 Password reset requested for account id=${user.id}`);
+    }
 
     return res.json({
       success: true,
-      message: 'Instruksi reset password telah dikirim ke email Anda',
-      resetToken: token
+      message: 'Jika email terdaftar, instruksi reset password telah dikirim.'
     });
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -283,6 +284,19 @@ router.post('/reset-password', authLimiter, async (req, res) => {
  */
 router.get('/me', verifyToken, async (req, res) => {
   try {
+    if (req.user.mockAdmin === true && req.user.id === 'mock-admin' && req.user.accountType === 'admin') {
+      return res.json({
+        success: true,
+        data: {
+          id: req.user.id,
+          email: req.user.email,
+          accountType: 'admin',
+          isActive: true,
+          profile: null
+        }
+      });
+    }
+
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({

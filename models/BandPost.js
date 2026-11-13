@@ -80,12 +80,6 @@ class BandPost {
    * Create a new post for a band
    */
   static async create(data) {
-    let nextId = data.id;
-    if (!nextId) {
-      const maxRes = await db.query('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM band_posts');
-      nextId = parseInt(maxRes.rows[0].next_id, 10);
-    }
-
     let slides = data.slides || [];
     if (typeof slides === 'string') {
       try {
@@ -111,11 +105,10 @@ class BandPost {
 
     const result = await db.query(
       `INSERT INTO band_posts (
-        id, band_profile_id, media_type, media_url, thumbnail_url, caption, slides, views_count, wa_clicks_count
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0)
+        band_profile_id, media_type, media_url, thumbnail_url, caption, slides, views_count, wa_clicks_count
+      ) VALUES ($1, $2, $3, $4, $5, $6, 0, 0)
       RETURNING *`,
       [
-        nextId,
         data.bandProfileId,
         primaryType,
         primaryUrl,
@@ -135,18 +128,7 @@ class BandPost {
       'DELETE FROM band_posts WHERE id = $1 AND band_profile_id = $2 RETURNING *',
       [id, bandProfileId]
     );
-    if (result.rows.length > 0) {
-      try {
-        const { deleteFromCloud } = require('../utils/memoryDb');
-        if (typeof deleteFromCloud === 'function') {
-          deleteFromCloud('band_posts', id);
-        }
-      } catch (e) {
-        // ignore
-      }
-      return true;
-    }
-    return false;
+    return result.rows.length > 0;
   }
 
   /**

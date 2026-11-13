@@ -4,6 +4,7 @@ const BandProfile = require('../models/BandProfile');
 const BandPost = require('../models/BandPost');
 const BandService = require('../services/bandService');
 const { optionalAuth, requireBand } = require('../middleware/auth');
+const { parsePositiveInt, isSafeMediaUrl } = require('../utils/validation');
 
 /**
  * GET /api/bands/stats
@@ -101,8 +102,8 @@ router.get('/recent', optionalAuth, async (req, res) => {
  */
 router.get('/profile/:id', optionalAuth, async (req, res) => {
   try {
-    const profileId = parseInt(req.params.id, 10);
-    if (isNaN(profileId)) {
+    const profileId = parsePositiveInt(req.params.id);
+    if (!profileId) {
       return res.status(400).json({
         success: false,
         message: 'ID Profil tidak valid'
@@ -193,6 +194,23 @@ router.post('/profile', requireBand, async (req, res) => {
       });
     }
 
+    const parsedBudgetMin = budgetMin ? parseInt(budgetMin, 10) : null;
+    const parsedBudgetMax = budgetMax ? parseInt(budgetMax, 10) : null;
+    const budgetValidation = BandService.validateBudgetRange(parsedBudgetMin, parsedBudgetMax);
+    if (!budgetValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: budgetValidation.message
+      });
+    }
+
+    if ((profilePhotoUrl && !isSafeMediaUrl(profilePhotoUrl)) || (coverPhotoUrl && !isSafeMediaUrl(coverPhotoUrl))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Format URL foto profil atau sampul tidak aman'
+      });
+    }
+
     const newProfile = await BandProfile.create({
       userId: req.user.id,
       bandName,
@@ -200,8 +218,8 @@ router.post('/profile', requireBand, async (req, res) => {
       locationCity,
       locationRegion,
       bio,
-      budgetMin: budgetMin ? parseInt(budgetMin, 10) : null,
-      budgetMax: budgetMax ? parseInt(budgetMax, 10) : null,
+      budgetMin: parsedBudgetMin,
+      budgetMax: parsedBudgetMax,
       profilePhotoUrl,
       coverPhotoUrl,
       phone,
@@ -337,6 +355,21 @@ router.post('/media', requireBand, async (req, res) => {
       });
     }
 
+    const allowedFileTypes = ['photo', 'image', 'video', 'audio', 'media'];
+    if (!allowedFileTypes.includes(String(fileType).toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tipe file media tidak valid'
+      });
+    }
+
+    if (!isSafeMediaUrl(fileUrl)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Format URL media tidak aman atau tidak valid'
+      });
+    }
+
     const created = await profile.addMediaFile({
       fileType,
       fileUrl,
@@ -372,7 +405,13 @@ router.delete('/media/:id', requireBand, async (req, res) => {
       });
     }
 
-    const mediaId = parseInt(req.params.id, 10);
+    const mediaId = parsePositiveInt(req.params.id);
+    if (!mediaId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID media tidak valid'
+      });
+    }
     const deleted = await BandProfile.deleteMediaFile(mediaId, profile.id);
 
     if (!deleted) {

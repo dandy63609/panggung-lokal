@@ -33,9 +33,13 @@ async function fetchFromCloud() {
           cloudData[table] = rows;
           totalRows += rows.length;
         }
+      } else if (process.env.NODE_ENV !== 'test') {
+        console.warn(`⚠️ Cloud fetch returned HTTP ${res.status} for table ${table}`);
       }
     } catch (e) {
-      // cloud fetch timeout or network offline
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn(`⚠️ Cloud fetch failed for table ${table}:`, e.message);
+      }
     }
   }));
 
@@ -58,23 +62,39 @@ async function syncAllToCloud() {
             'Prefer': 'resolution=merge-duplicates'
           },
           body: JSON.stringify(rows)
-        }).catch(() => {});
+        })
+          .then(res => {
+            if (!res.ok) {
+              console.warn(`⚠️ Cloud sync returned HTTP ${res.status} for table ${table}`);
+            }
+          })
+          .catch(err => {
+            console.warn(`⚠️ Cloud sync failed for table ${table}:`, err.message);
+          });
       }
     } catch (e) {
-      // ignore background sync errors
+      console.warn(`⚠️ Failed preparing cloud sync for table ${table}:`, e.message);
     }
   }
 }
 
 async function deleteFromCloud(table, id) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !id || process.env.NODE_ENV === 'test') return;
-  fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+  fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: {
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
     }
-  }).catch(() => {});
+  })
+    .then(res => {
+      if (!res.ok) {
+        console.warn(`⚠️ Cloud delete returned HTTP ${res.status} for ${table}#${id}`);
+      }
+    })
+    .catch(err => {
+      console.warn(`⚠️ Cloud delete failed for ${table}#${id}:`, err.message);
+    });
 }
 
 const SCHEMA_SQL = `

@@ -330,17 +330,7 @@ class BandProfile {
       [mediaId, bandProfileId]
     );
 
-    if (result.rows.length === 0) return false;
-
-    try {
-      const { deleteFromCloud } = require('../utils/memoryDb');
-      if (typeof deleteFromCloud === 'function') {
-        deleteFromCloud('media_files', mediaId);
-      }
-    } catch (e) {
-      // ignore
-    }
-    return true;
+    return result.rows.length > 0;
   }
 
   /**

@@ -10,7 +10,9 @@ const {
   validateEmail,
   validatePhone,
   validateDateRange,
-  validateRequired
+  validateRequired,
+  parsePositiveInt,
+  isSafeMediaUrl
 } = require('../utils/validation');
 
 describe('validateEmail', () => {
@@ -129,5 +131,45 @@ describe('validateRequired', () => {
     expect(validateRequired(undefined)).toBe(false);
     expect(validateRequired([])).toBe(false); // empty array
     expect(validateRequired(NaN)).toBe(false);
+  });
+});
+
+describe('parsePositiveInt', () => {
+  test('accepts positive integers and numeric strings', () => {
+    expect(parsePositiveInt(1)).toBe(1);
+    expect(parsePositiveInt(42)).toBe(42);
+    expect(parsePositiveInt('7')).toBe(7);
+    expect(parsePositiveInt(' 15 ')).toBe(15);
+  });
+
+  test('rejects zero, negatives, decimals, and mixed strings', () => {
+    expect(parsePositiveInt(0)).toBeNull();
+    expect(parsePositiveInt('0')).toBeNull();
+    expect(parsePositiveInt(-3)).toBeNull();
+    expect(parsePositiveInt('-3')).toBeNull();
+    expect(parsePositiveInt('12abc')).toBeNull();
+    expect(parsePositiveInt('1.5')).toBeNull();
+    expect(parsePositiveInt(null)).toBeNull();
+    expect(parsePositiveInt(undefined)).toBeNull();
+  });
+});
+
+describe('isSafeMediaUrl', () => {
+  test('accepts safe http/https, relative paths, and media data URLs', () => {
+    expect(isSafeMediaUrl('https://cdn.example.com/photo.jpg')).toBe(true);
+    expect(isSafeMediaUrl('http://localhost:3000/uploads/a.png')).toBe(true);
+    expect(isSafeMediaUrl('/uploads/photo.jpg')).toBe(true);
+    expect(isSafeMediaUrl('data:image/png;base64,iVBORw0KGgo=')).toBe(true);
+    expect(isSafeMediaUrl('data:video/mp4;base64,AAAA')).toBe(true);
+    expect(isSafeMediaUrl('data:audio/mpeg;base64,AAAA')).toBe(true);
+  });
+
+  test('rejects javascript, protocol-relative, html data, and malformed URLs', () => {
+    expect(isSafeMediaUrl('javascript:alert(1)')).toBe(false);
+    expect(isSafeMediaUrl('//evil.example.com/payload.js')).toBe(false);
+    expect(isSafeMediaUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
+    expect(isSafeMediaUrl('ftp://files.example.com/a.mp3')).toBe(false);
+    expect(isSafeMediaUrl('')).toBe(false);
+    expect(isSafeMediaUrl(null)).toBe(false);
   });
 });

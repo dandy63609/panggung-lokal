@@ -3,16 +3,7 @@ const router = express.Router();
 const BandPost = require('../models/BandPost');
 const BandService = require('../services/bandService');
 const { requireBand } = require('../middleware/auth');
-
-/**
- * Validate media URL safety
- * @param {string} url
- * @returns {boolean}
- */
-const isSafeMediaUrl = (url) => {
-  if (!url || typeof url !== 'string') return false;
-  return url.startsWith('/') || /^https?:\/\//i.test(url);
-};
+const { parsePositiveInt, isSafeMediaUrl } = require('../utils/validation');
 
 /**
  * GET /api/posts/band/:bandId
@@ -20,8 +11,8 @@ const isSafeMediaUrl = (url) => {
  */
 router.get('/band/:bandId', async (req, res) => {
   try {
-    const bandId = parseInt(req.params.bandId, 10);
-    if (isNaN(bandId)) {
+    const bandId = parsePositiveInt(req.params.bandId);
+    if (!bandId) {
       return res.status(400).json({ success: false, message: 'ID band tidak valid' });
     }
 
@@ -42,7 +33,10 @@ router.get('/band/:bandId', async (req, res) => {
  */
 router.post('/:id/view', async (req, res) => {
   try {
-    const postId = parseInt(req.params.id, 10);
+    const postId = parsePositiveInt(req.params.id);
+    if (!postId) {
+      return res.status(400).json({ success: false, message: 'ID postingan tidak valid' });
+    }
     const post = await BandPost.incrementViews(postId);
     if (!post) {
       return res.status(404).json({ success: false, message: 'Postingan tidak ditemukan' });
@@ -60,7 +54,10 @@ router.post('/:id/view', async (req, res) => {
  */
 router.post('/:id/wa-click', async (req, res) => {
   try {
-    const postId = parseInt(req.params.id, 10);
+    const postId = parsePositiveInt(req.params.id);
+    if (!postId) {
+      return res.status(400).json({ success: false, message: 'ID postingan tidak valid' });
+    }
     const post = await BandPost.incrementWaClicks(postId);
     if (!post) {
       return res.status(404).json({ success: false, message: 'Postingan tidak ditemukan' });
@@ -100,6 +97,14 @@ router.post('/', requireBand, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Format URL media tidak aman atau tidak valid' });
     }
 
+    if (thumbnailUrl && !isSafeMediaUrl(thumbnailUrl)) {
+      return res.status(400).json({ success: false, message: 'Format URL media tidak aman atau tidak valid' });
+    }
+
+    if (hasSlides && parsedSlides.some(slide => !slide || !isSafeMediaUrl(slide.url))) {
+      return res.status(400).json({ success: false, message: 'Format URL media tidak aman atau tidak valid' });
+    }
+
     const newPost = await BandPost.create({
       bandProfileId: bandProfile.id,
       mediaType: (hasSlides && parsedSlides[0]?.type) ? parsedSlides[0].type : (mediaType || 'photo'),
@@ -131,7 +136,10 @@ router.delete('/:id', requireBand, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Profil band tidak ditemukan' });
     }
 
-    const postId = parseInt(req.params.id, 10);
+    const postId = parsePositiveInt(req.params.id);
+    if (!postId) {
+      return res.status(400).json({ success: false, message: 'ID postingan tidak valid' });
+    }
     const deleted = await BandPost.delete(postId, bandProfile.id);
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Postingan tidak ditemukan atau bukan milik band Anda' });

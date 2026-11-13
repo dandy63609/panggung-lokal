@@ -96,7 +96,7 @@ class User {
    * @returns {boolean} True if account type is 'organizer'
    */
   isOrganizer() {
-    return this.accountType === 'organizer';
+    return this.accountType === 'organizer' || this.accountType === 'general';
   }
 }
 

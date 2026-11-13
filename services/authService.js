@@ -39,18 +39,27 @@ class AuthService {
    * @param {string} password
    * @returns {{ isAdmin: boolean, adminUser?: Object }}
    */
+  static safeStringEqual(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string' || !a || !b) {
+      return false;
+    }
+    const hashA = crypto.createHash('sha256').update(a).digest();
+    const hashB = crypto.createHash('sha256').update(b).digest();
+    return crypto.timingSafeEqual(hashA, hashB);
+  }
+
   static checkAdminCredentials(email, password) {
     const cleanEmail = (email || '').toLowerCase().trim();
-    const configuredAdminEmail = (process.env.ADMIN_EMAIL || 'admin@admin.com').toLowerCase().trim();
-    const configuredAdminPass = process.env.ADMIN_PASSWORD || 'admin';
+    const configuredAdminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
+    const configuredAdminPass = process.env.ADMIN_PASSWORD || '';
 
-    const isAdminEmail = cleanEmail === configuredAdminEmail ||
-                         cleanEmail === 'admin@admin.com' ||
-                         cleanEmail === 'admin@panggunglokal.id';
+    // Never fall back to hardcoded credentials; require explicit environment configuration
+    if (!configuredAdminEmail || !configuredAdminPass || typeof password !== 'string' || !password) {
+      return { isAdmin: false };
+    }
 
-    const isAdminPass = password === configuredAdminPass ||
-                        password === 'admin' ||
-                        password === 'Password123!';
+    const isAdminEmail = AuthService.safeStringEqual(cleanEmail, configuredAdminEmail);
+    const isAdminPass = AuthService.safeStringEqual(password, configuredAdminPass);
 
     if (isAdminEmail && isAdminPass) {
       return {

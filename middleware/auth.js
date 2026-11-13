@@ -1,7 +1,15 @@
 const jwt = require('jsonwebtoken');
 const db = require('../utils/db');
 
-const getJwtSecret = () => process.env.JWT_SECRET || 'panggung-lokal-dev-secret-key-2026';
+const getJwtSecret = () => {
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable must be configured in production');
+  }
+  return 'panggung-lokal-dev-secret-key-2026';
+};
 const getJwtExpiresIn = () => process.env.JWT_EXPIRES_IN || '7d';
 
 /**
@@ -71,7 +79,7 @@ const verifyToken = async (req, res, next) => {
 
     // Configured admin token signed by server
     if (decoded.mockAdmin === true && decoded.id === 'mock-admin' && decoded.accountType === 'admin') {
-      req.user = { id: decoded.id, email: decoded.email, accountType: decoded.accountType };
+      req.user = { id: decoded.id, email: decoded.email, accountType: decoded.accountType, mockAdmin: true };
       return next();
     }
 
@@ -174,7 +182,17 @@ const requireRole = (role, denyMessage) => {
 
 const requireAuth = verifyToken;
 const requireBand = requireRole('band', 'Akses ditolak. Hanya untuk akun band');
-const requireOrganizer = requireRole('organizer', 'Akses ditolak. Hanya untuk akun penyelenggara');
+const requireOrganizer = async (req, res, next) => {
+  await verifyToken(req, res, () => {
+    if (!['organizer', 'general'].includes(req.user?.accountType)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses ditolak. Hanya untuk akun penyelenggara'
+      });
+    }
+    next();
+  });
+};
 
 const requireAdmin = async (req, res, next) => {
   await verifyToken(req, res, () => {

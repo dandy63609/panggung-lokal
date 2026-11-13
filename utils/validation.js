@@ -295,6 +295,39 @@ class FormValidator {
   }
 }
 
+// Centralized input & media URL safety helpers
+function parsePositiveInt(value) {
+  if (typeof value === 'number') {
+    return Number.isInteger(value) && value > 0 ? value : null;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!/^\d+$/.test(trimmed)) return null;
+    const parsed = Number(trimmed);
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+  return null;
+}
+
+function isSafeMediaUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('/')) return !trimmed.startsWith('//');
+  if (
+    trimmed.startsWith('data:image/') ||
+    trimmed.startsWith('data:video/') ||
+    trimmed.startsWith('data:audio/')
+  ) {
+    return true;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 // Export for use in Node.js (backend) and browser (frontend)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -302,6 +335,8 @@ if (typeof module !== 'undefined' && module.exports) {
     validatePhone,
     validateDateRange,
     validateRequired,
+    parsePositiveInt,
+    isSafeMediaUrl,
     FormValidator
   };
 }

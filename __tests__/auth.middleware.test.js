@@ -396,6 +396,32 @@ describe('JWT Authentication Middleware', () => {
       expect(next).not.toHaveBeenCalledWith();
     });
 
+    it('should allow general account type registered as organizer to proceed', async () => {
+      const user = {
+        id: 9,
+        email: 'general-eo@example.com',
+        accountType: 'general'
+      };
+
+      const token = generateToken(user);
+      req.headers.authorization = `Bearer ${token}`;
+
+      db.query.mockResolvedValue({
+        rows: [{
+          id: 9,
+          email: 'general-eo@example.com',
+          account_type: 'general',
+          is_active: true
+        }]
+      });
+
+      await requireOrganizer(req, res, next);
+
+      expect(req.user.accountType).toBe('general');
+      expect(next).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
     it('should reject unauthenticated request', async () => {
       await requireOrganizer(req, res, next);
 

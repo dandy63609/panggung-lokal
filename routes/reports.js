@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Report = require('../models/Report');
 const { optionalAuth } = require('../middleware/auth');
+const { parsePositiveInt } = require('../utils/validation');
+
+const ALLOWED_ENTITY_TYPES = ['band_profile', 'band', 'user', 'post'];
 
 /**
  * POST /api/reports
@@ -11,10 +14,25 @@ router.post('/', optionalAuth, async (req, res) => {
   try {
     const { reportedEntityType, reportedEntityId, reason } = req.body;
 
-    if (!reportedEntityType || !reportedEntityId || !reason) {
+    if (!reportedEntityType || !reportedEntityId || !reason || typeof reason !== 'string' || !reason.trim()) {
       return res.status(400).json({
         success: false,
         message: 'Tipe entitas, ID, dan alasan pelaporan wajib diisi'
+      });
+    }
+
+    if (!ALLOWED_ENTITY_TYPES.includes(String(reportedEntityType))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tipe entitas pelaporan tidak valid'
+      });
+    }
+
+    const parsedEntityId = parsePositiveInt(reportedEntityId);
+    if (!parsedEntityId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID entitas pelaporan tidak valid'
       });
     }
 
@@ -23,8 +41,8 @@ router.post('/', optionalAuth, async (req, res) => {
     const report = await Report.create({
       reporterUserId,
       reportedEntityType,
-      reportedEntityId: parseInt(reportedEntityId, 10),
-      reason
+      reportedEntityId: parsedEntityId,
+      reason: reason.trim()
     });
 
     return res.status(201).json({
