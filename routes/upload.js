@@ -3,13 +3,20 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { requireAuth, requireOrganizer } = require('../middleware/auth');
 const { uploadLimiter } = require('../middleware/rateLimiter');
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// Use /tmp/uploads on Vercel serverless where the project directory is read-only
+const uploadDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'uploads')
+  : path.join(__dirname, '..', 'uploads');
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch {
+  // Ignore on read-only filesystems
 }
 
 // Multer storage configuration

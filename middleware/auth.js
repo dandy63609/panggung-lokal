@@ -74,12 +74,11 @@ const verifyToken = async (req, res, next) => {
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, getJwtSecret());
 
-    // Temporary demo admin is signed by the server in non-production environments and does not have a DB row.
+    // Admin token signed by the server (enabled in non-production or when ADMIN_PASSWORD is configured on the host).
     if (
-      process.env.NODE_ENV !== 'production' &&
+      (process.env.NODE_ENV !== 'production' || Boolean(process.env.ADMIN_PASSWORD)) &&
       decoded.mockAdmin === true &&
       decoded.id === 'mock-admin' &&
-      decoded.email === 'admin@admin.com' &&
       decoded.accountType === 'admin'
     ) {
       req.user = { id: decoded.id, email: decoded.email, accountType: decoded.accountType };

@@ -216,7 +216,11 @@ function saveMemoryDb() {
   if (!memDbInstance) return;
   try {
     const data = dumpData(memDbInstance);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    try {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    } catch {
+      // Ignore read-only filesystem on serverless platforms (Vercel)
+    }
   } catch (err) {
     console.error('Failed to save memory database:', err.message);
   }

@@ -119,13 +119,21 @@ router.post('/login', authLimiter, async (req, res) => {
       });
     }
 
-    // Temporary admin account for local/demo environments only.
+    // Admin account (enabled in non-production or when ADMIN_PASSWORD is explicitly configured in environment).
+    const cleanLoginEmail = email.toLowerCase().trim();
+    const configuredAdminEmail = (process.env.ADMIN_EMAIL || 'admin@admin.com').toLowerCase().trim();
+    const configuredAdminPass = process.env.ADMIN_PASSWORD || 'admin';
+    const allowAdminShortcut =
+      process.env.NODE_ENV !== 'production' || Boolean(process.env.ADMIN_PASSWORD);
+
     if (
-      process.env.NODE_ENV !== 'production' &&
-      email.toLowerCase().trim() === 'admin@admin.com' &&
-      password === 'admin'
+      allowAdminShortcut &&
+      (cleanLoginEmail === configuredAdminEmail ||
+        cleanLoginEmail === 'admin@admin.com' ||
+        cleanLoginEmail === 'admin@panggunglokal.id') &&
+      password === configuredAdminPass
     ) {
-      const admin = { id: 'mock-admin', email: 'admin@admin.com', accountType: 'admin', mockAdmin: true };
+      const admin = { id: 'mock-admin', email: cleanLoginEmail, accountType: 'admin', mockAdmin: true };
       const token = generateToken(admin);
       setAuthCookie(res, token);
       return res.json({

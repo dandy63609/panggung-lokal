@@ -3,6 +3,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { apiLimiter } = require('./middleware/rateLimiter');
 require('dotenv').config();
 
@@ -101,6 +102,9 @@ if (fs.existsSync(clientDistDir)) {
 }
 
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+if (process.env.VERCEL) {
+  app.use('/uploads', express.static(path.join(os.tmpdir(), 'uploads')));
+}
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/admin.html', require('./middleware/auth').requireAdminPage, (req, res) => {
   if (fs.existsSync(clientDistIndex)) {
