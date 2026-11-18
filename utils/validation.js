@@ -77,7 +77,7 @@ function validateDateRange(startDate, endDate) {
     
     // End date must be greater than or equal to start date
     return end >= start;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

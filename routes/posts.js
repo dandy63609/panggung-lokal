@@ -4,14 +4,14 @@ const BandPost = require('../models/BandPost');
 const BandProfile = require('../models/BandProfile');
 const { requireAuth, requireBand } = require('../middleware/auth');
 
-/**
- * GET /api/posts/band/:bandId
- * Get Instagram-style portfolio posts for a specific band
- */
+const isValidPositiveId = (val) => Number.isInteger(val) && val > 0;
+const isSafeMediaUrl = (url) =>
+  typeof url === 'string' && (url.startsWith('/') || /^https?:\/\//i.test(url));
+
 router.get('/band/:bandId', async (req, res) => {
   try {
     const bandId = parseInt(req.params.bandId, 10);
-    if (isNaN(bandId)) {
+    if (!isValidPositiveId(bandId)) {
       return res.status(400).json({ success: false, message: 'ID band tidak valid' });
     }
 
@@ -26,13 +26,12 @@ router.get('/band/:bandId', async (req, res) => {
   }
 });
 
-/**
- * POST /api/posts/:id/view
- * Record view impression on a post
- */
 router.post('/:id/view', async (req, res) => {
   try {
     const postId = parseInt(req.params.id, 10);
+    if (!isValidPositiveId(postId)) {
+      return res.status(400).json({ success: false, message: 'ID postingan tidak valid' });
+    }
     const post = await BandPost.incrementViews(postId);
     if (!post) {
       return res.status(404).json({ success: false, message: 'Postingan tidak ditemukan' });
@@ -44,13 +43,12 @@ router.post('/:id/view', async (req, res) => {
   }
 });
 
-/**
- * POST /api/posts/:id/wa-click
- * Record direct WhatsApp inquiry/click conversion from a post
- */
 router.post('/:id/wa-click', async (req, res) => {
   try {
     const postId = parseInt(req.params.id, 10);
+    if (!isValidPositiveId(postId)) {
+      return res.status(400).json({ success: false, message: 'ID postingan tidak valid' });
+    }
     const post = await BandPost.incrementWaClicks(postId);
     if (!post) {
       return res.status(404).json({ success: false, message: 'Postingan tidak ditemukan' });
@@ -62,10 +60,6 @@ router.post('/:id/wa-click', async (req, res) => {
   }
 });
 
-/**
- * POST /api/posts
- * Create a new post (Band account only)
- */
 router.post('/', requireAuth, requireBand, async (req, res) => {
   try {
     const bandProfile = await BandProfile.findByUserId(req.user.id);
@@ -74,11 +68,8 @@ router.post('/', requireAuth, requireBand, async (req, res) => {
     }
 
     const { mediaType, mediaUrl, thumbnailUrl, caption, slides } = req.body;
-    
-    let parsedSlides = slides;
-    if (typeof parsedSlides === 'string') {
-      try { parsedSlides = JSON.parse(parsedSlides); } catch (e) { parsedSlides = []; }
-    }
+
+    const parsedSlides = BandPost.parseSlidesInput(slides);
     const hasSlides = Array.isArray(parsedSlides) && parsedSlides.length > 0;
     const finalMediaUrl = mediaUrl || (hasSlides ? parsedSlides[0].url : null);
 
@@ -86,8 +77,13 @@ router.post('/', requireAuth, requireBand, async (req, res) => {
       return res.status(400).json({ success: false, message: 'URL gambar/media wajib diisi' });
     }
 
-    const isSafeUrl = finalMediaUrl.startsWith('/') || /^https?:\/\//i.test(finalMediaUrl);
-    if (!isSafeUrl) {
+    const allSlideUrlsSafe =
+      !hasSlides ||
+      parsedSlides.every((item) =>
+        isSafeMediaUrl(typeof item === 'string' ? item : item?.url || item?.mediaUrl)
+      );
+
+    if (!isSafeMediaUrl(finalMediaUrl) || !allSlideUrlsSafe) {
       return res.status(400).json({ success: false, message: 'Format URL media tidak aman atau tidak valid' });
     }
 
@@ -111,18 +107,18 @@ router.post('/', requireAuth, requireBand, async (req, res) => {
   }
 });
 
-/**
- * DELETE /api/posts/:id
- * Delete a post (Band account only, must own the post)
- */
 router.delete('/:id', requireAuth, requireBand, async (req, res) => {
   try {
+    const postId = parseInt(req.params.id, 10);
+    if (!isValidPositiveId(postId)) {
+      return res.status(400).json({ success: false, message: 'ID postingan tidak valid' });
+    }
+
     const bandProfile = await BandProfile.findByUserId(req.user.id);
     if (!bandProfile) {
       return res.status(404).json({ success: false, message: 'Profil band tidak ditemukan' });
     }
 
-    const postId = parseInt(req.params.id, 10);
     const deleted = await BandPost.delete(postId, bandProfile.id);
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Postingan tidak ditemukan atau bukan milik band Anda' });

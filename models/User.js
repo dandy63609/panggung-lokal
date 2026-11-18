@@ -90,12 +90,8 @@ class User {
     return this.accountType === 'band';
   }
 
-  /**
-   * Check if user is an organizer account
-   * @returns {boolean} True if account type is 'organizer'
-   */
   isOrganizer() {
-    return this.accountType === 'organizer';
+    return this.accountType === 'organizer' || this.accountType === 'general';
   }
 }
 

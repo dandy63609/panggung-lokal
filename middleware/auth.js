@@ -1,20 +1,18 @@
 const jwt = require('jsonwebtoken');
 const db = require('../utils/db');
 
-const getJwtSecret = () => process.env.JWT_SECRET || 'panggung-lokal-dev-secret-key-2026';
+const AUTH_COOKIE_NAME = 'panggung_lokal_token';
+const getJwtSecret = () => {
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable must be configured in production');
+  }
+  return 'panggung-lokal-dev-secret-key-2026';
+};
 const getJwtExpiresIn = () => process.env.JWT_EXPIRES_IN || '7d';
 
-/**
- * JWT Authentication Middleware
- * Provides token generation, verification, and route protection
- * Requirements: 1.3 (User authentication and session management)
- */
-
-/**
- * Generate a JWT token for a user
- * @param {Object} user - User object with id, email, and accountType
- * @returns {string} JWT token with 7-day expiration
- */
 const generateToken = (user) => {
   const payload = {
     id: user.id,
@@ -28,19 +26,44 @@ const generateToken = (user) => {
   });
 };
 
-/**
- * Middleware to verify JWT token from Authorization header
- * Adds decoded user data to req.user
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- */
+const getCookie = (req, name) => {
+  const cookie = req.headers.cookie || '';
+  const item = cookie.split(';').map(value => value.trim()).find(value => value.startsWith(`${name}=`));
+  return item ? decodeURIComponent(item.slice(name.length + 1)) : null;
+};
+
+const setAuthCookie = (res, token) => {
+  const cookieOptions = [
+    `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}`,
+    'HttpOnly',
+    'SameSite=Lax',
+    'Path=/',
+    'Max-Age=604800'
+  ];
+  if (process.env.NODE_ENV === 'production') {
+    cookieOptions.push('Secure');
+  }
+  res.setHeader('Set-Cookie', cookieOptions.join('; '));
+};
+
+const extractOptionalUser = (req, { allowCookie = true } = {}) => {
+  try {
+    const cookieToken = allowCookie ? getCookie(req, AUTH_COOKIE_NAME) : null;
+    const authHeader = req.headers.authorization || (cookieToken ? `Bearer ${cookieToken}` : null);
+    if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.trim() === 'Bearer') {
+      return null;
+    }
+    return jwt.verify(authHeader.substring(7), getJwtSecret());
+  } catch {
+    return null;
+  }
+};
+
 const verifyToken = async (req, res, next) => {
   try {
-    // Extract token from Authorization header or cookie
-    const cookieToken = getCookie(req, 'panggung_lokal_token');
+    const cookieToken = getCookie(req, AUTH_COOKIE_NAME);
     const authHeader = req.headers.authorization || (cookieToken ? `Bearer ${cookieToken}` : null);
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.trim() === 'Bearer') {
       return res.status(401).json({
         success: false,
@@ -48,21 +71,32 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Verify token
+    const token = authHeader.substring(7);
     const decoded = jwt.verify(token, getJwtSecret());
 
-    // Temporary demo admin is signed by the server and does not have a DB row.
-    if (decoded.mockAdmin === true && decoded.id === 'mock-admin' && decoded.email === 'admin@admin.com' && decoded.accountType === 'admin') {
+    // Temporary demo admin is signed by the server in non-production environments and does not have a DB row.
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      decoded.mockAdmin === true &&
+      decoded.id === 'mock-admin' &&
+      decoded.email === 'admin@admin.com' &&
+      decoded.accountType === 'admin'
+    ) {
       req.user = { id: decoded.id, email: decoded.email, accountType: decoded.accountType };
       return next();
     }
 
-    // Fetch user from database to ensure they still exist and are active
+    const userId = Number(decoded.id);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token tidak valid'
+      });
+    }
+
     const result = await db.query(
       'SELECT id, email, account_type, is_active FROM users WHERE id = $1',
-      [decoded.id]
+      [userId]
     );
 
     if (result.rows.length === 0) {
@@ -81,7 +115,6 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Add user data to request object
     req.user = {
       id: user.id,
       email: user.email,
@@ -111,20 +144,7 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-/**
- * Middleware to require authentication
- * Use this middleware on routes that require any authenticated user
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- */
 const requireAuth = verifyToken;
-
-const getCookie = (req, name) => {
-  const cookie = req.headers.cookie || '';
-  const item = cookie.split(';').map(value => value.trim()).find(value => value.startsWith(`${name}=`));
-  return item ? decodeURIComponent(item.slice(name.length + 1)) : null;
-};
 
 const requireAdmin = async (req, res, next) => {
   await verifyToken(req, res, () => {
@@ -136,6 +156,7 @@ const requireAdmin = async (req, res, next) => {
 };
 
 const requireAdminPage = (req, res, next) => {
+  // Redirect HTML admin page navigations to login instead of returning raw JSON 401/403.
   const pageResponse = Object.create(res);
   pageResponse.status = (statusCode) => {
     if (statusCode === 401 || statusCode === 403) {
@@ -153,21 +174,12 @@ const requireAdminPage = (req, res, next) => {
   return requireAdmin(req, pageResponse, next);
 };
 
-/**
- * Middleware to require band account type
- * Use this middleware on routes that only bands should access
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- */
 const requireBand = async (req, res, next) => {
-  // First verify the token
   await verifyToken(req, res, (error) => {
     if (error) {
       return;
     }
 
-    // Check if user is a band
     if (req.user.accountType !== 'band') {
       return res.status(403).json({
         success: false,
@@ -179,22 +191,14 @@ const requireBand = async (req, res, next) => {
   });
 };
 
-/**
- * Middleware to require organizer account type
- * Use this middleware on routes that only organizers should access
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- */
 const requireOrganizer = async (req, res, next) => {
-  // First verify the token
   await verifyToken(req, res, (error) => {
     if (error) {
       return;
     }
 
-    // Check if user is an organizer
-    if (req.user.accountType !== 'organizer') {
+    // Supports both seeded 'organizer' and registered 'general' EO roles.
+    if (!['organizer', 'general'].includes(req.user.accountType)) {
       return res.status(403).json({
         success: false,
         message: 'Akses ditolak. Hanya untuk akun penyelenggara'
@@ -206,6 +210,10 @@ const requireOrganizer = async (req, res, next) => {
 };
 
 module.exports = {
+  AUTH_COOKIE_NAME,
+  getJwtSecret,
+  setAuthCookie,
+  extractOptionalUser,
   generateToken,
   verifyToken,
   requireAuth,

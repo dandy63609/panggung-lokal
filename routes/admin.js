@@ -14,9 +14,15 @@ router.get('/metrics', async (req, res) => {
   try {
     const totalUsersResult = await db.query('SELECT COUNT(*) as count FROM users');
     const totalBandsResult = await db.query('SELECT COUNT(*) as count FROM users WHERE account_type = $1', ['band']);
-    const totalOrganizersResult = await db.query('SELECT COUNT(*) as count FROM users WHERE account_type = $1', ['organizer']);
+    const totalOrganizersResult = await db.query("SELECT COUNT(*) as count FROM users WHERE account_type IN ('organizer', 'general')");
     const totalBandProfilesResult = await db.query('SELECT COUNT(*) as count FROM band_profiles');
-    const totalAvailabilityResult = await db.query('SELECT COUNT(*) as count FROM availability_posts WHERE is_active = true');
+    let totalActivePosts = 0;
+    try {
+      const postsResult = await db.query('SELECT COUNT(*) as count FROM band_posts');
+      totalActivePosts = parseInt(postsResult.rows[0].count, 10) || 0;
+    } catch {
+      totalActivePosts = 0;
+    }
     const totalConnectionsResult = await db.query('SELECT COUNT(*) as count FROM connections');
     const totalViewsResult = await db.query('SELECT COALESCE(SUM(profile_views), 0) as views FROM band_profiles');
 
@@ -40,7 +46,7 @@ router.get('/metrics', async (req, res) => {
           totalBands: parseInt(totalBandsResult.rows[0].count, 10),
           totalOrganizers: parseInt(totalOrganizersResult.rows[0].count, 10),
           totalBandProfiles: parseInt(totalBandProfilesResult.rows[0].count, 10),
-          totalActivePosts: parseInt(totalAvailabilityResult.rows[0].count, 10),
+          totalActivePosts,
           totalConnections,
           totalProfileViews: totalViews,
           conversionRate: `${conversionRate}%`
@@ -78,14 +84,25 @@ router.get('/reports', async (req, res) => {
   }
 });
 
-/**
- * PUT /api/admin/reports/:id
- * Update status of a moderation report
- */
+const VALID_REPORT_STATUSES = ['pending', 'resolved', 'dismissed'];
+
 router.put('/reports/:id', async (req, res) => {
   try {
     const reportId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(reportId) || reportId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID laporan tidak valid'
+      });
+    }
+
     const { status, adminNotes } = req.body;
+    if (!status || !VALID_REPORT_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status laporan harus berupa pending, resolved, atau dismissed'
+      });
+    }
 
     const updated = await Report.updateStatus(reportId, status, adminNotes);
     if (!updated) {
@@ -109,24 +126,48 @@ router.put('/reports/:id', async (req, res) => {
   }
 });
 
-/**
- * PUT /api/admin/users/:id/suspend
- * Suspend a user account
- */
 router.put('/users/:id/suspend', async (req, res) => {
   try {
     const userId = parseInt(req.params.id, 10);
-    await db.query('UPDATE users SET is_active = false WHERE id = $1', [userId]);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID pengguna tidak valid'
+      });
+    }
+
+    if (String(req.user.id) === String(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tidak dapat menangguhkan akun admin sendiri'
+      });
+    }
+
+    const hasExplicitState = req.body && typeof req.body.isActive === 'boolean';
+    const nextState = hasExplicitState ? req.body.isActive : false;
+
+    const result = await db.query(
+      'UPDATE users SET is_active = $1 WHERE id = $2 RETURNING id',
+      [nextState, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pengguna tidak ditemukan'
+      });
+    }
 
     return res.json({
       success: true,
-      message: 'Akun berhasil dinonaktifkan'
+      message: nextState ? 'Akun berhasil diaktifkan kembali' : 'Akun berhasil dinonaktifkan',
+      isActive: nextState
     });
   } catch (error) {
     console.error('Suspend user error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Gagal menonaktifkan akun'
+      message: 'Gagal memperbarui status akun'
     });
   }
 });

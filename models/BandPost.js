@@ -1,10 +1,21 @@
 const db = require('../utils/db');
 
-/**
- * BandPost Model
- * Handles database operations for Instagram-style band portfolio posts & performance metrics
- */
 class BandPost {
+  static parseSlidesInput(rawSlides) {
+    if (Array.isArray(rawSlides)) {
+      return rawSlides;
+    }
+    if (typeof rawSlides === 'string' && rawSlides.trim()) {
+      try {
+        const parsed = JSON.parse(rawSlides);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+
   constructor(data) {
     this.id = data.id;
     this.bandProfileId = data.band_profile_id;
@@ -16,17 +27,7 @@ class BandPost {
     this.waClicksCount = Number(data.wa_clicks_count) || 0;
     this.createdAt = data.created_at;
 
-    // Parse multi-slide media (mixed photos & videos)
-    let parsedSlides = [];
-    if (Array.isArray(data.slides)) {
-      parsedSlides = data.slides;
-    } else if (typeof data.slides === 'string' && data.slides.trim()) {
-      try {
-        parsedSlides = JSON.parse(data.slides);
-      } catch (e) {
-        parsedSlides = [];
-      }
-    }
+    const parsedSlides = BandPost.parseSlidesInput(data.slides);
 
     if (Array.isArray(parsedSlides) && parsedSlides.length > 0) {
       this.slides = parsedSlides.map(s => {
@@ -86,15 +87,8 @@ class BandPost {
       nextId = parseInt(maxRes.rows[0].next_id, 10);
     }
 
-    let slides = data.slides || [];
-    if (typeof slides === 'string') {
-      try {
-        slides = JSON.parse(slides);
-      } catch (e) {
-        slides = [];
-      }
-    }
-    if (!Array.isArray(slides) || slides.length === 0) {
+    let slides = BandPost.parseSlidesInput(data.slides);
+    if (slides.length === 0) {
       slides = [
         {
           type: data.mediaType || 'photo',

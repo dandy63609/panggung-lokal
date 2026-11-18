@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Connection = require('../models/Connection');
 const BandProfile = require('../models/BandProfile');
-const { verifyToken, requireOrganizer, requireBand } = require('../middleware/auth');
+const { verifyToken, requireBand } = require('../middleware/auth');
 
 /**
  * POST /api/connections
@@ -19,7 +19,15 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
-    const band = await BandProfile.findById(bandProfileId);
+    const parsedBandProfileId = parseInt(bandProfileId, 10);
+    if (!Number.isInteger(parsedBandProfileId) || parsedBandProfileId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID profil band tidak valid'
+      });
+    }
+
+    const band = await BandProfile.findById(parsedBandProfileId);
     if (!band) {
       return res.status(404).json({
         success: false,
@@ -74,6 +82,12 @@ router.post('/', verifyToken, async (req, res) => {
 router.get('/band/:bandProfileId', requireBand, async (req, res) => {
   try {
     const bandProfileId = parseInt(req.params.bandProfileId, 10);
+    if (!Number.isInteger(bandProfileId) || bandProfileId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID profil band tidak valid'
+      });
+    }
     const profile = await BandProfile.findByUserId(req.user.id);
 
     if (!profile || profile.id !== bandProfileId) {

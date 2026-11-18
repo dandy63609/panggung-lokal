@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   account_type VARCHAR(20) NOT NULL,
+  google_id VARCHAR(255),
+  auth_provider VARCHAR(20) DEFAULT 'local',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   last_login TIMESTAMP,
   is_active BOOLEAN DEFAULT TRUE
@@ -101,6 +103,24 @@ CREATE TABLE IF NOT EXISTS reports (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   resolved_at TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS job_broadcasts (
+  id SERIAL PRIMARY KEY,
+  organizer_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  source_band_profile_id INTEGER REFERENCES band_profiles(id) ON DELETE SET NULL,
+  organizer_name VARCHAR(255) NOT NULL,
+  organizer_email VARCHAR(255) NOT NULL,
+  organizer_phone VARCHAR(50) NOT NULL,
+  event_date VARCHAR(50) NOT NULL,
+  perform_start_time VARCHAR(20) NOT NULL,
+  perform_end_time VARCHAR(20) NOT NULL,
+  venue_location VARCHAR(255) NOT NULL,
+  event_scale INTEGER DEFAULT 5,
+  event_details TEXT NOT NULL,
+  attachments TEXT DEFAULT '[]',
+  recipient_band_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 `;
 
 function getMemoryDb() {
@@ -138,13 +158,33 @@ function getMemoryDb() {
     } else {
       await seedInitialData(pool);
     }
+    await syncSerialSequences(db, pool);
   })();
 
   return { db: memDbInstance, pool: poolInstance, ready: initPromise };
 }
 
+async function syncSerialSequences(db, pool) {
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts'];
+  for (const tableName of tables) {
+    try {
+      const res = await pool.query(`SELECT COALESCE(MAX(id), 0) AS max_id FROM ${tableName}`);
+      const maxId = parseInt(res.rows[0]?.max_id, 10) || 0;
+      if (maxId > 0) {
+        const tbl = db.getTable(tableName);
+        const seqMap = tbl?.db?.data?.get(tbl.serialsId);
+        if (seqMap && typeof seqMap.set === 'function') {
+          tbl.db.data.set(tbl.serialsId, seqMap.set('id', maxId));
+        }
+      }
+    } catch (err) {
+      console.warn(`⚠️ Failed to sync serial sequence for ${tableName}:`, err.message);
+    }
+  }
+}
+
 async function restoreData(pool, data) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts'];
   for (const table of tables) {
     if (Array.isArray(data[table])) {
       for (const row of data[table]) {
@@ -160,12 +200,12 @@ async function restoreData(pool, data) {
 }
 
 function dumpData(db) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts'];
   const dump = {};
   for (const table of tables) {
     try {
       dump[table] = db.public.many(`SELECT * FROM ${table}`);
-    } catch (e) {
+    } catch {
       dump[table] = [];
     }
   }

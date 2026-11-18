@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const BandProfile = require('../models/BandProfile');
 const db = require('../utils/db');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { validateEmail } = require('../utils/validation');
-const { generateToken, verifyToken } = require('../middleware/auth');
+const { generateToken, verifyToken, setAuthCookie } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
 
 /**
@@ -17,7 +18,6 @@ router.post('/register', authLimiter, async (req, res) => {
   try {
     const { email, password, accountType, bandName, genre, locationCity } = req.body;
 
-    // Validate required fields
     if (!email || !password || !accountType) {
       return res.status(400).json({
         success: false,
@@ -25,7 +25,6 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    // Validate email format
     if (!validateEmail(email)) {
       return res.status(400).json({
         success: false,
@@ -33,7 +32,6 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    // Validate password length
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
@@ -41,7 +39,6 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    // Validate account type
     let normalizedType = accountType.toLowerCase();
     if (normalizedType === 'organizer') normalizedType = 'general';
 
@@ -52,7 +49,6 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    // Check if email already registered
     const existingUser = await User.findByEmail(email.toLowerCase().trim());
     if (existingUser) {
       return res.status(409).json({
@@ -61,10 +57,7 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await hashPassword(password);
-
-    // Create user
     const newUser = await User.create(
       email.toLowerCase().trim(),
       hashedPassword,
@@ -72,19 +65,18 @@ router.post('/register', authLimiter, async (req, res) => {
     );
 
     let bandProfile = null;
-    // If band, create initial profile
     if (normalizedType === 'band') {
       bandProfile = await BandProfile.create({
         userId: newUser.id,
         bandName: bandName || email.split('@')[0],
         genre: genre || 'Indie / Pop',
         locationCity: locationCity || 'Bandung',
-        bio: 'Profil band baru di Panggung Lokal'
+        bio: 'Profil band baru di Reffband'
       });
     }
 
-    // Generate token
     const token = generateToken(newUser);
+    setAuthCookie(res, token);
 
     return res.status(201).json({
       success: true,
@@ -127,13 +119,15 @@ router.post('/login', authLimiter, async (req, res) => {
       });
     }
 
-    // Temporary admin account for the demo environment.
-    if (email.toLowerCase().trim() === 'admin@admin.com' && password === 'admin') {
+    // Temporary admin account for local/demo environments only.
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      email.toLowerCase().trim() === 'admin@admin.com' &&
+      password === 'admin'
+    ) {
       const admin = { id: 'mock-admin', email: 'admin@admin.com', accountType: 'admin', mockAdmin: true };
       const token = generateToken(admin);
-      const cookieOptions = [`panggung_lokal_token=${encodeURIComponent(token)}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', 'Max-Age=604800'];
-      if (process.env.NODE_ENV === 'production') cookieOptions.push('Secure');
-      res.setHeader('Set-Cookie', cookieOptions.join('; '));
+      setAuthCookie(res, token);
       return res.json({
         success: true,
         message: 'Login admin berhasil',
@@ -183,12 +177,8 @@ router.post('/login', authLimiter, async (req, res) => {
       bandProfile = await BandProfile.findByUserId(user.id);
     }
 
-    // Generate JWT
     const token = generateToken(user);
-
-    const cookieOptions = [`panggung_lokal_token=${encodeURIComponent(token)}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', 'Max-Age=604800'];
-    if (process.env.NODE_ENV === 'production') cookieOptions.push('Secure');
-    res.setHeader('Set-Cookie', cookieOptions.join('; '));
+    setAuthCookie(res, token);
 
     return res.json({
       success: true,
@@ -214,6 +204,187 @@ router.post('/login', authLimiter, async (req, res) => {
 router.post('/logout', (req, res) => {
   res.setHeader('Set-Cookie', 'panggung_lokal_token=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
   return res.json({ success: true });
+});
+
+/**
+ * POST /api/auth/google
+ * Sign in or Sign up via verified Google Identity Services ID Token
+ */
+router.post('/google', authLimiter, async (req, res) => {
+  try {
+    const { credential, accountType, bandName, genre, locationCity } = req.body;
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+
+    if (!clientId) {
+      return res.status(500).json({
+        success: false,
+        message: 'Google Client ID belum dikonfigurasi di server.'
+      });
+    }
+
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token kredensial Google wajib disertakan.'
+      });
+    }
+
+    let payload;
+    try {
+      const googleClient = new OAuth2Client(clientId);
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: clientId
+      });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      console.error('Google verifyIdToken error:', verifyErr.message);
+      return res.status(401).json({
+        success: false,
+        message: 'Token Google tidak valid atau telah kedaluwarsa. Silakan coba lagi.'
+      });
+    }
+
+    if (!payload || !payload.email || payload.email_verified !== true) {
+      return res.status(401).json({
+        success: false,
+        message: 'Alamat email Google Anda belum terverifikasi.'
+      });
+    }
+
+    const normalizedEmail = payload.email.toLowerCase().trim();
+    const existingResult = await db.query(
+      'SELECT * FROM users WHERE email = $1',
+      [normalizedEmail]
+    );
+
+    if (existingResult.rows.length > 0) {
+      const userData = existingResult.rows[0];
+      if (!userData.is_active) {
+        return res.status(403).json({
+          success: false,
+          message: 'Akun Anda telah dinonaktifkan. Hubungi admin untuk bantuan.'
+        });
+      }
+
+      try {
+        if (payload.sub && !userData.google_id) {
+          await db.query(
+            "UPDATE users SET google_id = $1, auth_provider = COALESCE(auth_provider, 'google') WHERE id = $2",
+            [payload.sub, userData.id]
+          );
+        }
+      } catch {
+        // Optional column fallback
+      }
+
+      const user = new User(userData);
+      await user.updateLastLogin();
+
+      let bandProfile = null;
+      if (user.isBand()) {
+        bandProfile = await BandProfile.findByUserId(user.id);
+      }
+
+      const token = generateToken(user);
+      setAuthCookie(res, token);
+
+      return res.json({
+        success: true,
+        message: 'Login Google berhasil',
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          accountType: user.accountType,
+          createdAt: user.createdAt
+        },
+        bandProfile
+      });
+    }
+
+    // New user via Google: ask role selection if triggered from Login page without accountType
+    if (!accountType) {
+      return res.json({
+        success: true,
+        needsOnboarding: true,
+        googleProfile: {
+          email: normalizedEmail,
+          name: payload.name || normalizedEmail.split('@')[0],
+          picture: payload.picture || null
+        }
+      });
+    }
+
+    let normalizedType = accountType.toLowerCase();
+    if (normalizedType === 'organizer') normalizedType = 'general';
+
+    if (!['band', 'general'].includes(normalizedType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tipe akun harus berupa "band" atau "general"'
+      });
+    }
+
+    const randomSecret = crypto.randomBytes(32).toString('hex');
+    const hashedPassword = await hashPassword(randomSecret);
+
+    const newUser = await User.create(
+      normalizedEmail,
+      hashedPassword,
+      normalizedType
+    );
+
+    try {
+      if (payload.sub) {
+        await db.query(
+          "UPDATE users SET google_id = $1, auth_provider = 'google' WHERE id = $2",
+          [payload.sub, newUser.id]
+        );
+      }
+    } catch {
+      // Optional column fallback
+    }
+
+    let bandProfile = null;
+    if (normalizedType === 'band') {
+      bandProfile = await BandProfile.create({
+        userId: newUser.id,
+        bandName: (bandName && bandName.trim()) || payload.name || normalizedEmail.split('@')[0],
+        genre: genre || 'Indie / Alternative',
+        locationCity: (locationCity && locationCity.trim()) || 'Bandung',
+        profilePhotoUrl: payload.picture || null,
+        bio: 'Profil band baru di Reffband'
+      });
+    }
+
+    const token = generateToken(newUser);
+    setAuthCookie(res, token);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Registrasi Google berhasil',
+      token,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        accountType: newUser.accountType,
+        createdAt: newUser.createdAt
+      },
+      bandProfile: bandProfile ? {
+        id: bandProfile.id,
+        bandName: bandProfile.bandName,
+        genre: bandProfile.genre,
+        locationCity: bandProfile.locationCity
+      } : null
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan saat memproses autentikasi Google'
+    });
+  }
 });
 
 /**
@@ -250,13 +421,15 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
       [user.id, token, expiresAt]
     );
 
-    // In production, send email; in development/MVP, log and return token for convenience
-    console.log(`🔑 Password reset link generated for ${email}: /reset-password.html?token=${token}`);
+    const isProd = process.env.NODE_ENV === 'production';
+    if (!isProd) {
+      console.log(`Password reset link generated for ${email}: /reset-password.html?token=${token}`);
+    }
 
     return res.json({
       success: true,
       message: 'Instruksi reset password telah dikirim ke email Anda',
-      resetToken: token // Available for easy demo testing
+      ...(!isProd && { resetToken: token })
     });
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -289,7 +462,6 @@ router.post('/reset-password', authLimiter, async (req, res) => {
       });
     }
 
-    // Verify token
     const tokenResult = await db.query(
       `SELECT * FROM password_reset_tokens 
        WHERE token = $1 AND used = false AND expires_at > CURRENT_TIMESTAMP`,
@@ -304,14 +476,9 @@ router.post('/reset-password', authLimiter, async (req, res) => {
     }
 
     const resetRecord = tokenResult.rows[0];
-
-    // Hash new password
     const hashedPassword = await hashPassword(newPassword);
-
-    // Update user password
     await User.updatePassword(resetRecord.user_id, hashedPassword);
 
-    // Mark token as used
     await db.query(
       'UPDATE password_reset_tokens SET used = true WHERE id = $1',
       [resetRecord.id]

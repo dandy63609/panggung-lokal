@@ -3,6 +3,9 @@ node_modules/
 
 # Environment variables
 .env
+client/.env
+.env.local
+client/.env.local
 
 # Uploads
 uploads/*

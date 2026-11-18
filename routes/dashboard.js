@@ -3,6 +3,7 @@ const router = express.Router();
 const BandProfile = require('../models/BandProfile');
 const BandPost = require('../models/BandPost');
 const Connection = require('../models/Connection');
+const JobBroadcast = require('../models/JobBroadcast');
 const { requireBand, verifyToken } = require('../middleware/auth');
 
 /**
@@ -29,6 +30,9 @@ router.get('/band', requireBand, async (req, res) => {
     const recentConnections = await Connection.getByBandProfile(bandProfile.id, 10);
     const connectionStats = await Connection.getStatsForBand(bandProfile.id);
 
+    // Incoming open gig broadcasts from Event Organizers
+    const jobBroadcasts = await JobBroadcast.listRecent(50);
+
     return res.json({
       success: true,
       data: {
@@ -42,7 +46,8 @@ router.get('/band', requireBand, async (req, res) => {
         },
         posts: performance.posts,
         mediaFiles,
-        recentConnections
+        recentConnections,
+        jobBroadcasts
       }
     });
   } catch (error) {

@@ -2,10 +2,13 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const { apiLimiter } = require('./middleware/rateLimiter');
 require('dotenv').config();
 
 const app = express();
+
+app.set('trust proxy', 1);
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -14,16 +17,18 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://accounts.google.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com"],
       scriptSrcAttr: ["'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
       mediaSrc: ["'self'", "https:", "data:", "blob:"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://accounts.google.com"],
+      frameSrc: ["'self'", "https://accounts.google.com"],
       upgradeInsecureRequests: isProduction ? [] : null
     },
   },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   hsts: {
     maxAge: 31536000,
     includeSubDomains: true,
@@ -33,7 +38,19 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: true,
+  origin(origin, callback) {
+    if (!origin || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    const allowedOrigins = (process.env.CORS_ORIGIN || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   credentials: true
 }));
 
@@ -44,16 +61,57 @@ app.use('/api/', apiLimiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files
+// Static files & SPA routes
+const clientDistDir = path.join(__dirname, 'client', 'dist');
+const clientDistIndex = path.resolve(clientDistDir, 'index.html');
+const spaRoutes = [
+  '/masuk',
+  '/login',
+  '/login.html',
+  '/daftar',
+  '/register',
+  '/register.html',
+  '/lupa-sandi',
+  '/forgot-password',
+  '/forgot-password.html',
+  '/reset-password',
+  '/reset-password.html',
+  '/cari-band',
+  '/search',
+  '/search.html',
+  '/band/:id',
+  '/profile/:id',
+  '/profile.html',
+  '/dashboard-band',
+  '/dashboard',
+  '/dashboard-band.html',
+  '/account',
+  '/admin',
+  '/dashboard-admin',
+];
+
+if (fs.existsSync(clientDistDir)) {
+  app.use(express.static(clientDistDir, { index: false }));
+  app.get(spaRoutes, (req, res, next) => {
+    if (fs.existsSync(clientDistIndex)) {
+      return res.sendFile(clientDistIndex);
+    }
+    return next();
+  });
+}
+
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/admin.html', require('./middleware/auth').requireAdminPage, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  if (fs.existsSync(clientDistIndex)) {
+    return res.sendFile(clientDistIndex);
+  }
+  return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 // Redirect legacy organizer dashboard directly to search
 app.get('/dashboard-organizer.html', (req, res) => {
-  res.redirect('/search.html');
+  res.redirect('/cari-band');
 });
 
 // Health check endpoint
@@ -67,6 +125,7 @@ app.use('/api/bands', require('./routes/bands'));
 app.use('/api/posts', require('./routes/posts'));
 app.use('/api/connections', require('./routes/connections'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/broadcasts', require('./routes/broadcasts'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/reports', require('./routes/reports'));
@@ -74,6 +133,10 @@ app.use('/api/reports', require('./routes/reports'));
 // Root route
 app.get('/', (req, res) => {
   if (req.headers.accept && req.headers.accept.includes('text/html') && !req.headers.accept.includes('application/json')) {
+    const clientDistIndex = path.resolve(__dirname, 'client', 'dist', 'index.html');
+    if (fs.existsSync(clientDistIndex)) {
+      return res.sendFile(clientDistIndex);
+    }
     return res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
   }
   res.json({
@@ -98,14 +161,21 @@ app.use((req, res) => {
 });
 
 // Error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('Error:', err);
-  
-  res.status(err.status || 500).json({
+
+  const status = err.status || 500;
+  const isProd = process.env.NODE_ENV === 'production';
+  const message =
+    isProd && status >= 500
+      ? 'Terjadi kesalahan pada server'
+      : err.message || 'Terjadi kesalahan pada server';
+
+  res.status(status).json({
     success: false,
     error: {
       code: err.code || 'INTERNAL_ERROR',
-      message: err.message || 'Terjadi kesalahan pada server',
+      message,
       ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     }
   });
@@ -118,7 +188,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 if (require.main === module) {
   const os = require('os');
   app.listen(PORT, HOST, () => {
-    console.log(`🚀 Panggung Lokal server running on port ${PORT}`);
+    console.log(`🚀 Reffband server running on port ${PORT}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Local PC: http://localhost:${PORT}`);
     const interfaces = os.networkInterfaces();

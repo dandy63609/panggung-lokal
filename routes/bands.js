@@ -1,25 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const BandProfile = require('../models/BandProfile');
 const BandPost = require('../models/BandPost');
 const db = require('../utils/db');
-const { verifyToken, requireBand } = require('../middleware/auth');
-
-function getAuthenticatedUser(req) {
-  try {
-    const cookieToken = req.headers.cookie
-      ? req.headers.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('panggung_lokal_token='))?.split('=')[1]
-      : null;
-    const authHeader = req.headers.authorization || (cookieToken ? `Bearer ${decodeURIComponent(cookieToken)}` : null);
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-    const token = authHeader.substring(7);
-    const secret = process.env.JWT_SECRET || 'panggung-lokal-dev-secret-key-2026';
-    return jwt.verify(token, secret);
-  } catch (e) {
-    return null;
-  }
-}
+const { requireBand, extractOptionalUser } = require('../middleware/auth');
 
 /**
  * GET /api/bands/stats
@@ -48,7 +32,7 @@ router.get('/stats', async (req, res) => {
 router.get('/search', async (req, res) => {
   try {
     const { genre, location, budgetMin, budgetMax, search, page, limit } = req.query;
-    const user = getAuthenticatedUser(req);
+    const user = extractOptionalUser(req);
     const isAuthenticated = !!user;
 
     const result = await BandProfile.search({
@@ -96,7 +80,7 @@ router.get('/search', async (req, res) => {
  */
 router.get('/recent', async (req, res) => {
   try {
-    const user = getAuthenticatedUser(req);
+    const user = extractOptionalUser(req);
     const isAuthenticated = !!user;
     const requestedLimit = parseInt(req.query.limit, 10) || 6;
     const limit = isAuthenticated ? requestedLimit : 2;
@@ -149,7 +133,7 @@ router.get('/profile/:id', async (req, res) => {
     // Increment profile view count asynchronously
     BandProfile.incrementViews(profileId).catch(err => console.error('Error incrementing views:', err));
 
-    const user = getAuthenticatedUser(req);
+    const user = extractOptionalUser(req);
     const isAuthenticated = !!user;
     const isSneakPeek = !isAuthenticated;
 
@@ -299,10 +283,30 @@ router.put('/profile', requireBand, async (req, res) => {
       riderItems
     } = req.body;
 
-    const parsedBudgetMin = budgetMin !== undefined ? (budgetMin ? parseInt(budgetMin, 10) : null) : profile.budgetMin;
-    const parsedBudgetMax = budgetMax !== undefined ? (budgetMax ? parseInt(budgetMax, 10) : null) : profile.budgetMax;
+    const parsedBudgetMin =
+      budgetMin !== undefined && budgetMin !== null && budgetMin !== ''
+        ? parseInt(budgetMin, 10)
+        : budgetMin === null || budgetMin === ''
+          ? null
+          : profile.budgetMin;
+    const parsedBudgetMax =
+      budgetMax !== undefined && budgetMax !== null && budgetMax !== ''
+        ? parseInt(budgetMax, 10)
+        : budgetMax === null || budgetMax === ''
+          ? null
+          : profile.budgetMax;
 
-    if (parsedBudgetMin !== null && parsedBudgetMax !== null && !isNaN(parsedBudgetMin) && !isNaN(parsedBudgetMax) && parsedBudgetMin > parsedBudgetMax) {
+    if (
+      (parsedBudgetMin !== null && (isNaN(parsedBudgetMin) || parsedBudgetMin < 0)) ||
+      (parsedBudgetMax !== null && (isNaN(parsedBudgetMax) || parsedBudgetMax < 0))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tarif harus berupa angka non-negatif yang valid'
+      });
+    }
+
+    if (parsedBudgetMin !== null && parsedBudgetMax !== null && parsedBudgetMin > parsedBudgetMax) {
       return res.status(400).json({
         success: false,
         message: 'Tarif minimum tidak boleh lebih besar dari tarif maksimum'
@@ -368,6 +372,15 @@ router.post('/media', requireBand, async (req, res) => {
       });
     }
 
+    const isSafeUrl =
+      typeof fileUrl === 'string' && (fileUrl.startsWith('/') || /^https?:\/\//i.test(fileUrl));
+    if (!isSafeUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'Format URL media tidak aman atau tidak valid'
+      });
+    }
+
     const created = await profile.addMediaFile({
       fileType,
       fileUrl,
@@ -395,6 +408,14 @@ router.post('/media', requireBand, async (req, res) => {
  */
 router.delete('/media/:id', requireBand, async (req, res) => {
   try {
+    const mediaId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(mediaId) || mediaId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID media tidak valid'
+      });
+    }
+
     const profile = await BandProfile.findByUserId(req.user.id);
     if (!profile) {
       return res.status(404).json({
@@ -403,7 +424,6 @@ router.delete('/media/:id', requireBand, async (req, res) => {
       });
     }
 
-    const mediaId = parseInt(req.params.id, 10);
     const result = await db.query(
       'DELETE FROM media_files WHERE id = $1 AND band_profile_id = $2 RETURNING id',
       [mediaId, profile.id]

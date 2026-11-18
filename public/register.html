@@ -111,10 +111,10 @@
 
       <!-- Account Type Selection -->
       <div class="role-toggle">
-        <button type="button" id="role-band" class="role-option active" onclick="selectRole('band')">
+        <button type="button" id="role-band" class="role-option active">
           Musisi
         </button>
-        <button type="button" id="role-organizer" class="role-option" onclick="selectRole('general')">
+        <button type="button" id="role-organizer" class="role-option">
           EO/Umum
         </button>
       </div>
@@ -183,12 +183,13 @@
   <script src="/js/api.js"></script>
   <script>
     function selectRole(role) {
-      document.getElementById('reg-account-type').value = role;
-      document.getElementById('role-band').classList.toggle('active', role === 'band');
-      document.getElementById('role-organizer').classList.toggle('active', role === 'organizer');
+      const normalized = role === 'band' ? 'band' : 'general';
+      document.getElementById('reg-account-type').value = normalized;
+      document.getElementById('role-band').classList.toggle('active', normalized === 'band');
+      document.getElementById('role-organizer').classList.toggle('active', normalized !== 'band');
 
       const bandFields = document.getElementById('band-extra-fields');
-      if (role === 'band') {
+      if (normalized === 'band') {
         bandFields.style.display = 'block';
       } else {
         bandFields.style.display = 'none';
@@ -209,14 +210,14 @@
       if (btnOrg) {
         btnOrg.addEventListener('click', (e) => {
           e.preventDefault();
-          selectRole('organizer');
+          selectRole('general');
         });
       }
 
       // Check role in URL query parameter (e.g. /register.html?role=band)
       const urlParams = new URLSearchParams(window.location.search);
       const roleParam = urlParams.get('role');
-      if (roleParam === 'band' || roleParam === 'organizer') {
+      if (roleParam === 'band' || roleParam === 'organizer' || roleParam === 'general') {
         selectRole(roleParam);
       }
 
