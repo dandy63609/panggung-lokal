@@ -28,7 +28,7 @@ const TABLE_COLUMNS = {
     'budget_min', 'budget_max', 'profile_photo_url', 'cover_photo_url', 'phone',
     'instagram_handle', 'facebook_url', 'youtube_url', 'profile_views',
     'rider_channel_inputs', 'rider_sound_system', 'rider_instruments', 'rider_hospitality',
-    'rider_items', 'spotify_url', 'tiktok_url', 'created_at', 'updated_at'
+    'rider_items', 'spotify_url', 'tiktok_url', 'stage_visual_post_id', 'created_at', 'updated_at'
   ],
   band_posts: [
     'id', 'band_profile_id', 'media_type', 'media_url', 'thumbnail_url',
@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   rider_items TEXT,
   spotify_url VARCHAR(500),
   tiktok_url VARCHAR(500),
+  stage_visual_post_id INTEGER,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

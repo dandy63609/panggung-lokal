@@ -61,6 +61,7 @@ export interface Band {
   riderHospitality?: string
   riderItems?: RiderItem[]
   profileViews?: number
+  stageVisualPostId?: number | null
   posts?: BandPost[]
   mediaFiles?: MediaFile[]
 }

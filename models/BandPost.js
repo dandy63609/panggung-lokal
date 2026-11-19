@@ -185,6 +185,10 @@ class BandPost {
    * Delete a post (ensuring it belongs to the band)
    */
   static async delete(id, bandProfileId) {
+    await db.query(
+      'UPDATE band_profiles SET stage_visual_post_id = NULL WHERE id = $1 AND stage_visual_post_id = $2',
+      [bandProfileId, id]
+    );
     const result = await db.query(
       'DELETE FROM band_posts WHERE id = $1 AND band_profile_id = $2 RETURNING *',
       [id, bandProfileId]

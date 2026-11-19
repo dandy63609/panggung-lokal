@@ -181,4 +181,45 @@ describe('Upload Signed URL & CSP Preview Regression Guards', () => {
     expect(mixedCreateRes.body.data.mediaType).toBe('mixed');
     expect(mixedCreateRes.body.data.slides).toHaveLength(2);
   });
+
+  it('sets, persists, and clears stageVisualPostId on band profile via PUT /api/bands/profile', async () => {
+    const postRes = await request(app)
+      .post('/api/posts')
+      .set('Authorization', `Bearer ${bandToken}`)
+      .send({
+        mediaType: 'mixed',
+        mediaUrl: 'https://demo-proj.supabase.co/storage/v1/object/public/media/stage-1.png',
+        slides: [
+          { type: 'photo', url: 'https://demo-proj.supabase.co/storage/v1/object/public/media/stage-1.png' },
+          { type: 'video', url: 'https://demo-proj.supabase.co/storage/v1/object/public/media/stage-2.mp4' },
+        ],
+        caption: 'Carousel Panggung Utama',
+      });
+    expect(postRes.status).toBe(201);
+    const postId = postRes.body.data.id;
+
+    const invalidSet = await request(app)
+      .put('/api/bands/profile')
+      .set('Authorization', `Bearer ${bandToken}`)
+      .send({ stageVisualPostId: 'abc' });
+    expect(invalidSet.status).toBe(400);
+
+    const setRes = await request(app)
+      .put('/api/bands/profile')
+      .set('Authorization', `Bearer ${bandToken}`)
+      .send({ stageVisualPostId: postId });
+    expect(setRes.status).toBe(200);
+    expect(setRes.body.data.stageVisualPostId).toBe(postId);
+
+    const publicProfileRes = await request(app).get('/api/bands/profile/1');
+    expect(publicProfileRes.status).toBe(200);
+    expect(publicProfileRes.body.data.stageVisualPostId).toBe(postId);
+
+    const clearRes = await request(app)
+      .put('/api/bands/profile')
+      .set('Authorization', `Bearer ${bandToken}`)
+      .send({ stageVisualPostId: null });
+    expect(clearRes.status).toBe(200);
+    expect(clearRes.body.data.stageVisualPostId).toBeNull();
+  });
 });

@@ -64,6 +64,7 @@ class BandProfile {
     }
 
     this.profileViews = data.profile_views || 0;
+    this.stageVisualPostId = data.stage_visual_post_id ? Number(data.stage_visual_post_id) : null;
     this.createdAt = data.created_at;
     this.updatedAt = data.updated_at;
   }
@@ -166,6 +167,14 @@ class BandProfile {
       }
     }
 
+    const hasStageVisualUpdate = data.stageVisualPostId !== undefined;
+    const nextStageVisualPostId =
+      data.stageVisualPostId === null || data.stageVisualPostId === ''
+        ? null
+        : hasStageVisualUpdate
+          ? Number(data.stageVisualPostId)
+          : null;
+
     const result = await db.query(
       `UPDATE band_profiles SET
         band_name = COALESCE($1, band_name),
@@ -188,8 +197,9 @@ class BandProfile {
         rider_instruments = COALESCE($18, rider_instruments),
         rider_hospitality = COALESCE($19, rider_hospitality),
         rider_items = COALESCE($20, rider_items),
+        stage_visual_post_id = CASE WHEN $21 THEN $22 ELSE stage_visual_post_id END,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $21
+      WHERE id = $23
       RETURNING *`,
       [
         data.bandName,
@@ -212,6 +222,8 @@ class BandProfile {
         riderInst,
         riderHosp,
         riderItemsJson,
+        hasStageVisualUpdate,
+        nextStageVisualPostId,
         id,
       ]
     );

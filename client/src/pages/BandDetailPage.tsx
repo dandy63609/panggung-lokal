@@ -54,7 +54,6 @@ export const BandDetailPage: React.FC = () => {
   const [activeSlide, setActiveSlide] = useState<number>(0)
   const [isOrderModalOpen, setIsOrderModalOpen] = useState<boolean>(false)
   const [activePost, setActivePost] = useState<BandPost | null>(null)
-  const [galleryFilter, setGalleryFilter] = useState<'all' | 'photo' | 'video'>('all')
   const [brokenCardThumbIds, setBrokenCardThumbIds] = useState<Record<number, boolean>>({})
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -216,23 +215,6 @@ export const BandDetailPage: React.FC = () => {
 
   const audioProgressPercent = audioDuration > 0 ? (audioCurrentTime / audioDuration) * 100 : 0
 
-  // 8 Curated Stage & Rider Carousel Slides
-  const gallerySlides = useMemo(() => {
-    const mainImg = band.profilePhotoUrl || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop'
-    const coverImg = band.coverPhotoUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop'
-
-    return [
-      { id: 1, src: mainImg, title: 'Live Stage Hero', tag: 'STAGE ACT' },
-      { id: 2, src: coverImg, title: 'Soundcheck Session', tag: 'SOUNDCHECK' },
-      { id: 3, src: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1200&auto=format&fit=crop', title: 'Microphone & Backline', tag: 'AUDIO RIG' },
-      { id: 4, src: 'https://images.unsplash.com/photo-1526478806334-5fd488fcaabc?q=80&w=1200&auto=format&fit=crop', title: 'Live Performance Energy', tag: 'CONCERT' },
-      { id: 5, src: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200&auto=format&fit=crop', title: 'Crowd & Moshpit', tag: 'CROWD' },
-      { id: 6, src: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?q=80&w=1200&auto=format&fit=crop', title: 'Lighting & Production', tag: 'LIGHT SHOW' },
-      { id: 7, src: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=1200&auto=format&fit=crop', title: 'Intimate Gig Acoustic', tag: 'SESSION' },
-      { id: 8, src: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop', title: 'Backstage Transit & Crew', tag: 'CREW' },
-    ]
-  }, [band])
-
   // Extract all portfolio posts
   const allPosts: BandPost[] = useMemo(() => {
     if (band.posts && band.posts.length > 0) return band.posts
@@ -280,15 +262,45 @@ export const BandDetailPage: React.FC = () => {
     ]
   }, [band])
 
-  // Filtered posts based on category (including mixed carousels)
-  const filteredPosts = useMemo(() => {
-    if (galleryFilter === 'all') return allPosts
-    return allPosts.filter((p) => {
-      if (p.mediaType === galleryFilter) return true
-      const slides = parsePostSlides(p, true)
-      return slides.some((s) => s.type === galleryFilter)
-    })
-  }, [allPosts, galleryFilter])
+  // Stage Visual Carousel: use the band-selected post carousel if configured, otherwise 8 default slides
+  const gallerySlides = useMemo(() => {
+    if (band.stageVisualPostId) {
+      const selectedPost = allPosts.find((p) => p.id === band.stageVisualPostId)
+      if (selectedPost) {
+        const customSlides = parsePostSlides(selectedPost, true).filter((s) => Boolean(s.url))
+        if (customSlides.length > 0) {
+          return customSlides.map((slide, idx) => {
+            const isVideo =
+              slide.type === 'video' || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(slide.url || '')
+            return {
+              id: idx + 1,
+              type: isVideo ? 'video' : 'photo',
+              src: slide.url,
+              title: selectedPost.caption?.trim() || `Dokumentasi Panggung #${idx + 1}`,
+              tag: isVideo ? 'VIDEO LIVE' : 'STAGE ACT',
+            }
+          })
+        }
+      }
+    }
+
+    const mainImg = band.profilePhotoUrl || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1200&auto=format&fit=crop'
+    const coverImg = band.coverPhotoUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop'
+
+    return [
+      { id: 1, type: 'photo', src: mainImg, title: 'Live Stage Hero', tag: 'STAGE ACT' },
+      { id: 2, type: 'photo', src: coverImg, title: 'Soundcheck Session', tag: 'SOUNDCHECK' },
+      { id: 3, type: 'photo', src: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1200&auto=format&fit=crop', title: 'Microphone & Backline', tag: 'AUDIO RIG' },
+      { id: 4, type: 'photo', src: 'https://images.unsplash.com/photo-1526478806334-5fd488fcaabc?q=80&w=1200&auto=format&fit=crop', title: 'Live Performance Energy', tag: 'CONCERT' },
+      { id: 5, type: 'photo', src: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200&auto=format&fit=crop', title: 'Crowd & Moshpit', tag: 'CROWD' },
+      { id: 6, type: 'photo', src: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?q=80&w=1200&auto=format&fit=crop', title: 'Lighting & Production', tag: 'LIGHT SHOW' },
+      { id: 7, type: 'photo', src: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=1200&auto=format&fit=crop', title: 'Intimate Gig Acoustic', tag: 'SESSION' },
+      { id: 8, type: 'photo', src: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1200&auto=format&fit=crop', title: 'Backstage Transit & Crew', tag: 'CREW' },
+    ]
+  }, [band, allPosts])
+
+  const safeActiveSlide = gallerySlides.length > 0 ? activeSlide % gallerySlides.length : 0
+  const currentStageSlide = gallerySlides[safeActiveSlide] || gallerySlides[0]
 
   // Related bands (3 bands from other genres/cities)
   const relatedBands = useMemo(() => {
@@ -890,92 +902,114 @@ export const BandDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: 8-Slide Image Carousel Stage with Arrow Buttons */}
+          {/* RIGHT COLUMN: Stage Visual Carousel with Arrow Buttons */}
           <div className="bg-[#101010] border border-[#242424] rounded-2xl flex flex-col justify-between p-6 sm:p-8 h-[592px] lg:sticky lg:top-24 relative overflow-hidden group shadow-xl">
             {/* Top Stage Header */}
             <div className="flex items-center justify-between text-xs font-mono text-[#777] z-10 pb-2 border-b border-[#1E1E1E]">
               <span className="uppercase tracking-widest text-[#E01E37] font-bold">
-                STAGE VISUAL // {gallerySlides[activeSlide].tag}
+                STAGE VISUAL // {currentStageSlide.tag}
               </span>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setActiveSlide((prev) => (prev - 1 + gallerySlides.length) % gallerySlides.length)}
                   aria-label="Slide sebelumnya"
-                  className="w-8 h-8 flex items-center justify-center border border-[#282828] hover:border-[#E01E37] hover:text-[#E01E37] text-white transition-colors rounded"
+                  className="w-8 h-8 flex items-center justify-center border border-[#282828] hover:border-[#E01E37] hover:text-[#E01E37] text-white transition-colors rounded cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <span className="font-mono text-white text-[11px] font-bold min-w-[70px] text-center select-none">
-                  SLIDE {activeSlide + 1} / {gallerySlides.length}
+                  SLIDE {safeActiveSlide + 1} / {gallerySlides.length}
                 </span>
                 <button
                   type="button"
                   onClick={() => setActiveSlide((prev) => (prev + 1) % gallerySlides.length)}
                   aria-label="Slide berikutnya"
-                  className="w-8 h-8 flex items-center justify-center border border-[#282828] hover:border-[#E01E37] hover:text-[#E01E37] text-white transition-colors rounded"
+                  className="w-8 h-8 flex items-center justify-center border border-[#282828] hover:border-[#E01E37] hover:text-[#E01E37] text-white transition-colors rounded cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Central Stage Cutout / Photography Display */}
+            {/* Central Stage Cutout / Photo & Video Display */}
             <div className="relative flex-1 w-full my-3 overflow-hidden bg-[#0A0A0A] border border-[#1E1E1E] rounded-xl flex items-center justify-center group/stage">
-              <img
-                src={gallerySlides[activeSlide].src}
-                alt={`${band.bandName} - ${gallerySlides[activeSlide].title}`}
-                className="w-full h-full object-cover filter contrast-110 drop-shadow-[0_20px_40px_rgba(0,0,0,0.9)] transition-all duration-700 ease-out"
-              />
+              {currentStageSlide.type === 'video' ? (
+                <video
+                  key={currentStageSlide.src}
+                  src={currentStageSlide.src}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-full object-contain bg-black"
+                />
+              ) : (
+                <img
+                  src={currentStageSlide.src}
+                  alt={`${band.bandName} - ${currentStageSlide.title}`}
+                  className="w-full h-full object-cover filter contrast-110 drop-shadow-[0_20px_40px_rgba(0,0,0,0.9)] transition-all duration-700 ease-out"
+                />
+              )}
 
-              {/* Ambient Vignette Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+              {/* Ambient Vignette Overlay (photo slides only so video controls remain unobstructed) */}
+              {currentStageSlide.type !== 'video' && (
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+              )}
 
               {/* HUD Telemetry Overlay Corners (Black, Red #E01E37, White) */}
               <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm border border-white/10 px-2 py-0.5 font-mono text-[9px] text-white/80 tracking-widest pointer-events-none uppercase">
-                CAM: 0{activeSlide + 1} // FOH STAGE
+                CAM: 0{safeActiveSlide + 1} // FOH STAGE
               </div>
               <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-sm border border-white/10 px-2 py-0.5 font-mono text-[9px] text-[#E01E37] tracking-widest pointer-events-none uppercase font-bold">
                 LIVE SPL: 112 dB
               </div>
 
-              {/* Floating Slide Photo Arrow Buttons (Left & Right) */}
-              <button
-                type="button"
-                onClick={() => setActiveSlide((prev) => (prev - 1 + gallerySlides.length) % gallerySlides.length)}
-                aria-label="Foto panggung sebelumnya"
-                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 min-w-[44px] min-h-[44px] bg-black/80 hover:bg-[#E01E37] text-white/80 hover:text-white border border-white/15 flex items-center justify-center transition-all shadow-[0_0_15px_rgba(0,0,0,0.8)] backdrop-blur-sm rounded-full group/btn"
-              >
-                <ChevronLeft className="w-5 h-5 group-hover/btn:-translate-x-0.5 transition-transform" />
-              </button>
+              {/* Floating Slide Arrow Buttons (Left & Right) */}
+              {gallerySlides.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSlide((prev) => (prev - 1 + gallerySlides.length) % gallerySlides.length)}
+                    aria-label="Slide panggung sebelumnya"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 min-w-[44px] min-h-[44px] bg-black/80 hover:bg-[#E01E37] text-white/80 hover:text-white border border-white/15 flex items-center justify-center transition-all shadow-[0_0_15px_rgba(0,0,0,0.8)] backdrop-blur-sm rounded-full group/btn cursor-pointer"
+                  >
+                    <ChevronLeft className="w-5 h-5 group-hover/btn:-translate-x-0.5 transition-transform" />
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveSlide((prev) => (prev + 1) % gallerySlides.length)}
-                aria-label="Foto panggung berikutnya"
-                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 min-w-[44px] min-h-[44px] bg-black/80 hover:bg-[#E01E37] text-white/80 hover:text-white border border-white/15 flex items-center justify-center transition-all shadow-[0_0_15px_rgba(0,0,0,0.8)] backdrop-blur-sm rounded-full group/btn"
-              >
-                <ChevronRight className="w-5 h-5 group-hover/btn:translate-x-0.5 transition-transform" />
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSlide((prev) => (prev + 1) % gallerySlides.length)}
+                    aria-label="Slide panggung berikutnya"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 min-w-[44px] min-h-[44px] bg-black/80 hover:bg-[#E01E37] text-white/80 hover:text-white border border-white/15 flex items-center justify-center transition-all shadow-[0_0_15px_rgba(0,0,0,0.8)] backdrop-blur-sm rounded-full group/btn cursor-pointer"
+                  >
+                    <ChevronRight className="w-5 h-5 group-hover/btn:translate-x-0.5 transition-transform" />
+                  </button>
+                </>
+              )}
 
-              {/* Slide Title Banner Pill */}
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-md border border-white/15 px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-white pointer-events-none shadow-lg whitespace-nowrap rounded-full">
-                {band.bandName} // {gallerySlides[activeSlide].title}
-              </div>
+              {/* Slide Title Banner Pill (photo slides only so video controls remain clear) */}
+              {currentStageSlide.type !== 'video' && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 max-w-[90%] truncate bg-black/85 backdrop-blur-md border border-white/15 px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-white pointer-events-none shadow-lg rounded-full">
+                  {band.bandName} // {currentStageSlide.title}
+                </div>
+              )}
             </div>
 
-            {/* 8-Segment Horizontal Interactive Pager Bar */}
+            {/* Dynamic Horizontal Interactive Pager Bar */}
             <div className="w-full pt-3 z-10">
-              <div className="grid grid-cols-8 gap-1.5 h-1.5 w-full">
+              <div
+                className="grid gap-1.5 h-1.5 w-full"
+                style={{ gridTemplateColumns: `repeat(${gallerySlides.length}, minmax(0, 1fr))` }}
+              >
                 {gallerySlides.map((_, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setActiveSlide(idx)}
                     aria-label={`Pindah ke slide ${idx + 1}`}
-                    aria-current={activeSlide === idx}
-                    className={`h-full transition-all duration-300 rounded-full ${
-                      activeSlide === idx
+                    aria-current={safeActiveSlide === idx}
+                    className={`h-full transition-all duration-300 rounded-full cursor-pointer ${
+                      safeActiveSlide === idx
                         ? 'bg-[#E01E37] shadow-[0_0_8px_rgba(224,30,55,0.8)]'
                         : 'bg-[#262626] hover:bg-[#444444]'
                     }`}
@@ -999,52 +1033,14 @@ export const BandDetailPage: React.FC = () => {
               <span>POSTINGAN & GALERI KARYA</span>
             </div>
 
-            {/* Filter Pills & Counter */}
-            <div className="flex items-center gap-4 flex-wrap font-mono text-xs">
-              <span className="text-[#666] hidden sm:inline">
-                PORTFOLIO ARCHIVE // {allPosts.length} KARYA
-              </span>
-              <div className="flex items-center border border-[#242424] bg-[#0E0E0E] p-0.5 rounded-lg">
-                <button
-                  type="button"
-                  onClick={() => setGalleryFilter('all')}
-                  className={`min-h-[44px] px-3.5 uppercase transition-colors rounded-md font-bold ${
-                    galleryFilter === 'all'
-                      ? 'bg-[#E01E37] text-white'
-                      : 'text-[#888] hover:text-white'
-                  }`}
-                >
-                  SEMUA
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGalleryFilter('photo')}
-                  className={`min-h-[44px] px-3.5 uppercase transition-colors rounded-md font-bold ${
-                    galleryFilter === 'photo'
-                      ? 'bg-[#E01E37] text-white'
-                      : 'text-[#888] hover:text-white'
-                  }`}
-                >
-                  FOTO
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGalleryFilter('video')}
-                  className={`min-h-[44px] px-3.5 uppercase transition-colors rounded-md font-bold ${
-                    galleryFilter === 'video'
-                      ? 'bg-[#E01E37] text-white'
-                      : 'text-[#888] hover:text-white'
-                  }`}
-                >
-                  VIDEO
-                </button>
-              </div>
-            </div>
+            <span className="font-mono text-xs text-[#666]">
+              PORTFOLIO ARCHIVE // {allPosts.length} KARYA
+            </span>
           </div>
 
           {/* 4-Column Responsive Work Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-            {filteredPosts.map((post) => {
+            {allPosts.map((post) => {
               const postSlides = parsePostSlides(post, true)
               const slideCount = postSlides.length
               const hasPhotoSlide = postSlides.some((s) => s.type === 'photo')

@@ -470,20 +470,24 @@ interface PostDetailModalProps {
   post: BandPost | null
   slides: BandPostSlide[]
   slideIndex: number
+  isStageVisualActive?: boolean
   onSlideIndexChange: React.Dispatch<React.SetStateAction<number>>
   onClose: () => void
   onDeletePost: (postId: number) => void
   onAddMediaToPost?: (postId: number) => void
+  onToggleStageVisual?: (postId: number) => void
 }
 
 export const PostDetailModal: React.FC<PostDetailModalProps> = ({
   post,
   slides,
   slideIndex,
+  isStageVisualActive = false,
   onSlideIndexChange,
   onClose,
   onDeletePost,
   onAddMediaToPost,
+  onToggleStageVisual,
 }) => {
   const [brokenUrlMap, setBrokenUrlMap] = useState<Record<string, boolean>>({})
 
@@ -587,6 +591,20 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
 
         <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#242424]">
           <div className="flex items-center gap-2 flex-wrap">
+            {onToggleStageVisual && (
+              <button
+                type="button"
+                onClick={() => onToggleStageVisual(post.id)}
+                className={`px-3.5 py-2 text-xs font-mono uppercase font-bold min-h-[44px] flex items-center gap-1.5 cursor-pointer border transition-colors ${
+                  isStageVisualActive
+                    ? 'bg-white text-black border-white hover:bg-[#E0E0E0]'
+                    : 'bg-[#1A1A1A] hover:bg-[#252525] text-white border-[#383838]'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#E01E37]" aria-hidden="true" />
+                <span>{isStageVisualActive ? 'Stage Visual Aktif (Lepas)' : 'Jadikan Stage Visual'}</span>
+              </button>
+            )}
             {onAddMediaToPost && (
               <button
                 type="button"

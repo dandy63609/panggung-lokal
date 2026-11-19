@@ -280,7 +280,8 @@ router.put('/profile', requireBand, async (req, res) => {
       riderSoundSystem,
       riderInstruments,
       riderHospitality,
-      riderItems
+      riderItems,
+      stageVisualPostId
     } = req.body;
 
     const parsedBudgetMin =
@@ -313,6 +314,29 @@ router.put('/profile', requireBand, async (req, res) => {
       });
     }
 
+    let nextStageVisualPostId;
+    if (stageVisualPostId !== undefined) {
+      if (stageVisualPostId === null || stageVisualPostId === '') {
+        nextStageVisualPostId = null;
+      } else {
+        const parsedPostId = parseInt(stageVisualPostId, 10);
+        if (!Number.isInteger(parsedPostId) || parsedPostId <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'ID postingan Stage Visual tidak valid'
+          });
+        }
+        const ownedPost = await BandPost.findById(parsedPostId);
+        if (!ownedPost || ownedPost.bandProfileId !== profile.id) {
+          return res.status(404).json({
+            success: false,
+            message: 'Postingan tidak ditemukan atau bukan milik band Anda'
+          });
+        }
+        nextStageVisualPostId = parsedPostId;
+      }
+    }
+
     const updated = await BandProfile.update(profile.id, {
       bandName: bandName !== undefined ? bandName : profile.bandName,
       genre: genre !== undefined ? genre : profile.genre,
@@ -333,7 +357,8 @@ router.put('/profile', requireBand, async (req, res) => {
       riderSoundSystem: riderSoundSystem !== undefined ? riderSoundSystem : profile.riderSoundSystem,
       riderInstruments: riderInstruments !== undefined ? riderInstruments : profile.riderInstruments,
       riderHospitality: riderHospitality !== undefined ? riderHospitality : profile.riderHospitality,
-      riderItems: riderItems !== undefined ? riderItems : profile.riderItems
+      riderItems: riderItems !== undefined ? riderItems : profile.riderItems,
+      stageVisualPostId: nextStageVisualPostId
     });
 
     return res.json({
