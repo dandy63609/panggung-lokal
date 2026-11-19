@@ -226,7 +226,7 @@ export const BroadcastInquirySection: React.FC<BroadcastInquirySectionProps> = (
                 Khusus Akun Penyelenggara Acara (EO)
               </h3>
               <p className="text-xs sm:text-sm text-[#A0A0A0] max-w-xl mx-auto font-sans leading-relaxed">
-                Saat ini Anda masuk menggunakan akun <strong className="text-white">{currentUser.email}</strong> ({currentUser.accountType.toUpperCase()}). Untuk mengirim broadcast lowongan tampil ke seluruh band, silakan masuk dengan akun Penyelenggara / EO. Pantau panggilan panggung masuk di Tab <strong className="text-white">05 // Job Broadcast</strong> pada Dashboard Band Anda.
+                Saat ini Anda masuk menggunakan akun <strong className="text-white">{currentUser.email}</strong> ({currentUser.accountType.toUpperCase()}). Untuk mengirim broadcast lowongan tampil ke seluruh band, silakan masuk dengan akun Penyelenggara / EO. Pantau panggilan panggung masuk di Tab <strong className="text-white">Job Broadcast</strong> pada Dashboard Band Anda.
               </p>
             </div>
           ) : submitted ? (
@@ -255,7 +255,7 @@ export const BroadcastInquirySection: React.FC<BroadcastInquirySectionProps> = (
               <div className="p-3.5 bg-[#141414] border border-[#262626] rounded-lg flex items-start gap-3">
                 <Megaphone className="w-4 h-4 text-[#E01E37] shrink-0 mt-0.5" />
                 <p className="text-xs font-sans text-[#B0B0B0] leading-relaxed">
-                  <strong className="text-white">Mode Broadcast Terbuka:</strong> Detail acara, waktu tampil, dan lampiran file yang dikirim lewat formulir ini akan langsung masuk ke ruang notifikasi <strong className="text-white">05 // Job Broadcast</strong> seluruh akun band terdaftar di Reffband.
+                  <strong className="text-white">Mode Broadcast Terbuka:</strong> Detail acara, waktu tampil, dan lampiran file yang dikirim lewat formulir ini akan langsung masuk ke ruang notifikasi <strong className="text-white">Job Broadcast</strong> seluruh akun band terdaftar di Reffband.
                 </p>
               </div>
 

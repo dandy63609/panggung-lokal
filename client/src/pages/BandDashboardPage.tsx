@@ -15,9 +15,7 @@ import {
   AlertCircle,
   Loader2,
   Sliders,
-  DollarSign,
   Radio,
-  Globe,
   Layers,
   Star,
   Phone,
@@ -54,7 +52,7 @@ export const BandDashboardPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<BandDashboardData | null>(null)
-  const [activeTab, setActiveTab] = useState<'feed' | 'rider' | 'analytics' | 'settings' | 'broadcasts'>('feed')
+  const [activeTab, setActiveTab] = useState<'feed' | 'rider' | 'analytics' | 'broadcasts'>('feed')
 
   // Modals state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -79,18 +77,6 @@ export const BandDashboardPage: React.FC = () => {
     locationCity: '',
     phone: '',
     bio: '',
-  })
-  const [editSubmitting, setEditSubmitting] = useState(false)
-
-  // Settings (Tarif & Kanal Media) State
-  const [settingsForm, setSettingsForm] = useState<{
-    budgetMin: number
-    budgetMax: number
-    spotifyUrl: string
-    instagramHandle: string
-    youtubeUrl: string
-    tiktokUrl: string
-  }>({
     budgetMin: 0,
     budgetMax: 0,
     spotifyUrl: '',
@@ -98,7 +84,7 @@ export const BandDashboardPage: React.FC = () => {
     youtubeUrl: '',
     tiktokUrl: '',
   })
-  const [settingsSubmitting, setSettingsSubmitting] = useState(false)
+  const [editSubmitting, setEditSubmitting] = useState(false)
 
   // Technical Rider State
   const [editRiderItems, setEditRiderItems] = useState<RiderItem[]>([])
@@ -119,8 +105,6 @@ export const BandDashboardPage: React.FC = () => {
           locationCity: res.data.profile.locationCity || '',
           phone: res.data.profile.phone || '',
           bio: res.data.profile.bio || '',
-        })
-        setSettingsForm({
           budgetMin: res.data.profile.budgetMin || 0,
           budgetMax: res.data.profile.budgetMax || 0,
           spotifyUrl: res.data.profile.spotifyUrl || '',
@@ -364,7 +348,7 @@ export const BandDashboardPage: React.FC = () => {
       )
       showToast(
         nextId
-          ? 'Carousel postingan dipilih untuk Stage Visual // Stage Act profil EO!'
+          ? 'Carousel postingan dipilih untuk Stage Visual profil EO!'
           : 'Stage Visual dikembalikan ke galeri panggung default.'
       )
     } else {
@@ -381,11 +365,17 @@ export const BandDashboardPage: React.FC = () => {
       locationCity: profile?.locationCity || '',
       phone: profile?.phone || '',
       bio: profile?.bio || '',
+      budgetMin: profile?.budgetMin || 0,
+      budgetMax: profile?.budgetMax || 0,
+      spotifyUrl: profile?.spotifyUrl || '',
+      instagramHandle: profile?.instagramHandle || '',
+      youtubeUrl: profile?.youtubeUrl || '',
+      tiktokUrl: profile?.tiktokUrl || '',
     })
     setIsEditProfileModalOpen(true)
   }
 
-  // Submit handler: Nama Band, Genre, Kota Domisili, No WhatsApp, Deskripsi / Bio
+  // Submit handler: Identitas band, tarif manggung, dan tautan kanal media sosial
   const handleEditProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setEditSubmitting(true)
@@ -396,39 +386,22 @@ export const BandDashboardPage: React.FC = () => {
       locationCity: editForm.locationCity.trim(),
       phone: editForm.phone.trim(),
       bio: editForm.bio.trim(),
+      budgetMin: editForm.budgetMin ? parseInt(String(editForm.budgetMin), 10) : 0,
+      budgetMax: editForm.budgetMax ? parseInt(String(editForm.budgetMax), 10) : 0,
+      spotifyUrl: editForm.spotifyUrl?.trim(),
+      instagramHandle: editForm.instagramHandle?.trim(),
+      youtubeUrl: editForm.youtubeUrl?.trim(),
+      tiktokUrl: editForm.tiktokUrl?.trim(),
     })
 
     if (res.success && res.data) {
-      showToast('Identitas profil band berhasil diperbarui!')
+      showToast('Profil band, tarif, dan kanal media berhasil diperbarui!')
       setIsEditProfileModalOpen(false)
       fetchDashboard()
     } else {
-      showToast(res.message || 'Gagal memperbarui identitas band.', 'error')
+      showToast(res.message || 'Gagal memperbarui profil band.', 'error')
     }
     setEditSubmitting(false)
-  }
-
-  // Submit handler: Tab 4 Pengaturan Tarif & Tautan Kanal Media Sosial
-  const handleSettingsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSettingsSubmitting(true)
-
-    const res = await authClient.updateBandProfile({
-      budgetMin: settingsForm.budgetMin ? parseInt(String(settingsForm.budgetMin), 10) : 0,
-      budgetMax: settingsForm.budgetMax ? parseInt(String(settingsForm.budgetMax), 10) : 0,
-      spotifyUrl: settingsForm.spotifyUrl?.trim(),
-      instagramHandle: settingsForm.instagramHandle?.trim(),
-      youtubeUrl: settingsForm.youtubeUrl?.trim(),
-      tiktokUrl: settingsForm.tiktokUrl?.trim(),
-    })
-
-    if (res.success && res.data) {
-      showToast('Pengaturan tarif dan tautan kanal media berhasil disimpan!')
-      fetchDashboard()
-    } else {
-      showToast(res.message || 'Gagal menyimpan tarif dan kanal.', 'error')
-    }
-    setSettingsSubmitting(false)
   }
 
   const handleOpenRiderModal = () => {
@@ -646,9 +619,9 @@ export const BandDashboardPage: React.FC = () => {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setActiveTab('settings')}
+                      onClick={handleOpenEditProfileModal}
                       className="w-10 h-10 rounded-full bg-[#141414] hover:bg-[#1E1E1E] border border-[#262626] hover:border-[#E01E37] flex items-center justify-center text-[#606060] hover:text-[#E01E37] transition-all min-h-[44px] min-w-[44px] cursor-pointer"
-                      title="Atur tautan Spotify di Tab 04 // Tarif & Kanal"
+                      title="Atur tautan Spotify di Edit Profil"
                       aria-label="Atur tautan Spotify"
                     >
                       <SpotifyIcon className="w-4 h-4" />
@@ -670,9 +643,9 @@ export const BandDashboardPage: React.FC = () => {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setActiveTab('settings')}
+                      onClick={handleOpenEditProfileModal}
                       className="w-10 h-10 rounded-full bg-[#141414] hover:bg-[#1E1E1E] border border-[#262626] hover:border-[#E01E37] flex items-center justify-center text-[#606060] hover:text-[#E01E37] transition-all min-h-[44px] min-w-[44px] cursor-pointer"
-                      title="Atur akun Instagram di Tab 04 // Tarif & Kanal"
+                      title="Atur akun Instagram di Edit Profil"
                       aria-label="Atur akun Instagram"
                     >
                       <InstagramIcon className="w-4 h-4" />
@@ -694,9 +667,9 @@ export const BandDashboardPage: React.FC = () => {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setActiveTab('settings')}
+                      onClick={handleOpenEditProfileModal}
                       className="w-10 h-10 rounded-full bg-[#141414] hover:bg-[#1E1E1E] border border-[#262626] hover:border-[#E01E37] flex items-center justify-center text-[#606060] hover:text-[#E01E37] transition-all min-h-[44px] min-w-[44px] cursor-pointer"
-                      title="Atur tautan YouTube di Tab 04 // Tarif & Kanal"
+                      title="Atur tautan YouTube di Edit Profil"
                       aria-label="Atur tautan YouTube"
                     >
                       <YouTubeIcon className="w-4 h-4" />
@@ -718,9 +691,9 @@ export const BandDashboardPage: React.FC = () => {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setActiveTab('settings')}
+                      onClick={handleOpenEditProfileModal}
                       className="w-10 h-10 rounded-full bg-[#141414] hover:bg-[#1E1E1E] border border-[#262626] hover:border-[#E01E37] flex items-center justify-center text-[#606060] hover:text-[#E01E37] transition-all min-h-[44px] min-w-[44px] cursor-pointer"
-                      title="Atur akun TikTok di Tab 04 // Tarif & Kanal"
+                      title="Atur akun TikTok di Edit Profil"
                       aria-label="Atur akun TikTok"
                     >
                       <TikTokIcon className="w-4 h-4" />
@@ -806,7 +779,7 @@ export const BandDashboardPage: React.FC = () => {
             }`}
           >
             <Radio className="w-3.5 h-3.5 text-[#E01E37] shrink-0" />
-            <span>01 // Galeri Karya</span>
+            <span>Galeri Karya</span>
             <span className="px-1.5 py-0.2 bg-[#222222] text-[#A0A0A0] text-[10px] shrink-0">
               {posts.length}
             </span>
@@ -822,7 +795,7 @@ export const BandDashboardPage: React.FC = () => {
             }`}
           >
             <Sliders className="w-3.5 h-3.5 text-white shrink-0" />
-            <span>02 // Technical Rider</span>
+            <span>Technical Rider</span>
           </button>
 
           <button
@@ -835,23 +808,10 @@ export const BandDashboardPage: React.FC = () => {
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5 text-[#E01E37] shrink-0" />
-            <span>03 // Inquiry EO</span>
+            <span>Inquiry EO</span>
             <span className="px-1.5 py-0.2 bg-[#222222] text-[#A0A0A0] text-[10px] shrink-0">
               {connections.length}
             </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('settings')}
-            className={`px-3.5 sm:px-4 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'settings'
-                ? 'border-[#E01E37] text-white bg-[#141414]'
-                : 'border-transparent text-[#808080] hover:text-white hover:bg-[#111111]'
-            }`}
-          >
-            <DollarSign className="w-3.5 h-3.5 text-white shrink-0" />
-            <span>04 // Tarif & Kanal</span>
           </button>
 
           <button
@@ -864,7 +824,7 @@ export const BandDashboardPage: React.FC = () => {
             }`}
           >
             <Megaphone className="w-3.5 h-3.5 text-[#E01E37] shrink-0" />
-            <span>05 // Job Broadcast</span>
+            <span>Job Broadcast</span>
             <span
               className={`px-1.5 py-0.2 text-[10px] shrink-0 font-bold ${
                 jobBroadcasts.length > 0
@@ -905,7 +865,7 @@ export const BandDashboardPage: React.FC = () => {
                 <div className="min-w-0">
                   <span className="text-[11px] font-mono uppercase tracking-wider text-[#E01E37] font-bold flex items-center gap-1.5">
                     <Star className="w-3.5 h-3.5 fill-[#E01E37] shrink-0" aria-hidden="true" />
-                    <span>CAROUSEL STAGE VISUAL // STAGE ACT (TAMPIL DI HALAMAN EO)</span>
+                    <span>CAROUSEL STAGE VISUAL (TAMPIL DI HALAMAN EO)</span>
                   </span>
                   <p className="text-xs text-[#A0A0A0] font-sans mt-0.5">
                     Pilih salah satu postingan karya Anda untuk ditampilkan di carousel utama halaman profil publik band.
@@ -1137,7 +1097,7 @@ export const BandDashboardPage: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2 font-mono text-xs text-[#E01E37] uppercase tracking-wider mb-2 font-bold">
                         <Sliders className="w-4 h-4 text-[#E01E37] shrink-0" />
-                        <span>{String(idx + 1).padStart(2, '0')} // {item.title || 'Kebutuhan Panggung'}</span>
+                        <span>{String(idx + 1).padStart(2, '0')}. {item.title || 'Kebutuhan Panggung'}</span>
                       </div>
                       <p className="text-xs text-[#C0C0C0] font-sans leading-relaxed whitespace-pre-wrap">
                         {item.description || 'Belum ada rincian spesifikasi teknis.'}
@@ -1255,169 +1215,6 @@ export const BandDashboardPage: React.FC = () => {
                 </table>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Tab 4: Settings & Socials (Direct In-Place Editor) */}
-        {activeTab === 'settings' && (
-          <div className="max-w-3xl space-y-6">
-            <div>
-              <h2 className="font-display text-2xl tracking-wider text-white">
-                PENGATURAN TARIF & KANAL RESMI
-              </h2>
-              <p className="text-xs text-[#808080] font-sans">
-                Atur estimasi tarif manggung dan hubungkan tautan musik digital band Anda secara langsung di sini.
-              </p>
-            </div>
-
-            <form onSubmit={handleSettingsSubmit} className="p-6 sm:p-8 bg-[#121212] border border-[#242424] space-y-6">
-              {/* Tariffs Section */}
-              <div>
-                <h3 className="font-mono text-xs uppercase tracking-wider text-[#E01E37] mb-3 font-bold flex items-center gap-1.5">
-                  <DollarSign className="w-4 h-4 text-[#E01E37]" />
-                  <span>RENTANG TARIF MANGGUNG (ESTIMASI RATE)</span>
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 bg-[#181818] border border-[#2A2A2A] focus-within:border-[#E01E37] transition-colors">
-                    <label htmlFor="setting-budget-min" className="text-[10px] font-mono text-[#808080] uppercase block mb-1">
-                      Tarif Minimum (Indoor / Cafe)
-                    </label>
-                    <input
-                      id="setting-budget-min"
-                      type="number"
-                      step="500000"
-                      min="0"
-                      value={settingsForm.budgetMin || ''}
-                      onChange={(e) =>
-                        setSettingsForm({
-                          ...settingsForm,
-                          budgetMin: e.target.value ? parseInt(e.target.value, 10) : 0,
-                        })
-                      }
-                      placeholder="Contoh: 3500000"
-                      className="w-full bg-transparent text-white font-mono text-base font-bold outline-none"
-                    />
-                    <span className="text-[11px] font-mono text-[#A0A0A0] block mt-1.5 pt-1 border-t border-[#262626]">
-                      {settingsForm.budgetMin ? formatRupiah(settingsForm.budgetMin) : 'Rp 0'}
-                    </span>
-                  </div>
-
-                  <div className="p-4 bg-[#181818] border border-[#2A2A2A] focus-within:border-[#E01E37] transition-colors">
-                    <label htmlFor="setting-budget-max" className="text-[10px] font-mono text-[#808080] uppercase block mb-1">
-                      Tarif Maksimum (Festival / Outdoor)
-                    </label>
-                    <input
-                      id="setting-budget-max"
-                      type="number"
-                      step="500000"
-                      min="0"
-                      value={settingsForm.budgetMax || ''}
-                      onChange={(e) =>
-                        setSettingsForm({
-                          ...settingsForm,
-                          budgetMax: e.target.value ? parseInt(e.target.value, 10) : 0,
-                        })
-                      }
-                      placeholder="Contoh: 7000000"
-                      className="w-full bg-transparent text-white font-mono text-base font-bold outline-none"
-                    />
-                    <span className="text-[11px] font-mono text-[#A0A0A0] block mt-1.5 pt-1 border-t border-[#262626]">
-                      {settingsForm.budgetMax ? formatRupiah(settingsForm.budgetMax) : 'Rp 0'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Social Channels Section */}
-              <div className="pt-4 border-t border-[#222222]">
-                <h3 className="font-mono text-xs uppercase tracking-wider text-white mb-3 font-bold flex items-center gap-1.5">
-                  <Globe className="w-4 h-4 text-[#E01E37]" />
-                  <span>TAUTAN DISTRIBUSI DIGITAL & MEDIA SOSIAL</span>
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
-                  <div>
-                    <label htmlFor="setting-spotify" className="block text-[11px] text-[#A0A0A0] mb-1.5 flex items-center gap-1.5 font-bold">
-                      <SpotifyIcon className="w-4 h-4 text-[#E01E37]" />
-                      <span>Spotify Artist URL</span>
-                    </label>
-                    <input
-                      id="setting-spotify"
-                      type="url"
-                      value={settingsForm.spotifyUrl || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, spotifyUrl: e.target.value })}
-                      placeholder="https://open.spotify.com/artist/..."
-                      className="w-full bg-[#181818] border border-[#2A2A2A] focus:border-[#E01E37] text-white p-3 min-h-[44px] outline-none font-mono text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="setting-instagram" className="block text-[11px] text-[#A0A0A0] mb-1.5 flex items-center gap-1.5 font-bold">
-                      <InstagramIcon className="w-4 h-4 text-white" />
-                      <span>Instagram Handle</span>
-                    </label>
-                    <input
-                      id="setting-instagram"
-                      type="text"
-                      value={settingsForm.instagramHandle || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, instagramHandle: e.target.value })}
-                      placeholder="@namaband"
-                      className="w-full bg-[#181818] border border-[#2A2A2A] focus:border-[#E01E37] text-white p-3 min-h-[44px] outline-none font-mono text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="setting-youtube" className="block text-[11px] text-[#A0A0A0] mb-1.5 flex items-center gap-1.5 font-bold">
-                      <YouTubeIcon className="w-4 h-4 text-[#E01E37]" />
-                      <span>YouTube Channel / Video</span>
-                    </label>
-                    <input
-                      id="setting-youtube"
-                      type="url"
-                      value={settingsForm.youtubeUrl || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, youtubeUrl: e.target.value })}
-                      placeholder="https://youtube.com/@namaband"
-                      className="w-full bg-[#181818] border border-[#2A2A2A] focus:border-[#E01E37] text-white p-3 min-h-[44px] outline-none font-mono text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="setting-tiktok" className="block text-[11px] text-[#A0A0A0] mb-1.5 flex items-center gap-1.5 font-bold">
-                      <TikTokIcon className="w-4 h-4 text-white" />
-                      <span>TikTok URL / Akun</span>
-                    </label>
-                    <input
-                      id="setting-tiktok"
-                      type="text"
-                      value={settingsForm.tiktokUrl || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, tiktokUrl: e.target.value })}
-                      placeholder="https://tiktok.com/@namaband"
-                      className="w-full bg-[#181818] border border-[#2A2A2A] focus:border-[#E01E37] text-white p-3 min-h-[44px] outline-none font-mono text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <div className="pt-2 flex items-center justify-end">
-                <button
-                  type="submit"
-                  disabled={settingsSubmitting}
-                  className="px-6 py-3 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(224,30,55,0.3)] disabled:opacity-50 transition-all"
-                >
-                  {settingsSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Menyimpan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Settings className="w-4 h-4" />
-                      <span>Simpan Tarif & Kanal Resmi</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
         )}
 

@@ -14,8 +14,17 @@ import {
   Trash2,
   Settings,
   Sliders,
+  DollarSign,
+  Globe,
 } from 'lucide-react'
 import { BAND_GENRE_OPTIONS } from '../../lib/genres'
+import { formatRupiah } from '../../lib/utils'
+import {
+  SpotifyIcon,
+  InstagramIcon,
+  YouTubeIcon,
+  TikTokIcon,
+} from '../ui/SocialIcons'
 import type { BandPost, BandPostSlide, RiderItem } from '../../types'
 
 export interface UploadedMediaItem {
@@ -36,6 +45,12 @@ export interface EditProfileFormState {
   locationCity: string
   phone: string
   bio: string
+  budgetMin: number
+  budgetMax: number
+  spotifyUrl: string
+  instagramHandle: string
+  youtubeUrl: string
+  tiktokUrl: string
 }
 
 interface UploadMediaModalProps {
@@ -142,7 +157,7 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
                 id="upload-media-modal-title"
                 className="font-display text-xl sm:text-2xl tracking-wider text-white leading-tight break-words"
               >
-                UNGGAH KARYA // DIREKTORI LOKAL
+                UNGGAH KARYA DIREKTORI LOKAL
               </h3>
               <span className="text-[11px] font-mono text-[#A0A0A0] block mt-0.5 leading-snug">
                 Tambah foto & video sekaligus atau satu per satu ke dalam satu carousel
@@ -249,7 +264,7 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
                 <div className="p-3 bg-[#161616] border border-[#282828] flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-xs font-mono">
                     <span className="text-white font-bold">TOTAL: {uploadedItems.length} BERKAS</span>
-                    <span className="text-[#808080]">//</span>
+                    <span className="text-[#808080]">·</span>
                     <span className="text-white">{photoCount} Foto</span>
                     <span className="text-[#808080]">+</span>
                     <span className="text-[#E01E37] font-bold">{videoCount} Video</span>
@@ -505,7 +520,7 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
         <div className="flex items-center justify-between pb-3 border-b border-[#242424] mb-4">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-mono uppercase tracking-widest text-[#E01E37] font-bold">
-              DETAIL KARYA // INSIGHT
+              DETAIL KARYA INSIGHT
             </span>
             {slides.length > 1 && (
               <span className="px-2 py-0.5 bg-[#E01E37]/15 border border-[#E01E37]/40 text-[#E01E37] text-[10px] font-mono">
@@ -654,6 +669,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   const hasCustomGenre =
@@ -661,145 +687,285 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     !BAND_GENRE_OPTIONS.some((opt) => opt.toLowerCase() === editForm.genre.toLowerCase())
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#121212] border border-[#2E2E2E] w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 sm:p-8 relative shadow-2xl">
-        <div className="flex items-center justify-between pb-4 border-b border-[#242424] mb-6">
-          <div className="flex items-center gap-2.5">
-            <Settings className="w-5 h-5 text-[#E01E37]" />
-            <div>
-              <h3 className="font-display text-2xl tracking-wider text-white">EDIT PROFIL BAND</h3>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-profile-modal-title"
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center overflow-hidden"
+    >
+      <div className="bg-[#121212] border border-[#2E2E2E] w-full max-w-[calc(100vw-1.5rem)] sm:max-w-2xl max-h-[90dvh] flex flex-col relative shadow-2xl overflow-hidden">
+        <div className="shrink-0 flex items-center justify-between p-4 sm:p-6 border-b border-[#242424] bg-[#141414]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Settings className="w-5 h-5 text-[#E01E37] shrink-0" aria-hidden="true" />
+            <div className="min-w-0">
+              <h3
+                id="edit-profile-modal-title"
+                className="font-display text-2xl tracking-wider text-white"
+              >
+                EDIT PROFIL BAND
+              </h3>
               <p className="text-[11px] font-mono text-[#808080]">
-                Identitas pokok dan deskripsi band yang ditampilkan di katalog dan panggung
+                Identitas band, estimasi tarif panggung, dan tautan kanal digital resmi
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-[#808080] hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2 cursor-pointer"
+            className="text-[#808080] hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2 shrink-0 cursor-pointer"
             aria-label="Tutup edit profil"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="edit-band-name"
-              className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5"
-            >
-              Nama Band *
-            </label>
-            <input
-              id="edit-band-name"
-              type="text"
-              value={editForm.bandName}
-              onChange={(e) => onChange({ ...editForm, bandName: e.target.value })}
-              required
-              placeholder="Nama resmi grup band"
-              className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-sans"
-            />
-          </div>
+        <form onSubmit={onSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 overscroll-contain">
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="edit-band-name"
+                  className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5"
+                >
+                  Nama Band *
+                </label>
+                <input
+                  id="edit-band-name"
+                  type="text"
+                  value={editForm.bandName}
+                  onChange={(e) => onChange({ ...editForm, bandName: e.target.value })}
+                  required
+                  placeholder="Nama resmi grup band"
+                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-sans"
+                />
+              </div>
 
-          <div>
-            <label
-              htmlFor="edit-band-genre"
-              className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5"
-            >
-              Genre Musik *
-            </label>
-            <select
-              id="edit-band-genre"
-              value={editForm.genre}
-              onChange={(e) => onChange({ ...editForm, genre: e.target.value })}
-              required
-              className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-sans cursor-pointer"
-            >
-              {hasCustomGenre && (
-                <option value={editForm.genre} className="bg-[#181818] text-white">
-                  {editForm.genre} (Saat Ini)
-                </option>
-              )}
-              {BAND_GENRE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt} className="bg-[#181818] text-white">
-                  {opt}
-                </option>
-              ))}
-            </select>
-            <span className="text-[10px] font-mono text-[#737373] mt-1 block">
-              Disinkronkan dengan kategori filter genre pada halaman pencarian band.
-            </span>
-          </div>
+              <div>
+                <label
+                  htmlFor="edit-band-genre"
+                  className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5"
+                >
+                  Genre Musik *
+                </label>
+                <select
+                  id="edit-band-genre"
+                  value={editForm.genre}
+                  onChange={(e) => onChange({ ...editForm, genre: e.target.value })}
+                  required
+                  className="w-full max-w-full min-w-0 truncate bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-sans cursor-pointer"
+                >
+                  {hasCustomGenre && (
+                    <option value={editForm.genre} className="bg-[#181818] text-white">
+                      {editForm.genre} (Saat Ini)
+                    </option>
+                  )}
+                  {BAND_GENRE_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt} className="bg-[#181818] text-white">
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[10px] font-mono text-[#737373] mt-1 block">
+                  Disinkronkan dengan kategori filter genre pada halaman pencarian band.
+                </span>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="edit-band-city"
-                className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5"
-              >
-                Kota Domisili *
-              </label>
-              <input
-                id="edit-band-city"
-                type="text"
-                value={editForm.locationCity}
-                onChange={(e) => onChange({ ...editForm, locationCity: e.target.value })}
-                required
-                placeholder="Contoh: Bandung"
-                className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-sans"
-              />
-            </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="edit-band-city"
+                    className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5"
+                  >
+                    Kota Domisili *
+                  </label>
+                  <input
+                    id="edit-band-city"
+                    type="text"
+                    value={editForm.locationCity}
+                    onChange={(e) => onChange({ ...editForm, locationCity: e.target.value })}
+                    required
+                    placeholder="Contoh: Bandung"
+                    className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-sans"
+                  />
+                </div>
 
-            <div>
-              <label
-                htmlFor="edit-band-phone"
-                className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5"
-              >
-                Nomor WhatsApp Resmi *
-              </label>
-              <input
-                id="edit-band-phone"
-                type="text"
-                value={editForm.phone}
-                onChange={(e) => onChange({ ...editForm, phone: e.target.value })}
-                placeholder="+628123456789"
-                required
-                className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-mono"
-              />
-            </div>
-          </div>
-          <span className="text-[10px] font-mono text-[#737373] -mt-2 block">
-            Nomor kontak resmi yang dihubungi penyelenggara acara dan EO.
-          </span>
-
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label
-                htmlFor="edit-band-bio"
-                className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0]"
-              >
-                Deskripsi / Bio Band
-              </label>
-              <span className="text-[10px] font-mono text-[#737373]">
-                {editForm.bio.length}/600 karakter
+                <div>
+                  <label
+                    htmlFor="edit-band-phone"
+                    className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5"
+                  >
+                    Nomor WhatsApp Resmi *
+                  </label>
+                  <input
+                    id="edit-band-phone"
+                    type="text"
+                    value={editForm.phone}
+                    onChange={(e) => onChange({ ...editForm, phone: e.target.value })}
+                    placeholder="+628123456789"
+                    required
+                    className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-mono"
+                  />
+                </div>
+              </div>
+              <span className="text-[10px] font-mono text-[#737373] -mt-2 block">
+                Nomor kontak resmi yang dihubungi penyelenggara acara dan EO.
               </span>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor="edit-band-bio"
+                    className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0]"
+                  >
+                    Deskripsi / Bio Band
+                  </label>
+                  <span className="text-[10px] font-mono text-[#737373]">
+                    {editForm.bio.length}/600 karakter
+                  </span>
+                </div>
+                <textarea
+                  id="edit-band-bio"
+                  rows={4}
+                  maxLength={600}
+                  value={editForm.bio}
+                  onChange={(e) => onChange({ ...editForm, bio: e.target.value })}
+                  placeholder="Ceritakan karakter musik, repertoar lagu, pengalaman panggung, atau ciri khas band Anda..."
+                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[104px] outline-none font-sans leading-relaxed resize-y"
+                />
+                <span className="text-[10px] font-mono text-[#737373] mt-1 block">
+                  Ditampilkan di kartu profil dashboard dan halaman detail publik band.
+                </span>
+              </div>
             </div>
-            <textarea
-              id="edit-band-bio"
-              rows={4}
-              maxLength={600}
-              value={editForm.bio}
-              onChange={(e) => onChange({ ...editForm, bio: e.target.value })}
-              placeholder="Ceritakan karakter musik, repertoar lagu, pengalaman panggung, atau ciri khas band Anda..."
-              className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[104px] outline-none font-sans leading-relaxed resize-y"
-            />
-            <span className="text-[10px] font-mono text-[#737373] mt-1 block">
-              Ditampilkan di kartu profil dashboard dan halaman detail publik band.
-            </span>
+
+            {/* Tarif Manggung Section */}
+            <div className="pt-4 border-t border-[#242424] space-y-3">
+              <h4 className="font-mono text-xs uppercase tracking-wider text-[#E01E37] font-bold flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-[#E01E37]" aria-hidden="true" />
+                <span>RENTANG TARIF MANGGUNG (ESTIMASI RATE)</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-3.5 bg-[#181818] border border-[#2A2A2A] focus-within:border-[#E01E37] transition-colors">
+                  <label htmlFor="edit-budget-min" className="text-[10px] font-mono text-[#808080] uppercase block mb-1">
+                    Tarif Minimum (Indoor / Cafe)
+                  </label>
+                  <input
+                    id="edit-budget-min"
+                    type="number"
+                    step="500000"
+                    min="0"
+                    value={editForm.budgetMin || ''}
+                    onChange={(e) =>
+                      onChange({
+                        ...editForm,
+                        budgetMin: e.target.value ? parseInt(e.target.value, 10) : 0,
+                      })
+                    }
+                    placeholder="Contoh: 3500000"
+                    className="w-full bg-transparent text-white font-mono text-sm font-bold outline-none"
+                  />
+                  <span className="text-[11px] font-mono text-[#A0A0A0] block mt-1.5 pt-1 border-t border-[#262626]">
+                    {editForm.budgetMin ? formatRupiah(editForm.budgetMin) : 'Rp 0'}
+                  </span>
+                </div>
+
+                <div className="p-3.5 bg-[#181818] border border-[#2A2A2A] focus-within:border-[#E01E37] transition-colors">
+                  <label htmlFor="edit-budget-max" className="text-[10px] font-mono text-[#808080] uppercase block mb-1">
+                    Tarif Maksimum (Festival / Outdoor)
+                  </label>
+                  <input
+                    id="edit-budget-max"
+                    type="number"
+                    step="500000"
+                    min="0"
+                    value={editForm.budgetMax || ''}
+                    onChange={(e) =>
+                      onChange({
+                        ...editForm,
+                        budgetMax: e.target.value ? parseInt(e.target.value, 10) : 0,
+                      })
+                    }
+                    placeholder="Contoh: 7000000"
+                    className="w-full bg-transparent text-white font-mono text-sm font-bold outline-none"
+                  />
+                  <span className="text-[11px] font-mono text-[#A0A0A0] block mt-1.5 pt-1 border-t border-[#262626]">
+                    {editForm.budgetMax ? formatRupiah(editForm.budgetMax) : 'Rp 0'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Channels Section */}
+            <div className="pt-4 border-t border-[#242424] space-y-3">
+              <h4 className="font-mono text-xs uppercase tracking-wider text-white font-bold flex items-center gap-1.5">
+                <Globe className="w-4 h-4 text-[#E01E37]" aria-hidden="true" />
+                <span>TAUTAN DISTRIBUSI DIGITAL & MEDIA SOSIAL</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
+                <div>
+                  <label htmlFor="edit-spotify" className="block text-[11px] text-[#A0A0A0] mb-1.5 flex items-center gap-1.5 font-bold">
+                    <SpotifyIcon className="w-4 h-4 text-[#E01E37]" />
+                    <span>Spotify Artist URL</span>
+                  </label>
+                  <input
+                    id="edit-spotify"
+                    type="url"
+                    value={editForm.spotifyUrl || ''}
+                    onChange={(e) => onChange({ ...editForm, spotifyUrl: e.target.value })}
+                    placeholder="https://open.spotify.com/artist/..."
+                    className="w-full bg-[#181818] border border-[#2A2A2A] focus:border-[#E01E37] text-white p-3 min-h-[44px] outline-none font-mono text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="edit-instagram" className="block text-[11px] text-[#A0A0A0] mb-1.5 flex items-center gap-1.5 font-bold">
+                    <InstagramIcon className="w-4 h-4 text-white" />
+                    <span>Instagram Handle</span>
+                  </label>
+                  <input
+                    id="edit-instagram"
+                    type="text"
+                    value={editForm.instagramHandle || ''}
+                    onChange={(e) => onChange({ ...editForm, instagramHandle: e.target.value })}
+                    placeholder="@namaband"
+                    className="w-full bg-[#181818] border border-[#2A2A2A] focus:border-[#E01E37] text-white p-3 min-h-[44px] outline-none font-mono text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="edit-youtube" className="block text-[11px] text-[#A0A0A0] mb-1.5 flex items-center gap-1.5 font-bold">
+                    <YouTubeIcon className="w-4 h-4 text-[#E01E37]" />
+                    <span>YouTube Channel / Video</span>
+                  </label>
+                  <input
+                    id="edit-youtube"
+                    type="url"
+                    value={editForm.youtubeUrl || ''}
+                    onChange={(e) => onChange({ ...editForm, youtubeUrl: e.target.value })}
+                    placeholder="https://youtube.com/@namaband"
+                    className="w-full bg-[#181818] border border-[#2A2A2A] focus:border-[#E01E37] text-white p-3 min-h-[44px] outline-none font-mono text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="edit-tiktok" className="block text-[11px] text-[#A0A0A0] mb-1.5 flex items-center gap-1.5 font-bold">
+                    <TikTokIcon className="w-4 h-4 text-white" />
+                    <span>TikTok URL / Akun</span>
+                  </label>
+                  <input
+                    id="edit-tiktok"
+                    type="text"
+                    value={editForm.tiktokUrl || ''}
+                    onChange={(e) => onChange({ ...editForm, tiktokUrl: e.target.value })}
+                    placeholder="https://tiktok.com/@namaband"
+                    className="w-full bg-[#181818] border border-[#2A2A2A] focus:border-[#E01E37] text-white p-3 min-h-[44px] outline-none font-mono text-xs"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="pt-4 border-t border-[#242424] flex items-center justify-end gap-2.5">
+          <div className="shrink-0 bg-[#141414] border-t border-[#242424] p-4 sm:p-5 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
@@ -893,7 +1059,7 @@ export const EditRiderModal: React.FC<EditRiderModalProps> = ({
                   <div className="flex items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2 flex-1">
                       <span className="font-mono text-xs font-bold text-[#E01E37] shrink-0">
-                        {String(idx + 1).padStart(2, '0')} //
+                        {String(idx + 1).padStart(2, '0')}.
                       </span>
                       <input
                         type="text"

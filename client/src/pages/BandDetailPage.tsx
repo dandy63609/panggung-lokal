@@ -473,7 +473,7 @@ export const BandDetailPage: React.FC = () => {
               {/* Kanal Distribusi (4 Authentic Round Icons Matching Reference "Tools" Row) */}
               <div className="bg-[#0C0C0C] border border-[#222222] rounded-2xl p-4 lg:min-w-[280px]">
                 <span className="text-[10px] font-mono uppercase tracking-widest text-[#737373] block mb-3 font-bold">
-                  // KANAL DISTRIBUSI RESMI
+                  KANAL DISTRIBUSI RESMI
                 </span>
                 <div className="flex items-center gap-2.5">
                   {/* Spotify */}
@@ -643,7 +643,7 @@ export const BandDetailPage: React.FC = () => {
             <div className="flex items-center gap-2.5">
               <span className="w-2.5 h-2.5 rounded-full bg-[#E01E37] animate-pulse" />
               <span className="font-mono text-xs uppercase tracking-widest text-white font-bold">
-                SAMPEL AUDIO RESMI // LIVE MASTER DEMO
+                SAMPEL AUDIO RESMI · LIVE MASTER DEMO
               </span>
             </div>
             <span className="font-mono text-[10px] text-white bg-white/10 border border-white/20 px-2.5 py-0.5 uppercase tracking-wider rounded-full">
@@ -757,7 +757,7 @@ export const BandDetailPage: React.FC = () => {
               {/* Technical Rider Items (Customizable list from band dashboard) */}
               <div className="space-y-3">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-[#777] block font-bold">
-                  // KEBUTUHAN PERALATAN & RIDER RESMI
+                  KEBUTUHAN PERALATAN & RIDER RESMI
                 </span>
                 <div className="space-y-2.5">
                   {displayRiderItems.map((item, idx) => (
@@ -907,7 +907,7 @@ export const BandDetailPage: React.FC = () => {
             {/* Top Stage Header */}
             <div className="flex items-center justify-between text-xs font-mono text-[#777] z-10 pb-2 border-b border-[#1E1E1E]">
               <span className="uppercase tracking-widest text-[#E01E37] font-bold">
-                STAGE VISUAL // {currentStageSlide.tag}
+                STAGE VISUAL · {currentStageSlide.tag}
               </span>
               <div className="flex items-center gap-1.5">
                 <button
@@ -958,7 +958,7 @@ export const BandDetailPage: React.FC = () => {
 
               {/* HUD Telemetry Overlay Corners (Black, Red #E01E37, White) */}
               <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm border border-white/10 px-2 py-0.5 font-mono text-[9px] text-white/80 tracking-widest pointer-events-none uppercase">
-                CAM: 0{safeActiveSlide + 1} // FOH STAGE
+                CAM: 0{safeActiveSlide + 1} · FOH STAGE
               </div>
               <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-sm border border-white/10 px-2 py-0.5 font-mono text-[9px] text-[#E01E37] tracking-widest pointer-events-none uppercase font-bold">
                 LIVE SPL: 112 dB
@@ -990,7 +990,7 @@ export const BandDetailPage: React.FC = () => {
               {/* Slide Title Banner Pill (photo slides only so video controls remain clear) */}
               {currentStageSlide.type !== 'video' && (
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 max-w-[90%] truncate bg-black/85 backdrop-blur-md border border-white/15 px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-white pointer-events-none shadow-lg rounded-full">
-                  {band.bandName} // {currentStageSlide.title}
+                  {band.bandName} · {currentStageSlide.title}
                 </div>
               )}
             </div>
@@ -1034,7 +1034,7 @@ export const BandDetailPage: React.FC = () => {
             </div>
 
             <span className="font-mono text-xs text-[#666]">
-              PORTFOLIO ARCHIVE // {allPosts.length} KARYA
+              PORTFOLIO ARCHIVE · {allPosts.length} KARYA
             </span>
           </div>
 
@@ -1171,7 +1171,7 @@ export const BandDetailPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-6 font-mono text-xs">
-              <span className="text-[#666] hidden sm:inline">INDEX // 01 / 03</span>
+              <span className="text-[#666] hidden sm:inline">01 / 03</span>
               <Link
                 to="/cari-band"
                 className="text-[#E01E37] hover:text-white font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5"

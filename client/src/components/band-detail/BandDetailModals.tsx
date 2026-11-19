@@ -265,7 +265,7 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
 
         <div className="space-y-1 mb-6">
           <span className="font-mono text-[10px] uppercase tracking-widest text-[#E01E37] font-bold block">
-            KONTAK LANGSUNG // BOOKING RESMI
+            KONTAK LANGSUNG · BOOKING RESMI
           </span>
           <h2 className="font-mono text-2xl font-bold uppercase text-white">{band.bandName}</h2>
         </div>
