@@ -4,6 +4,52 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'panggung_lokal.json');
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '';
+const SHOULD_USE_CLOUD_SYNC = Boolean(
+  process.env.NODE_ENV !== 'test' && SUPABASE_URL && SUPABASE_KEY
+);
+
+const CLOUD_SYNC_TABLES = [
+  'users',
+  'band_profiles',
+  'band_posts',
+  'media_files',
+  'connections',
+  'reports',
+  'job_broadcasts'
+];
+
+const TABLE_COLUMNS = {
+  users: ['id', 'email', 'password_hash', 'account_type', 'google_id', 'auth_provider', 'created_at', 'last_login', 'is_active'],
+  band_profiles: [
+    'id', 'user_id', 'band_name', 'genre', 'location_city', 'location_region', 'bio',
+    'budget_min', 'budget_max', 'profile_photo_url', 'cover_photo_url', 'phone',
+    'instagram_handle', 'facebook_url', 'youtube_url', 'profile_views',
+    'rider_channel_inputs', 'rider_sound_system', 'rider_instruments', 'rider_hospitality',
+    'rider_items', 'spotify_url', 'tiktok_url', 'created_at', 'updated_at'
+  ],
+  band_posts: [
+    'id', 'band_profile_id', 'media_type', 'media_url', 'thumbnail_url',
+    'caption', 'slides', 'views_count', 'wa_clicks_count', 'created_at'
+  ],
+  media_files: [
+    'id', 'band_profile_id', 'file_type', 'file_url', 'thumbnail_url',
+    'title', 'display_order', 'created_at'
+  ],
+  connections: ['id', 'organizer_user_id', 'band_profile_id', 'connection_type', 'created_at', 'notes'],
+  password_reset_tokens: ['id', 'user_id', 'token', 'expires_at', 'used', 'created_at'],
+  reports: [
+    'id', 'reporter_user_id', 'reported_entity_type', 'reported_entity_id',
+    'reason', 'status', 'admin_notes', 'created_at', 'resolved_at'
+  ],
+  job_broadcasts: [
+    'id', 'organizer_user_id', 'source_band_profile_id', 'organizer_name',
+    'organizer_email', 'organizer_phone', 'event_date', 'perform_start_time',
+    'perform_end_time', 'venue_location', 'event_scale', 'event_details',
+    'attachments', 'recipient_band_count', 'created_at'
+  ]
+};
 
 let memDbInstance = null;
 let poolInstance = null;
@@ -146,22 +192,92 @@ function getMemoryDb() {
   poolInstance = pool;
 
   initPromise = (async () => {
-    if (fs.existsSync(DATA_FILE)) {
-      try {
-        const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-        await restoreData(pool, savedData);
-        console.log('📦 Restored database from', DATA_FILE);
-      } catch (err) {
-        console.error('⚠️ Could not restore saved data, seeding fresh:', err.message);
+    try {
+      let cloudData = null;
+      if (SHOULD_USE_CLOUD_SYNC) {
+        cloudData = await fetchFromCloud();
+      }
+
+      if (cloudData && Array.isArray(cloudData.users) && cloudData.users.length > 0) {
+        await restoreData(pool, cloudData);
+        console.log('☁️ Restored database from Supabase Cloud');
+      } else if (fs.existsSync(DATA_FILE)) {
+        try {
+          const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+          await restoreData(pool, savedData);
+          console.log('📦 Restored database from', DATA_FILE);
+          if (SHOULD_USE_CLOUD_SYNC) {
+            await syncAllToCloud();
+          }
+        } catch (err) {
+          console.error('⚠️ Could not restore saved data, seeding fresh:', err.message);
+          await seedInitialData(pool);
+        }
+      } else {
         await seedInitialData(pool);
       }
-    } else {
+    } catch (err) {
+      console.error('⚠️ Error during memory DB initialization:', err.message);
       await seedInitialData(pool);
     }
     await syncSerialSequences(db, pool);
   })();
 
   return { db: memDbInstance, pool: poolInstance, ready: initPromise };
+}
+
+async function fetchFromCloud() {
+  if (!SHOULD_USE_CLOUD_SYNC) return null;
+  try {
+    const dump = {};
+    const results = await Promise.all(
+      CLOUD_SYNC_TABLES.map(async (table) => {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*`, {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        if (!res.ok) return { table, rows: null };
+        const rows = await res.json();
+        return { table, rows: Array.isArray(rows) ? rows : [] };
+      })
+    );
+
+    for (const item of results) {
+      if (item.rows === null) return null;
+      dump[item.table] = item.rows;
+    }
+    return dump;
+  } catch (err) {
+    console.warn('⚠️ Cloud fetch skipped:', err.message);
+    return null;
+  }
+}
+
+async function syncAllToCloud() {
+  if (!SHOULD_USE_CLOUD_SYNC || !memDbInstance) return;
+  const data = dumpData(memDbInstance);
+
+  for (const table of CLOUD_SYNC_TABLES) {
+    const rows = data[table] || [];
+    if (rows.length > 0) {
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=id`, {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify(rows)
+        });
+      } catch (err) {
+        console.warn(`⚠️ Failed to sync table ${table} to Supabase:`, err.message);
+      }
+    }
+  }
 }
 
 async function syncSerialSequences(db, pool) {
@@ -187,8 +303,9 @@ async function restoreData(pool, data) {
   const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts'];
   for (const table of tables) {
     if (Array.isArray(data[table])) {
+      const allowedCols = new Set(TABLE_COLUMNS[table] || []);
       for (const row of data[table]) {
-        const keys = Object.keys(row);
+        const keys = Object.keys(row).filter(k => allowedCols.size === 0 || allowedCols.has(k));
         if (keys.length === 0) continue;
         const cols = keys.join(', ');
         const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
@@ -212,7 +329,7 @@ function dumpData(db) {
   return dump;
 }
 
-function saveMemoryDb() {
+async function saveMemoryDb() {
   if (!memDbInstance) return;
   try {
     const data = dumpData(memDbInstance);
@@ -220,6 +337,9 @@ function saveMemoryDb() {
       fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
     } catch {
       // Ignore read-only filesystem on serverless platforms (Vercel)
+    }
+    if (SHOULD_USE_CLOUD_SYNC) {
+      await syncAllToCloud();
     }
   } catch (err) {
     console.error('Failed to save memory database:', err.message);
@@ -578,7 +698,7 @@ async function seedInitialData(pool) {
     );
   }
 
-  saveMemoryDb();
+  await saveMemoryDb();
   console.log('✅ Initial database seed completed!');
 }
 

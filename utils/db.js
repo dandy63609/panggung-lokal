@@ -66,7 +66,7 @@ const query = async (text, params) => {
     
     // Auto save if memory db and modifying
     if (isUsingMemory && /^\s*(INSERT|UPDATE|DELETE|DROP|ALTER)/i.test(text)) {
-      saveMemoryDb();
+      await saveMemoryDb();
     }
     
     return res;
@@ -104,7 +104,7 @@ const transaction = async (callback) => {
     const result = await callback(client);
     await client.query('COMMIT');
     if (isUsingMemory) {
-      saveMemoryDb();
+      await saveMemoryDb();
     }
     return result;
   } catch (error) {
