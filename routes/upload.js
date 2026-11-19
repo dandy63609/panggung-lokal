@@ -184,7 +184,7 @@ router.post('/signed-url', requireAuth, uploadLimiter, async (req, res) => {
       return res.json({
         success: true,
         mode: 'direct',
-        items: signedItems,
+        items: signedItems.map((item) => ({ mode: 'direct', ...item })),
       });
     }
 

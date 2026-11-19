@@ -124,8 +124,10 @@ describe('Upload Signed URL & CSP Preview Regression Guards', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.mode).toBe('direct');
     expect(res.body.items).toHaveLength(2);
+    expect(res.body.items[0].mode).toBe('direct');
     expect(res.body.items[0].signedUrl).toContain('https://demo-proj.supabase.co/storage/v1/object/upload/sign/media/');
     expect(res.body.items[0].publicUrl).toContain('https://demo-proj.supabase.co/storage/v1/object/public/media/');
+    expect(res.body.items[1].mode).toBe('direct');
     expect(res.body.items[1].fileType).toBe('video');
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });

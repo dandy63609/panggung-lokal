@@ -340,7 +340,11 @@ export const authClient = {
     filename?: string
     message?: string
   }> {
-    if (descriptor.mode !== 'direct' || !descriptor.signedUrl || !descriptor.publicUrl) {
+    const isDirect =
+      descriptor.mode === 'direct' ||
+      (descriptor.mode !== 'multipart' && Boolean(descriptor.signedUrl && descriptor.publicUrl))
+
+    if (!isDirect || !descriptor.signedUrl || !descriptor.publicUrl) {
       return this.uploadSingleMultipart(file, descriptor.fallbackEndpoint)
     }
 
