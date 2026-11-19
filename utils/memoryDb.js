@@ -57,6 +57,13 @@ let poolInstance = null;
 let initPromise = null;
 let lastCloudFetchAt = 0;
 let cloudRefreshPromise = null;
+let memoryOpChain = Promise.resolve();
+
+function withMemoryDbLock(task) {
+  const next = memoryOpChain.then(task, task);
+  memoryOpChain = next.catch(() => {});
+  return next;
+}
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS users (
@@ -273,23 +280,33 @@ async function ensureFreshCloudData(force = false) {
   }
 
   cloudRefreshPromise = (async () => {
+    let client = null;
     try {
       const cloudData = await fetchFromCloud();
       if (!cloudData || !Array.isArray(cloudData.users) || cloudData.users.length === 0) {
         return false;
       }
+      client = await poolInstance.connect();
+      await client.query('BEGIN');
       const clearOrder = [...CLOUD_SYNC_TABLES].reverse();
       for (const table of clearOrder) {
-        await poolInstance.query(`DELETE FROM ${table}`);
+        await client.query(`DELETE FROM ${table}`);
       }
-      await restoreData(poolInstance, cloudData);
+      await restoreData(client, cloudData);
+      await client.query('COMMIT');
       await syncSerialSequences(memDbInstance, poolInstance);
       lastCloudFetchAt = Date.now();
       return true;
     } catch (err) {
+      if (client) {
+        await client.query('ROLLBACK').catch(() => {});
+      }
       console.warn('⚠️ Cloud refresh skipped:', err.message);
       return false;
     } finally {
+      if (client) {
+        client.release();
+      }
       cloudRefreshPromise = null;
     }
   })();
@@ -779,5 +796,6 @@ async function seedInitialData(pool) {
 module.exports = {
   getMemoryDb,
   saveMemoryDb,
-  ensureFreshCloudData
+  ensureFreshCloudData,
+  withMemoryDbLock
 };

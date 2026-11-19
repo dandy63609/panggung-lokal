@@ -71,6 +71,16 @@ describe('Admin User Deletion (Band & EO) & New Band Profile Routing API', () =>
     expect(foundInCatalog).toBeDefined();
     expect(foundInCatalog.bandName).toBe(`Nada Harmoni ${suffix}`);
 
+    // Unauthenticated search also lists newly created band (>2 bands) while masking phone numbers
+    const guestSearchRes = await request(app)
+      .get('/api/bands/search?limit=50')
+      .expect(200);
+
+    expect(guestSearchRes.body.isSneakPeek).toBe(true);
+    const guestFound = guestSearchRes.body.data.find((b) => b.id === newProfileId);
+    expect(guestFound).toBeDefined();
+    expect(guestFound.phone).toMatch(/xxxx$/);
+
     // Fetching /api/bands/profile/:newId as EO returns that exact band with unmasked phone
     const detailRes = await request(app)
       .get(`/api/bands/profile/${newProfileId}`)

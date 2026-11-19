@@ -199,7 +199,7 @@ export const ForgotPasswordPage: React.FC = () => {
         )}
 
         {step === 'request' ? (
-          <form onSubmit={handleRequestReset} className="space-y-5">
+          <form onSubmit={handleRequestReset} noValidate className="space-y-5">
             <div>
               <label
                 htmlFor="forgot-email"
@@ -244,7 +244,7 @@ export const ForgotPasswordPage: React.FC = () => {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleResetPassword} className="space-y-4">
+          <form onSubmit={handleResetPassword} noValidate className="space-y-4">
             <div>
               <label
                 htmlFor="reset-new-password"

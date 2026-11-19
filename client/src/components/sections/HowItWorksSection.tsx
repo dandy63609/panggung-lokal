@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Search, Music, Sliders, MessageSquare } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -105,11 +106,11 @@ export const HowItWorksSection: React.FC = () => {
               Pendaftaran band gratis. Dapatkan profil digital dan panggung baru sekarang.
             </p>
           </div>
-          <a href="/register.html">
+          <Link to="/daftar">
             <Button variant="primary" size="md">
               Daftar Sebagai Band
             </Button>
-          </a>
+          </Link>
         </div>
       </div>
     </section>

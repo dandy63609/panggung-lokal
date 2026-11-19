@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { X, Eye, Phone, ChevronLeft, ChevronRight, ImageOff, Film, Camera } from 'lucide-react'
 import { formatRupiah } from '../../lib/utils'
-import { parsePostSlides } from '../../lib/bandHelpers'
+import { isActualVideoSlide, parsePostSlides } from '../../lib/bandHelpers'
 import type { Band, BandPost } from '../../types'
 
 interface PostViewerModalProps {
@@ -52,8 +52,7 @@ export const PostViewerModal: React.FC<PostViewerModalProps> = ({
     type: activePost.mediaType === 'video' ? 'video' : 'photo',
     url: activePost.mediaUrl || activePost.thumbnailUrl || '',
   }
-  const isCurrentVideo =
-    currentSlide.type === 'video' || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(currentSlide.url || '')
+  const isCurrentVideo = isActualVideoSlide(currentSlide.type, currentSlide.url)
   const isBroken = Boolean(currentSlide.url && brokenUrls[currentSlide.url])
 
   const goToPrev = () => {

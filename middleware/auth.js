@@ -74,9 +74,10 @@ const verifyToken = async (req, res, next) => {
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, getJwtSecret());
 
-    // Admin token signed by the server (enabled in non-production or when ADMIN_PASSWORD is configured on the host).
+    // Admin token signed by the server (enabled in non-production or when a non-default ADMIN_PASSWORD is configured).
     if (
-      (process.env.NODE_ENV !== 'production' || Boolean(process.env.ADMIN_PASSWORD)) &&
+      (process.env.NODE_ENV !== 'production' ||
+        (Boolean(process.env.ADMIN_PASSWORD) && process.env.ADMIN_PASSWORD !== 'admin')) &&
       decoded.mockAdmin === true &&
       decoded.id === 'mock-admin' &&
       decoded.accountType === 'admin'

@@ -17,6 +17,7 @@ import {
   Sliders,
   Trash2,
   X,
+  Lock,
 } from 'lucide-react'
 import { authClient, type AuthUser } from '../lib/auth'
 
@@ -63,47 +64,20 @@ export const AdminDashboardPage: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
-  // Default Mock/Fallback metrics if backend is cold
   const [summary, setSummary] = useState<AdminSummary>({
-    totalUsers: 14,
-    totalBands: 8,
-    totalOrganizers: 6,
-    totalBandProfiles: 8,
-    totalActivePosts: 24,
-    totalConnections: 42,
-    totalProfileViews: 3890,
-    conversionRate: '3.12%',
+    totalUsers: 0,
+    totalBands: 0,
+    totalOrganizers: 0,
+    totalBandProfiles: 0,
+    totalActivePosts: 0,
+    totalConnections: 0,
+    totalProfileViews: 0,
+    conversionRate: '0.00%',
   })
 
-  const [users, setUsers] = useState<AdminUser[]>([
-    { id: 1, email: 'kelana.ombak@gmail.com', account_type: 'band', created_at: '2026-11-01T10:00:00.000Z', is_active: true },
-    { id: 2, email: 'senjabersuara@gmail.com', account_type: 'band', created_at: '2026-11-02T11:30:00.000Z', is_active: true },
-    { id: 3, email: 'distorsikota@music.id', account_type: 'band', created_at: '2026-11-03T09:15:00.000Z', is_active: true },
-    { id: 4, email: 'eo.senjafestival@event.com', account_type: 'organizer', created_at: '2026-11-05T14:20:00.000Z', is_active: true },
-    { id: 5, email: 'bem.teknik@kampus.ac.id', account_type: 'organizer', created_at: '2026-11-06T16:45:00.000Z', is_active: true },
-    { id: 6, email: 'irama.pesisir@band.id', account_type: 'band', created_at: '2026-11-07T08:10:00.000Z', is_active: true },
-    { id: 7, email: 'soundwave.creative@agency.id', account_type: 'organizer', created_at: '2026-11-09T13:00:00.000Z', is_active: true },
-    { id: 8, email: 'sukadana.jazz@sound.id', account_type: 'band', created_at: '2026-11-10T15:30:00.000Z', is_active: true },
-  ])
+  const [users, setUsers] = useState<AdminUser[]>([])
 
-  const [reports, setReports] = useState<AdminReport[]>([
-    {
-      id: 101,
-      reporterEmail: 'panitia.diesnatalis@kampus.id',
-      reportedEntityType: 'BAND_PROFILE',
-      reason: 'Nomor WhatsApp band tidak membalas konfirmasi jadwal dalam 3x24 jam.',
-      status: 'PENDING',
-      createdAt: '2026-11-12T10:15:00.000Z',
-    },
-    {
-      id: 102,
-      reporterEmail: 'festival.gigs@eo.co.id',
-      reportedEntityType: 'RIDER_SPECS',
-      reason: 'Permintaan klarifikasi kapasitas wattage sound system FOH.',
-      status: 'PENDING',
-      createdAt: '2026-11-14T09:40:00.000Z',
-    },
-  ])
+  const [reports, setReports] = useState<AdminReport[]>([])
 
   const showToast = useCallback((text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type })
@@ -149,6 +123,13 @@ export const AdminDashboardPage: React.FC = () => {
   useEffect(() => {
     let cancelled = false
     async function initMetrics() {
+      const user = authClient.getUser()
+      if (!user || user.accountType !== 'admin') {
+        if (!cancelled) {
+          setLoading(false)
+        }
+        return
+      }
       try {
         const headers = authClient.getAuthHeaders()
         const res = await fetch('/api/admin/metrics', { headers })
@@ -165,7 +146,7 @@ export const AdminDashboardPage: React.FC = () => {
           }
         }
       } catch {
-        // Keep solid fallback data
+        // Keep empty state cleanly on network error
       } finally {
         if (!cancelled) {
           setLoading(false)
@@ -173,13 +154,19 @@ export const AdminDashboardPage: React.FC = () => {
       }
     }
     initMetrics()
-    const onAuth = () => setCurrentUser(authClient.getUser())
+    const onAuth = () => {
+      const updated = authClient.getUser()
+      setCurrentUser(updated)
+      if (updated?.accountType === 'admin') {
+        loadAdminMetrics(false)
+      }
+    }
     window.addEventListener('auth-change', onAuth)
     return () => {
       cancelled = true
       window.removeEventListener('auth-change', onAuth)
     }
-  }, [])
+  }, [loadAdminMetrics])
 
   // Handle Quick Admin Login (in case of direct /admin visit)
   const handleAdminDemoLogin = async () => {
@@ -330,6 +317,55 @@ export const AdminDashboardPage: React.FC = () => {
     )
   }
 
+  if (!isAdmin) {
+    return (
+      <div className="w-full bg-[#000000] text-white min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#121212] border border-[#262626] rounded-2xl p-8 text-center space-y-5 shadow-2xl">
+          <div className="w-14 h-14 rounded-full bg-[#E01E37]/15 border border-[#E01E37]/40 text-[#E01E37] mx-auto flex items-center justify-center">
+            <Lock className="w-6 h-6" aria-hidden="true" />
+          </div>
+          <div className="space-y-2">
+            <div className="font-mono text-[11px] uppercase tracking-widest text-[#F87171] font-bold">
+              OTORISASI DIPERLUKAN
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl text-white uppercase tracking-wide">
+              Akses Khusus Administrator
+            </h1>
+            <p className="text-sm text-[#A0A0A0] font-sans leading-relaxed">
+              {currentUser
+                ? `Akun ${currentUser.email} (${currentUser.accountType.toUpperCase()}) tidak memiliki izin administrator untuk mengakses konsol ini.`
+                : 'Silakan masuk menggunakan akun administrator Reffband untuk mengakses metrik platform dan moderasi pengguna.'}
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 pt-2">
+            <Link
+              to="/masuk"
+              state={{ from: '/admin' }}
+              className="min-h-[44px] w-full py-2.5 px-6 rounded-xl bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider flex items-center justify-center transition-colors"
+            >
+              Masuk Akun Admin
+            </Link>
+            <Link
+              to="/"
+              className="min-h-[44px] w-full py-2.5 px-6 rounded-xl border border-[#333333] text-[#CCCCCC] hover:text-white hover:bg-white/5 font-mono text-xs uppercase font-bold tracking-wider flex items-center justify-center transition-colors"
+            >
+              Kembali ke Beranda
+            </Link>
+            {import.meta.env.DEV && (
+              <button
+                type="button"
+                onClick={handleAdminDemoLogin}
+                className="min-h-[44px] w-full py-2.5 px-6 rounded-xl bg-[#1A1A1A] hover:bg-[#242424] border border-[#E01E37]/40 text-[#F87171] font-mono text-[11px] uppercase font-bold tracking-wider cursor-pointer transition-colors"
+              >
+                Otentikasi Demo Admin (Dev)
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full bg-[#000000] text-white min-h-screen">
       {/* Toast Notification */}
@@ -463,21 +499,12 @@ export const AdminDashboardPage: React.FC = () => {
                 </span>
                 <div className="space-y-1">
                   <div className="font-mono text-xs text-white font-bold truncate">
-                    {currentUser?.email || 'admin@admin.com'}
+                    {currentUser?.email || 'Administrator'}
                   </div>
                   <div className="font-mono text-[11px] text-[#E01E37] uppercase">
-                    ROLE: {currentUser?.accountType?.toUpperCase() || 'SUPER ADMIN'}
+                    ROLE: {currentUser?.accountType?.toUpperCase() || 'ADMIN'}
                   </div>
                 </div>
-                {!isAdmin && (
-                  <button
-                    type="button"
-                    onClick={handleAdminDemoLogin}
-                    className="mt-3 w-full py-2 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-[11px] uppercase font-bold rounded-lg transition-colors cursor-pointer min-h-[44px]"
-                  >
-                    Otentikasi Demo Admin
-                  </button>
-                )}
               </div>
             </div>
 

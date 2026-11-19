@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Filter, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import type { Band } from '../../types'
 import { fallbackBands } from '../../data/bandsData'
@@ -7,13 +8,24 @@ import { FilterDrawer } from '../ui/FilterDrawer'
 import type { FilterState } from '../ui/FilterDrawer'
 import { CompareDrawer } from '../ui/CompareDrawer'
 import { authClient } from '../../lib/auth'
-import { CATALOG_FILTER_CATEGORIES, matchesGenreCategory } from '../../lib/genres'
+import { BAND_GENRE_FILTERS, CATALOG_FILTER_CATEGORIES, matchesGenreCategory } from '../../lib/genres'
 
 interface CatalogSectionProps {
   initialBands?: Band[]
 }
 
 const CATEGORIES = CATALOG_FILTER_CATEGORIES
+
+function resolveInitialCategory(genreParam: string | null): string {
+  const clean = (genreParam || '').trim().toLowerCase()
+  if (!clean) return 'SEMUA'
+  const match = BAND_GENRE_FILTERS.find(
+    (item) =>
+      item.category.toLowerCase() === clean ||
+      item.keywords.some((kw) => clean.includes(kw))
+  )
+  return match ? match.category : 'SEMUA'
+}
 
 const INITIAL_FILTERS: FilterState = {
   city: 'Semua',
@@ -23,15 +35,18 @@ const INITIAL_FILTERS: FilterState = {
 }
 
 export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) => {
+  const [searchParams] = useSearchParams()
   const [bands, setBands] = useState<Band[]>(initialBands || [])
-  const [selectedCategory, setSelectedCategory] = useState<string>('SEMUA')
+  const [selectedCategory, setSelectedCategory] = useState<string>(() =>
+    resolveInitialCategory(searchParams.get('genre'))
+  )
   const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS)
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [comparedBands, setComparedBands] = useState<Band[]>([])
   const [loading, setLoading] = useState<boolean>(!initialBands)
   const [visibleCount, setVisibleCount] = useState<number>(9)
 
-  // Fetch bands from backend API or combine with rich fallback when backend is offline / guest sneak peek
+  // Fetch live bands from backend API; only fall back when backend fails or returns offline empty
   useEffect(() => {
     let cancelled = false
 
@@ -47,23 +62,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
             ? json.data
             : json.data?.bands || []
 
-          if (json.success && !json.isSneakPeek) {
+          if (json.success) {
             setBands([...apiBands].sort((a, b) => a.id - b.id))
-            return
-          }
-
-          if (apiBands.length > 0) {
-            const merged = [...apiBands]
-            fallbackBands.forEach((fb) => {
-              const alreadyPresent = merged.some(
-                (b) => b.id === fb.id || b.bandName.toLowerCase().trim() === fb.bandName.toLowerCase().trim()
-              )
-              if (!alreadyPresent) {
-                merged.push(fb)
-              }
-            })
-            merged.sort((a, b) => a.id - b.id)
-            setBands(merged)
             return
           }
         }

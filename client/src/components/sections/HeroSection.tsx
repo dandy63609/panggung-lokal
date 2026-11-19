@@ -39,9 +39,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ stats }) => {
             Eksplorasi musisi lokal Indonesia lintas genre. Tinjau portofolio live, audio rekaman, dan technical rider panggung terstandarisasi langsung ke manajer band.
           </p>
 
-          {/* Single Cari Band CTA button directing to Daftar / Sign Up */}
+          {/* Single Cari Band CTA button directing to Cari Band catalog */}
           <div className="pt-2">
-            <Link to="/daftar" className="inline-block">
+            <Link to="/cari-band" className="inline-block">
               <Button
                 variant="primary"
                 size="lg"

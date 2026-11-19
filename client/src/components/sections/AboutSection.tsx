@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Sparkles, Users, SlidersHorizontal, ShieldCheck } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -91,11 +92,11 @@ export const AboutSection: React.FC = () => {
               </div>
 
               <div className="pt-6 mt-6 border-t border-[#242424]">
-                <a href="/register.html" className="w-full block">
+                <Link to="/daftar" className="w-full block">
                   <Button variant="outline" size="sm" className="w-full text-xs">
                     Daftarkan Band Anda
                   </Button>
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -128,11 +129,11 @@ export const AboutSection: React.FC = () => {
               </div>
 
               <div className="pt-6 mt-6 border-t border-[#242424]">
-                <a href="/search.html" className="w-full block">
+                <Link to="/cari-band" className="w-full block">
                   <Button variant="outline" size="sm" className="w-full text-xs">
                     Jelajahi Musisi
                   </Button>
-                </a>
+                </Link>
               </div>
             </div>
           </div>

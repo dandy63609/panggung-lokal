@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { BarChart3, ArrowUpRight } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 
@@ -49,13 +50,13 @@ export const GenreMatrixSection: React.FC<GenreMatrixSectionProps> = ({ totalBan
           {genreData.map((genre) => (
             <div key={genre.name} className="space-y-2">
               <div className="flex items-center justify-between text-xs sm:text-sm font-mono">
-                <a
-                  href={`/search.html?genre=${encodeURIComponent(genre.name.split(' ')[0])}`}
+                <Link
+                  to={`/cari-band?genre=${encodeURIComponent(genre.name.split(' ')[0])}`}
                   className="font-bold text-white hover:text-[#E01E37] flex items-center gap-1 group transition-colors"
                 >
                   <span>{genre.name}</span>
                   <ArrowUpRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
-                </a>
+                </Link>
                 <span className="text-[#9E9E9E]">
                   {genre.count} Band ({genre.percentage}%)
                 </span>

@@ -32,7 +32,7 @@ import {
 } from '../components/ui/SocialIcons'
 import { BroadcastInquirySection } from '../components/band-detail/BroadcastInquirySection'
 import { PostViewerModal, DirectBookingModal } from '../components/band-detail/BandDetailModals'
-import { formatWhatsAppPhone, parsePostSlides, sanitizeExternalUrl } from '../lib/bandHelpers'
+import { formatWhatsAppPhone, isActualVideoSlide, parsePostSlides, sanitizeExternalUrl } from '../lib/bandHelpers'
 import { formatRupiah } from '../lib/utils'
 import { authClient, type AuthUser } from '../lib/auth'
 import type { Band, BandPost, MediaFile, RiderItem } from '../types'
@@ -315,8 +315,7 @@ export const BandDetailPage: React.FC = () => {
         const customSlides = parsePostSlides(selectedPost, true).filter((s) => Boolean(s.url))
         if (customSlides.length > 0) {
           return customSlides.map((slide, idx) => {
-            const isVideo =
-              slide.type === 'video' || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(slide.url || '')
+            const isVideo = isActualVideoSlide(slide.type, slide.url)
             return {
               id: idx + 1,
               type: isVideo ? 'video' : 'photo',
@@ -1140,15 +1139,15 @@ export const BandDetailPage: React.FC = () => {
             {allPosts.map((post) => {
               const postSlides = parsePostSlides(post, true)
               const slideCount = postSlides.length
-              const hasPhotoSlide = postSlides.some((s) => s.type === 'photo')
-              const hasVideoSlide = postSlides.some((s) => s.type === 'video')
+              const hasPhotoSlide = postSlides.some((s) => !isActualVideoSlide(s.type, s.url))
+              const hasVideoSlide = postSlides.some((s) => isActualVideoSlide(s.type, s.url))
               const hasMixed = post.mediaType === 'mixed' || (hasPhotoSlide && hasVideoSlide)
               const primarySlide = postSlides[0]
               const primaryUrl = primarySlide?.url || post.mediaUrl || post.thumbnailUrl || ''
-              const isPrimaryVideo =
-                primarySlide?.type === 'video' ||
-                (!primarySlide?.type && post.mediaType === 'video') ||
-                /\.(mp4|webm|mov|m4v)(\?|$)/i.test(primaryUrl)
+              const isPrimaryVideo = isActualVideoSlide(
+                primarySlide?.type || post.mediaType,
+                primaryUrl
+              )
               const isCardBroken = Boolean(brokenCardThumbIds[post.id])
 
               return (

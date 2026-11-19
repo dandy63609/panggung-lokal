@@ -28,7 +28,7 @@ describe('Application Infrastructure', () => {
   });
 
   describe('GET /nonexistent', () => {
-    it('should return 404 for non-existent routes', async () => {
+    it('should return 404 JSON for programmatic non-existent routes', async () => {
       const response = await request(app)
         .get('/nonexistent')
         .expect('Content-Type', /json/)
@@ -37,6 +37,16 @@ describe('Application Infrastructure', () => {
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('NOT_FOUND');
       expect(response.body.error.message).toBe('Endpoint tidak ditemukan');
+    });
+
+    it('should serve SPA HTML fallback for browser navigation to unknown routes when dist exists', async () => {
+      const response = await request(app)
+        .get('/route-that-does-not-exist')
+        .set('Accept', 'text/html,application/xhtml+xml')
+        .expect('Content-Type', /html/)
+        .expect(200);
+
+      expect(response.text).toMatch(/<!doctype html>/i);
     });
   });
 });

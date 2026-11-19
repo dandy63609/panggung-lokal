@@ -42,12 +42,12 @@ router.get('/search', async (req, res) => {
       budgetMax,
       search,
       page,
-      limit: isAuthenticated ? limit : 2
+      limit: limit || 50
     });
 
     const isSneakPeek = !isAuthenticated;
     const responseBands = isSneakPeek
-      ? result.bands.slice(0, 2).map(b => ({
+      ? result.bands.map(b => ({
           ...b,
           phone: b.phone ? (b.phone.substring(0, 8) + 'xxxx') : null
         }))
@@ -57,12 +57,12 @@ router.get('/search', async (req, res) => {
       success: true,
       data: responseBands,
       isSneakPeek,
-      message: isSneakPeek ? 'Pratinjau (Sneak Peek) 2 band. Silakan login untuk melihat seluruh katalog & kontak WhatsApp.' : null,
+      message: isSneakPeek ? 'Mode pratinjau katalog. Silakan login untuk membuka nomor WhatsApp lengkap musisi.' : null,
       pagination: {
         total: result.total,
         page: result.page,
-        totalPages: isSneakPeek ? 1 : result.totalPages,
-        limit: isSneakPeek ? 2 : result.limit
+        totalPages: result.totalPages,
+        limit: result.limit
       }
     });
   } catch (error) {

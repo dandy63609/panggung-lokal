@@ -1,6 +1,6 @@
 const { Pool: PgPool } = require('pg');
 require('dotenv').config();
-const { getMemoryDb, saveMemoryDb, ensureFreshCloudData } = require('./memoryDb');
+const { getMemoryDb, saveMemoryDb, ensureFreshCloudData, withMemoryDbLock } = require('./memoryDb');
 
 let activePool = null;
 let isUsingMemory = false;
@@ -58,9 +58,28 @@ const query = async (text, params) => {
 
   const isModifying = /^\s*(INSERT|UPDATE|DELETE|DROP|ALTER)/i.test(text);
   const isDelete = /^\s*DELETE\b/i.test(text);
-  let refreshedBeforeWrite = false;
+
   if (isUsingMemory) {
-    refreshedBeforeWrite = await ensureFreshCloudData(isModifying);
+    return withMemoryDbLock(async () => {
+      const refreshedBeforeWrite = await ensureFreshCloudData(isModifying);
+      const start = Date.now();
+      try {
+        const res = await activePool.query(text, params);
+        const duration = Date.now() - start;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Executed query', { text: text.trim().substring(0, 80), duration, rows: res.rowCount });
+        }
+
+        if (isModifying) {
+          await saveMemoryDb({ syncDeletions: isDelete && refreshedBeforeWrite });
+        }
+
+        return res;
+      } catch (error) {
+        console.error('Database query error', { text, error: error.message });
+        throw error;
+      }
+    });
   }
 
   const start = Date.now();
@@ -70,12 +89,6 @@ const query = async (text, params) => {
     if (process.env.NODE_ENV === 'development') {
       console.log('Executed query', { text: text.trim().substring(0, 80), duration, rows: res.rowCount });
     }
-    
-    // Auto save if memory db and modifying
-    if (isUsingMemory && isModifying) {
-      await saveMemoryDb({ syncDeletions: isDelete && refreshedBeforeWrite });
-    }
-    
     return res;
   } catch (error) {
     // If real PG fails with connection error, switch to memory DB on the fly!
@@ -104,23 +117,30 @@ const transaction = async (callback) => {
   if (isUsingMemory && memoryReadyPromise) {
     await memoryReadyPromise;
   }
-  const refreshedBeforeTx = isUsingMemory ? await ensureFreshCloudData(true) : false;
 
-  const client = await activePool.connect();
-  try {
-    await client.query('BEGIN');
-    const result = await callback(client);
-    await client.query('COMMIT');
-    if (isUsingMemory) {
-      await saveMemoryDb({ syncDeletions: refreshedBeforeTx });
+  const runTx = async () => {
+    const refreshedBeforeTx = isUsingMemory ? await ensureFreshCloudData(true) : false;
+    const client = await activePool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await callback(client);
+      await client.query('COMMIT');
+      if (isUsingMemory) {
+        await saveMemoryDb({ syncDeletions: refreshedBeforeTx });
+      }
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
+  };
+
+  if (isUsingMemory) {
+    return withMemoryDbLock(runTx);
   }
+  return runTx();
 };
 
 module.exports = {

@@ -93,6 +93,18 @@ export function parsePostSlides(
   return []
 }
 
+export function isActualVideoSlide(type?: string | null, url?: string | null): boolean {
+  const cleanUrl = (url || '').trim()
+  if (
+    cleanUrl &&
+    (/\.(jpg|jpeg|png|webp|gif|svg|avif)(\?|$)/i.test(cleanUrl) ||
+      /images\.unsplash\.com\/photo-/i.test(cleanUrl))
+  ) {
+    return false
+  }
+  return type === 'video' || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(cleanUrl)
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes >= 1024 * 1024) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`

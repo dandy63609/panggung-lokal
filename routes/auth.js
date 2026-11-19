@@ -119,20 +119,19 @@ router.post('/login', authLimiter, async (req, res) => {
       });
     }
 
-    // Admin account (enabled in non-production or when ADMIN_PASSWORD is explicitly configured in environment).
+    // Admin account (enabled in non-production or when a non-default ADMIN_PASSWORD is configured).
     const cleanLoginEmail = email.toLowerCase().trim();
     const configuredAdminEmail = (process.env.ADMIN_EMAIL || 'admin@admin.com').toLowerCase().trim();
     const configuredAdminPass = process.env.ADMIN_PASSWORD || 'admin';
+    const isProductionEnv = process.env.NODE_ENV === 'production';
     const allowAdminShortcut =
-      process.env.NODE_ENV !== 'production' || Boolean(process.env.ADMIN_PASSWORD);
+      !isProductionEnv ||
+      (Boolean(process.env.ADMIN_PASSWORD) && process.env.ADMIN_PASSWORD !== 'admin');
+    const isAdminEmailMatch = process.env.ADMIN_EMAIL
+      ? cleanLoginEmail === configuredAdminEmail
+      : cleanLoginEmail === 'admin@admin.com' || cleanLoginEmail === 'admin@panggunglokal.id';
 
-    if (
-      allowAdminShortcut &&
-      (cleanLoginEmail === configuredAdminEmail ||
-        cleanLoginEmail === 'admin@admin.com' ||
-        cleanLoginEmail === 'admin@panggunglokal.id') &&
-      password === configuredAdminPass
-    ) {
+    if (allowAdminShortcut && isAdminEmailMatch && password === configuredAdminPass) {
       const admin = { id: 'mock-admin', email: cleanLoginEmail, accountType: 'admin', mockAdmin: true };
       const token = generateToken(admin);
       setAuthCookie(res, token);

@@ -44,6 +44,33 @@ describe('Phase 3 Production Security & Boundary Hardening', () => {
       expect(res.body.success).toBe(false);
     });
 
+    it('rejects weak default ADMIN_PASSWORD="admin" even if set in production', async () => {
+      process.env.NODE_ENV = 'production';
+      process.env.JWT_SECRET = 'prod-test-secret-32-chars-minimum-value';
+      process.env.ADMIN_PASSWORD = 'admin';
+
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'admin@admin.com', password: 'admin' });
+
+      expect(loginRes.status).toBe(401);
+      expect(loginRes.body.success).toBe(false);
+
+      const mockAdminToken = generateToken({
+        id: 'mock-admin',
+        email: 'admin@admin.com',
+        accountType: 'admin',
+        mockAdmin: true,
+      });
+
+      const adminRes = await request(app)
+        .get('/api/admin/metrics')
+        .set('Authorization', `Bearer ${mockAdminToken}`);
+
+      expect(adminRes.status).toBe(401);
+      delete process.env.ADMIN_PASSWORD;
+    });
+
     it('rejects mockAdmin token bypass in verifyToken when NODE_ENV is production', async () => {
       process.env.JWT_SECRET = 'prod-test-secret-32-chars-minimum-value';
       const mockAdminToken = generateToken({

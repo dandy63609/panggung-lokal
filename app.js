@@ -159,6 +159,24 @@ app.get('/', (req, res) => {
   });
 });
 
+// SPA fallback for browser HTML navigations to unknown client routes (preserves JSON 404 for API / programmatic clients)
+if (fs.existsSync(clientDistDir)) {
+  app.use((req, res, next) => {
+    const isHtmlNavigation =
+      req.method === 'GET' &&
+      !req.path.startsWith('/api/') &&
+      !req.path.startsWith('/uploads/') &&
+      !path.extname(req.path) &&
+      req.headers.accept &&
+      req.headers.accept.includes('text/html') &&
+      !req.headers.accept.includes('application/json');
+    if (isHtmlNavigation && fs.existsSync(clientDistIndex)) {
+      return sendSpaIndex(res);
+    }
+    return next();
+  });
+}
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({

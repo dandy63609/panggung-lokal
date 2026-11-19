@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Play, Pause, Sliders, Activity } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -219,11 +220,11 @@ export const StageSpecsSection: React.FC = () => {
               <span className="text-xs font-mono text-[#757575]">
                 Dibuat otomatis dari data registrasi band
               </span>
-              <a href="/register.html">
+              <Link to="/daftar">
                 <Button variant="primary" size="sm">
                   Buat Rider Band Anda
                 </Button>
-              </a>
+              </Link>
             </div>
           </div>
         </div>

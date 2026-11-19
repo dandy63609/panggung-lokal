@@ -311,7 +311,7 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
         ) : (
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {/* Email Field */}
           <div>
             <label
@@ -424,7 +424,8 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
 
-        {/* Demo Accounts Quick-Fill Section */}
+        {/* Demo Accounts Quick-Fill Section (Local Development Only) */}
+        {import.meta.env.DEV && (
         <div className="mt-8 pt-6 border-t border-dashed border-[#262626]">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-mono uppercase tracking-wider text-[#E01E37] flex items-center gap-1.5 font-bold">
@@ -484,6 +485,7 @@ export const LoginPage: React.FC = () => {
             </button>
           </div>
         </div>
+        )}
 
         {/* Footer Navigation Switcher */}
         <div className="mt-6 pt-5 border-t border-[#222222] text-center">
