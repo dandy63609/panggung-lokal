@@ -54,20 +54,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ stats }) => {
           </div>
         </div>
 
-        {/* Platform Indicators / Stats Counter matching previous UX */}
-        <div className="mt-14 pt-8 border-t border-[#242424]/80 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          <TelemetryCard
-            label="Band Terdaftar"
-            value={stats.totalBands ? `${stats.totalBands}+` : '8+'}
-            sublabel="Terverifikasi Aktif"
-            statusDot
-          />
-          <TelemetryCard
-            label="Genre Musik"
-            value={stats.totalGenres ? `${stats.totalGenres}+` : '6+'}
-            sublabel="Ragam Pilihan"
-            statusDot
-          />
+        {/* Platform Indicators / Stats Counter */}
+        <div className="mt-14 pt-8 border-t border-[#242424]/80 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
           <TelemetryCard
             label="Kontak Terverifikasi"
             value={stats.curatedBadge || '100%'}

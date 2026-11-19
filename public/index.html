@@ -84,19 +84,11 @@
           </button>
         </form>
 
-        <!-- Platform Indicators / Stats Counter -->
-        <div class="hero__stats">
-          <div class="stat-item">
-            <div id="stat-total-bands" class="stat-item__number">8+</div>
-            <div class="stat-item__label">Band Terdaftar</div>
-          </div>
-          <div class="stat-item">
-            <div id="stat-total-genres" class="stat-item__number">6+</div>
-            <div class="stat-item__label">Genre Musik</div>
-          </div>
-          <div class="stat-item">
-            <div id="stat-curated-badge" class="stat-item__number" style="color: var(--gold-foil);">100%</div>
-            <div class="stat-item__label">Kontak Terverifikasi</div>
+        <!-- Platform Indicator / Trust Badge -->
+        <div class="hero__stats" style="border-top: none; padding-top: var(--space-md); margin-top: var(--space-lg); justify-content: center;">
+          <div class="stat-item stat-item--featured" style="flex-direction: row; gap: 8px; align-items: center; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.09); padding: 8px 18px; border-radius: 999px;">
+            <div id="stat-curated-badge" class="stat-item__number" style="color: var(--gold-foil); font-size: 1.15rem; margin-bottom: 0;">100%</div>
+            <div class="stat-item__label" style="font-size: 0.85rem; letter-spacing: 0.5px;">Kontak Terverifikasi Langsung</div>
           </div>
         </div>
       </div>
@@ -219,10 +211,11 @@
           </ul>
         </div>
 
-        <div>
-          <h4 class="footer__column-title">Bisnis Digital</h4>
+        <div id="footer-admin-section" style="display: none;">
+          <h4 class="footer__column-title" style="color: var(--neon-cyan);">Admin &amp; Gateway</h4>
           <ul class="footer__links">
-            <li><a href="https://github.com" target="_blank" rel="noopener">Dokumentasi Proyek</a></li>
+            <li><a href="/admin.html">Dashboard Admin</a></li>
+            <li><a href="/health" target="_blank">Status Gateway API</a></li>
           </ul>
         </div>
       </div>
@@ -238,16 +231,27 @@
   <script src="/js/api.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      // 1. Load Dynamic Platform Indicators (Item 2)
+      // 1. Load Dynamic Platform Indicators
       try {
         const statsRes = await apiGetPlatformStats();
         if (statsRes && statsRes.success && statsRes.data) {
-          const stats = statsRes.data;
-          document.getElementById('stat-total-bands').textContent = `${stats.totalBands}+`;
-          document.getElementById('stat-total-genres').textContent = `${stats.totalGenres}+`;
-          document.getElementById('stat-curated-badge').textContent = '100%';
+          const statBands = document.getElementById('stat-total-bands');
+          if (statBands) statBands.textContent = `${statsRes.data.totalBands}+`;
+          const statGenres = document.getElementById('stat-total-genres');
+          if (statGenres) statGenres.textContent = `${statsRes.data.totalGenres}+`;
+          const statCurated = document.getElementById('stat-curated-badge');
+          if (statCurated) statCurated.textContent = '100%';
         }
       } catch (err) {
+        console.warn('Gagal memuat metrik hero section:', err);
+      }
+
+      // 2. Show API Gateway / Admin section ONLY for authenticated admins
+      const currentUser = AuthManager.getUser();
+      if (currentUser && currentUser.accountType === 'admin') {
+        const adminSection = document.getElementById('footer-admin-section');
+        if (adminSection) adminSection.style.display = 'block';
+      }
         console.warn('Gagal memuat metrik hero section:', err);
       }
 

@@ -98,12 +98,6 @@ class BandPost {
    * Create a new post for a band
    */
   static async create(data) {
-    let nextId = data.id;
-    if (!nextId) {
-      const maxRes = await db.query('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM band_posts');
-      nextId = parseInt(maxRes.rows[0].next_id, 10);
-    }
-
     let slides = BandPost.parseSlidesInput(data.slides);
     if (slides.length === 0) {
       slides = [
@@ -121,21 +115,39 @@ class BandPost {
     const thumbUrl = data.thumbnailUrl || firstPhotoSlide?.url || primaryUrl;
     const slidesJson = JSON.stringify(slides);
 
-    const result = await db.query(
-      `INSERT INTO band_posts (
+    let query;
+    let values;
+
+    if (data.id) {
+      query = `INSERT INTO band_posts (
         id, band_profile_id, media_type, media_url, thumbnail_url, caption, slides, views_count, wa_clicks_count
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0)
-      RETURNING *`,
-      [
-        nextId,
+      RETURNING *`;
+      values = [
+        data.id,
         data.bandProfileId,
         primaryType,
         primaryUrl,
         thumbUrl,
         data.caption || '',
         slidesJson
-      ]
-    );
+      ];
+    } else {
+      query = `INSERT INTO band_posts (
+        band_profile_id, media_type, media_url, thumbnail_url, caption, slides, views_count, wa_clicks_count
+      ) VALUES ($1, $2, $3, $4, $5, $6, 0, 0)
+      RETURNING *`;
+      values = [
+        data.bandProfileId,
+        primaryType,
+        primaryUrl,
+        thumbUrl,
+        data.caption || '',
+        slidesJson
+      ];
+    }
+
+    const result = await db.query(query, values);
     return new BandPost(result.rows[0]);
   }
 

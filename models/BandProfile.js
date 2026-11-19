@@ -167,66 +167,50 @@ class BandProfile {
       }
     }
 
-    const hasStageVisualUpdate = data.stageVisualPostId !== undefined;
-    const nextStageVisualPostId =
-      data.stageVisualPostId === null || data.stageVisualPostId === ''
-        ? null
-        : hasStageVisualUpdate
-          ? Number(data.stageVisualPostId)
-          : null;
+    const fields = [];
+    const values = [];
+    let idx = 1;
 
-    const result = await db.query(
-      `UPDATE band_profiles SET
-        band_name = COALESCE($1, band_name),
-        genre = COALESCE($2, genre),
-        location_city = COALESCE($3, location_city),
-        location_region = COALESCE($4, location_region),
-        bio = COALESCE($5, bio),
-        budget_min = COALESCE($6, budget_min),
-        budget_max = COALESCE($7, budget_max),
-        profile_photo_url = COALESCE($8, profile_photo_url),
-        cover_photo_url = COALESCE($9, cover_photo_url),
-        phone = COALESCE($10, phone),
-        instagram_handle = COALESCE($11, instagram_handle),
-        facebook_url = COALESCE($12, facebook_url),
-        youtube_url = COALESCE($13, youtube_url),
-        spotify_url = COALESCE($14, spotify_url),
-        tiktok_url = COALESCE($15, tiktok_url),
-        rider_channel_inputs = COALESCE($16, rider_channel_inputs),
-        rider_sound_system = COALESCE($17, rider_sound_system),
-        rider_instruments = COALESCE($18, rider_instruments),
-        rider_hospitality = COALESCE($19, rider_hospitality),
-        rider_items = COALESCE($20, rider_items),
-        stage_visual_post_id = CASE WHEN $21 THEN $22 ELSE stage_visual_post_id END,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $23
-      RETURNING *`,
-      [
-        data.bandName,
-        data.genre,
-        data.locationCity,
-        data.locationRegion,
-        data.bio,
-        data.budgetMin,
-        data.budgetMax,
-        data.profilePhotoUrl,
-        data.coverPhotoUrl,
-        data.phone,
-        data.instagramHandle,
-        data.facebookUrl,
-        data.youtubeUrl,
-        data.spotifyUrl,
-        data.tiktokUrl,
-        riderChannel,
-        riderSound,
-        riderInst,
-        riderHosp,
-        riderItemsJson,
-        hasStageVisualUpdate,
-        nextStageVisualPostId,
-        id,
-      ]
-    );
+    const map = [
+      ['band_name', data.bandName],
+      ['genre', data.genre],
+      ['location_city', data.locationCity],
+      ['location_region', data.locationRegion],
+      ['bio', data.bio],
+      ['budget_min', data.budgetMin],
+      ['budget_max', data.budgetMax],
+      ['profile_photo_url', data.profilePhotoUrl],
+      ['cover_photo_url', data.coverPhotoUrl],
+      ['phone', data.phone],
+      ['instagram_handle', data.instagramHandle],
+      ['facebook_url', data.facebookUrl],
+      ['youtube_url', data.youtubeUrl],
+      ['spotify_url', data.spotifyUrl],
+      ['tiktok_url', data.tiktokUrl],
+      ['rider_channel_inputs', riderChannel],
+      ['rider_sound_system', riderSound],
+      ['rider_instruments', riderInst],
+      ['rider_hospitality', riderHosp],
+      ['rider_items', riderItemsJson],
+      ['stage_visual_post_id', data.stageVisualPostId !== undefined ? (data.stageVisualPostId ? Number(data.stageVisualPostId) : null) : undefined],
+    ];
+
+    for (const [col, val] of map) {
+      if (val !== undefined) {
+        fields.push(`${col} = $${idx++}`);
+        values.push(val === '' ? null : val);
+      }
+    }
+
+    if (fields.length === 0) {
+      return BandProfile.findById(id);
+    }
+
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id);
+
+    const query = `UPDATE band_profiles SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
+    const result = await db.query(query, values);
     return result.rows[0] ? new BandProfile(result.rows[0]) : null;
   }
 

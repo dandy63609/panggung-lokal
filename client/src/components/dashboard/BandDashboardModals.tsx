@@ -25,6 +25,7 @@ import {
   YouTubeIcon,
   TikTokIcon,
 } from '../ui/SocialIcons'
+import { authClient } from '../../lib/auth'
 import type { BandPost, BandPostSlide, RiderItem } from '../../types'
 
 export interface UploadedMediaItem {
@@ -51,6 +52,8 @@ export interface EditProfileFormState {
   instagramHandle: string
   youtubeUrl: string
   tiktokUrl: string
+  profilePhotoUrl?: string
+  coverPhotoUrl?: string
 }
 
 interface UploadMediaModalProps {
@@ -960,6 +963,80 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     placeholder="https://tiktok.com/@namaband"
                     className="w-full bg-[#181818] border border-[#2A2A2A] focus:border-[#E01E37] text-white p-3 min-h-[44px] outline-none font-mono text-xs"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Foto Profil & Sampul Band */}
+            <div className="p-4 bg-[#141414] border border-[#242424] space-y-3">
+              <div className="text-xs font-mono uppercase tracking-wider text-[#E01E37] font-bold flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5" />
+                <span>Foto Profil &amp; Sampul Band</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5">
+                    Foto Profil (Avatar)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={editForm.profilePhotoUrl || ''}
+                      onChange={(e) => onChange({ ...editForm, profilePhotoUrl: e.target.value })}
+                      placeholder="URL foto..."
+                      className="flex-1 bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-2.5 min-h-[40px] outline-none font-mono"
+                    />
+                    <label className="px-3 py-2 bg-[#222222] hover:bg-[#2A2A2A] text-white border border-[#333333] text-xs font-mono uppercase flex items-center gap-1 cursor-pointer min-h-[40px]">
+                      <Upload className="w-3.5 h-3.5 text-[#00D9FF]" />
+                      <span>Upload</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          const res = await authClient.uploadFile(file)
+                          if (res.success && res.fileUrl) {
+                            onChange({ ...editForm, profilePhotoUrl: res.fileUrl })
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5">
+                    Foto Sampul (Banner)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={editForm.coverPhotoUrl || ''}
+                      onChange={(e) => onChange({ ...editForm, coverPhotoUrl: e.target.value })}
+                      placeholder="URL cover..."
+                      className="flex-1 bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-2.5 min-h-[40px] outline-none font-mono"
+                    />
+                    <label className="px-3 py-2 bg-[#222222] hover:bg-[#2A2A2A] text-white border border-[#333333] text-xs font-mono uppercase flex items-center gap-1 cursor-pointer min-h-[40px]">
+                      <Upload className="w-3.5 h-3.5 text-[#00D9FF]" />
+                      <span>Upload</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          const res = await authClient.uploadFile(file)
+                          if (res.success && res.fileUrl) {
+                            onChange({ ...editForm, coverPhotoUrl: res.fileUrl })
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

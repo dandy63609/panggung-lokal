@@ -20,6 +20,8 @@ import {
   Star,
   Phone,
   Megaphone,
+  Camera,
+  LogOut,
 } from 'lucide-react'
 import { authClient } from '../lib/auth'
 import { BAND_GENRE_OPTIONS, normalizeBandGenreSelection } from '../lib/genres'
@@ -357,6 +359,42 @@ export const BandDashboardPage: React.FC = () => {
     setStageVisualSaving(false)
   }
 
+  const handleDirectAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    showToast('Mengunggah foto profil band...', 'success')
+    const uploadRes = await authClient.uploadFile(file)
+    if (uploadRes.success && uploadRes.fileUrl) {
+      const updateRes = await authClient.updateBandProfile({ profilePhotoUrl: uploadRes.fileUrl })
+      if (updateRes.success) {
+        showToast('Foto profil band berhasil diperbarui!')
+        fetchDashboard()
+      } else {
+        showToast(updateRes.message || 'Gagal menyimpan foto profil', 'error')
+      }
+    } else {
+      showToast(uploadRes.message || 'Gagal mengunggah foto profil', 'error')
+    }
+  }
+
+  const handleDirectCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    showToast('Mengunggah foto sampul...', 'success')
+    const uploadRes = await authClient.uploadFile(file)
+    if (uploadRes.success && uploadRes.fileUrl) {
+      const updateRes = await authClient.updateBandProfile({ coverPhotoUrl: uploadRes.fileUrl })
+      if (updateRes.success) {
+        showToast('Foto sampul berhasil diperbarui!')
+        fetchDashboard()
+      } else {
+        showToast(updateRes.message || 'Gagal menyimpan foto sampul', 'error')
+      }
+    } else {
+      showToast(uploadRes.message || 'Gagal mengunggah foto sampul', 'error')
+    }
+  }
+
   // Open Edit Profil modal with current saved profile values synced cleanly
   const handleOpenEditProfileModal = () => {
     setEditForm({
@@ -371,11 +409,13 @@ export const BandDashboardPage: React.FC = () => {
       instagramHandle: profile?.instagramHandle || '',
       youtubeUrl: profile?.youtubeUrl || '',
       tiktokUrl: profile?.tiktokUrl || '',
+      profilePhotoUrl: profile?.profilePhotoUrl || '',
+      coverPhotoUrl: profile?.coverPhotoUrl || '',
     })
     setIsEditProfileModalOpen(true)
   }
 
-  // Submit handler: Identitas band, tarif manggung, dan tautan kanal media sosial
+  // Submit handler: Profil band, tarif manggung, media sosial, dan foto
   const handleEditProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setEditSubmitting(true)
@@ -392,6 +432,8 @@ export const BandDashboardPage: React.FC = () => {
       instagramHandle: editForm.instagramHandle?.trim(),
       youtubeUrl: editForm.youtubeUrl?.trim(),
       tiktokUrl: editForm.tiktokUrl?.trim(),
+      profilePhotoUrl: editForm.profilePhotoUrl?.trim() || undefined,
+      coverPhotoUrl: editForm.coverPhotoUrl?.trim() || undefined,
     })
 
     if (res.success && res.data) {
@@ -541,13 +583,27 @@ export const BandDashboardPage: React.FC = () => {
                 <ExternalLink className="w-4 h-4 text-white" />
               </Link>
             )}
+            {/* Direct Cover Upload Trigger Button */}
+            <label
+              className="absolute bottom-4 right-4 sm:bottom-5 sm:right-6 px-3.5 py-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white font-mono text-xs flex items-center gap-1.5 cursor-pointer z-10 transition-all shadow-md min-h-[36px]"
+              title="Ganti Foto Sampul / Banner"
+            >
+              <Camera className="w-3.5 h-3.5 text-[#00D9FF]" />
+              <span>Ganti Sampul</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleDirectCoverUpload}
+              />
+            </label>
           </div>
 
           {/* Card Body with Overlapping Circular Avatar */}
           <div className="px-6 sm:px-8 pb-6 sm:pb-8 relative">
             {/* Overlapping Avatar */}
             <div className="-mt-14 sm:-mt-16 mb-4 flex items-end justify-between relative z-10">
-              <div className="relative inline-block">
+              <div className="relative inline-block group/avatar">
                 <img
                   src={
                     profile?.profilePhotoUrl ||
@@ -556,6 +612,19 @@ export const BandDashboardPage: React.FC = () => {
                   alt={profile?.bandName || 'Band Avatar'}
                   className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-[#121212] shadow-2xl bg-[#1A1A1A]"
                 />
+                <label
+                  className="absolute inset-0 rounded-full bg-black/65 flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer text-white"
+                  title="Klik untuk ganti foto profil band"
+                >
+                  <Camera className="w-5 h-5 text-white" />
+                  <span className="text-[9px] font-mono mt-0.5 font-bold uppercase tracking-wider">Ubah</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleDirectAvatarUpload}
+                  />
+                </label>
                 <div
                   className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-[#E01E37] border-2 border-[#121212]"
                   title="Band Aktif di Reffband"
@@ -761,6 +830,16 @@ export const BandDashboardPage: React.FC = () => {
                 >
                   <Plus className="w-4 h-4" />
                   <span>Unggah Karya</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => authClient.logout()}
+                  className="px-4 py-2.5 rounded-full bg-red-950/30 hover:bg-red-900/50 text-[#E01E37] hover:text-white border border-[#E01E37]/40 font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Keluar dari akun band"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Keluar</span>
                 </button>
               </div>
             </div>

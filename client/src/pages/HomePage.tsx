@@ -5,7 +5,6 @@ import { AboutSection } from '../components/sections/AboutSection'
 import { TopRankStageSection } from '../components/sections/TopRankStageSection'
 import { EcosystemDashboardSection } from '../components/sections/EcosystemDashboardSection'
 import { StageSpecsSection } from '../components/sections/StageSpecsSection'
-import { GenreMatrixSection } from '../components/sections/GenreMatrixSection'
 import { HowItWorksSection } from '../components/sections/HowItWorksSection'
 import { FaqSection } from '../components/sections/FaqSection'
 import type { PlatformStats } from '../types'
@@ -49,13 +48,10 @@ export const HomePage: React.FC<HomePageProps> = ({ stats }) => {
       {/* 03 // Stage 01 : Audio Preview & Technical Rider Specs */}
       <StageSpecsSection />
 
-      {/* 04 // Peta Musisi Per Genre (Animated Distribution Matrix) */}
-      <GenreMatrixSection totalBands={stats.totalBands} />
-
-      {/* 05 // Cara Kerja Platform */}
+      {/* 04 // Cara Kerja Platform */}
       <HowItWorksSection />
 
-      {/* 06 // Tanya Jawab (FAQ) */}
+      {/* 05 // Tanya Jawab (FAQ) */}
       <FaqSection />
     </>
   )

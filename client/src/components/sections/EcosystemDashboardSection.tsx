@@ -39,7 +39,6 @@ export const EcosystemDashboardSection: React.FC<EcosystemDashboardProps> = ({ t
 
   const metrics: MetricColumn[] = [
     { id: 'gigs', label: 'GIGS TERJADWAL', targetValue: 128, suffix: '+', sublabel: 'Sepanjang Musim', totalSegments: 10, activeSegments: 8, color: '#E01E37' },
-    { id: 'bands', label: 'BAND TERDAFTAR', targetValue: totalBands || 8, suffix: '+', sublabel: 'Terverifikasi Aktif', totalSegments: 10, activeSegments: 6, color: '#00D9FF' },
     { id: 'rider', label: 'SOUNDCHECK PASS', targetValue: 100, suffix: '%', sublabel: 'Bebas Miskomunikasi', totalSegments: 10, activeSegments: 10, color: '#25D366' },
     { id: 'chat', label: 'DIRECT INQUIRIES', targetValue: 350, suffix: '+', sublabel: 'Percakapan WA', totalSegments: 10, activeSegments: 7, color: '#FFB627' },
     { id: 'cities', label: 'KOTA TERJANGKAU', targetValue: 7, suffix: ' Kota', sublabel: 'Jawa & Bali', totalSegments: 10, activeSegments: 5, color: '#FF6B35' },
@@ -173,8 +172,8 @@ export const EcosystemDashboardSection: React.FC<EcosystemDashboardProps> = ({ t
           </div>
         </div>
 
-        {/* 6 VU-Meter Rack Columns (compact height to fit any screen) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        {/* 5 VU-Meter Rack Columns (balanced layout) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {metrics.map((col) => (
             <div
               key={col.id}

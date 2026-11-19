@@ -49,11 +49,13 @@ const AuthManager = {
     return user && user.accountType === 'organizer';
   },
 
-  async logout() {
+  logout() {
     this.setToken(null);
     this.setUser(null);
-    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
-    window.location.href = '/login.html';
+    try {
+      fetch('/api/auth/logout', { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {});
+    } catch (e) {}
+    window.location.replace('/login.html');
   },
 
   getAuthHeaders() {

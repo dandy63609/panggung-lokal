@@ -552,11 +552,12 @@ export const authClient = {
 
   async logout(): Promise<void> {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
+      fetch('/api/auth/logout', { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {})
     } catch {
       // Ignore network errors on logout
     } finally {
       this.clearSession()
+      window.location.replace('/masuk')
     }
   },
 }

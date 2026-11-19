@@ -1,14 +1,22 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
+import { authClient } from '../lib/auth'
 
 const CURRENT_YEAR = new Date().getFullYear()
 
 export const Footer: React.FC = () => {
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const user = authClient.getUser()
+    setIsAdmin(user?.accountType === 'admin')
+  }, [])
+
   return (
     <footer className="w-full bg-[#080808] border-t border-[#242424] pt-16 pb-12 text-[#9E9E9E]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-10 pb-12 border-b border-[#1E1E1E]">
+        <div className={`grid grid-cols-1 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-10 pb-12 border-b border-[#1E1E1E]`}>
           {/* Brand Col */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
@@ -97,30 +105,32 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Links 3 */}
-          <div>
-            <h4 className="font-mono text-xs text-white uppercase tracking-widest mb-4 font-bold">
-              03 // Sistem
-            </h4>
-            <div className="space-y-2 text-xs font-mono">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#E01E37] animate-pulse" />
-                <span className="text-white">API Gateway Aktif</span>
-              </div>
-              <p className="text-[11px] text-[#616161]">
-                Node.js Express 5 + PostgreSQL
-              </p>
-              <div className="pt-2">
-                <a
-                  href="/health"
-                  className="inline-flex items-center gap-1 text-[11px] text-[#E01E37] hover:underline"
-                >
-                  <span>Cek Status Server</span>
-                  <ArrowUpRight className="w-3 h-3" />
-                </a>
+          {/* Links 3 - Hanya tampil khusus akun Admin */}
+          {isAdmin && (
+            <div>
+              <h4 className="font-mono text-xs text-[#00D9FF] uppercase tracking-widest mb-4 font-bold">
+                03 // Sistem (Admin)
+              </h4>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#E01E37] animate-pulse" />
+                  <span className="text-white">API Gateway Aktif</span>
+                </div>
+                <p className="text-[11px] text-[#616161]">
+                  Node.js Express 5 + PostgreSQL
+                </p>
+                <div className="pt-2">
+                  <a
+                    href="/health"
+                    className="inline-flex items-center gap-1 text-[11px] text-[#00D9FF] hover:underline"
+                  >
+                    <span>Cek Status Gateway</span>
+                    <ArrowUpRight className="w-3 h-3" />
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Bottom bar */}
