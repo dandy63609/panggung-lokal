@@ -87,9 +87,13 @@ router.post('/', requireAuth, requireBand, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Format URL media tidak aman atau tidak valid' });
     }
 
+    const resolvedMediaType = hasSlides
+      ? BandPost.resolveCollectionMediaType(parsedSlides, mediaType)
+      : (mediaType || 'photo');
+
     const newPost = await BandPost.create({
       bandProfileId: bandProfile.id,
-      mediaType: (hasSlides && parsedSlides[0]?.type) ? parsedSlides[0].type : (mediaType || 'photo'),
+      mediaType: resolvedMediaType,
       mediaUrl: finalMediaUrl,
       thumbnailUrl: thumbnailUrl || finalMediaUrl,
       caption: caption || '',
@@ -106,6 +110,51 @@ router.post('/', requireAuth, requireBand, async (req, res) => {
     return res.status(500).json({ success: false, message: 'Gagal membuat postingan' });
   }
 });
+
+const appendPostSlidesHandler = async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id, 10);
+    if (!isValidPositiveId(postId)) {
+      return res.status(400).json({ success: false, message: 'ID postingan tidak valid' });
+    }
+
+    const bandProfile = await BandProfile.findByUserId(req.user.id);
+    if (!bandProfile) {
+      return res.status(404).json({ success: false, message: 'Profil band tidak ditemukan' });
+    }
+
+    const { slides, caption } = req.body || {};
+    const parsedNewSlides = BandPost.parseSlidesInput(slides).map((item) => ({
+      type: item?.type || 'photo',
+      url: typeof item === 'string' ? item : item?.url || item?.mediaUrl || ''
+    })).filter((item) => item.url);
+
+    if (parsedNewSlides.length === 0) {
+      return res.status(400).json({ success: false, message: 'Minimal satu media baru wajib disertakan' });
+    }
+
+    if (!parsedNewSlides.every((item) => isSafeMediaUrl(item.url))) {
+      return res.status(400).json({ success: false, message: 'Format URL media tidak aman atau tidak valid' });
+    }
+
+    const updatedPost = await BandPost.appendSlides(postId, bandProfile.id, parsedNewSlides, caption);
+    if (!updatedPost) {
+      return res.status(404).json({ success: false, message: 'Postingan tidak ditemukan atau bukan milik band Anda' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Media berhasil ditambahkan ke carousel postingan',
+      data: updatedPost
+    });
+  } catch (error) {
+    console.error('Error updating post carousel:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memperbarui carousel postingan' });
+  }
+};
+
+router.put('/:id/slides', requireAuth, requireBand, appendPostSlidesHandler);
+router.patch('/:id/slides', requireAuth, requireBand, appendPostSlidesHandler);
 
 router.delete('/:id', requireAuth, requireBand, async (req, res) => {
   try {

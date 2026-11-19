@@ -471,6 +471,25 @@ export const authClient = {
     }
   },
 
+  async addSlidesToPost(
+    postId: number,
+    payload: { slides: Array<{ type: 'photo' | 'video' | 'audio'; url: string }>; caption?: string }
+  ): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const res = await fetch(`/api/posts/${postId}/slides`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
+        },
+        body: JSON.stringify(payload),
+      })
+      return await res.json()
+    } catch {
+      return { success: false, message: 'Gagal menambahkan media ke carousel karya' }
+    }
+  },
+
   async deletePost(postId: number): Promise<{ success: boolean; message?: string }> {
     try {
       const res = await fetch(`/api/posts/${postId}`, {

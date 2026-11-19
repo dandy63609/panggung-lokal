@@ -55,6 +55,8 @@ const TABLE_COLUMNS = {
 let memDbInstance = null;
 let poolInstance = null;
 let initPromise = null;
+let lastCloudFetchAt = 0;
+let cloudRefreshPromise = null;
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS users (
@@ -201,6 +203,7 @@ function getMemoryDb() {
 
       if (cloudData && Array.isArray(cloudData.users) && cloudData.users.length > 0) {
         await restoreData(pool, cloudData);
+        lastCloudFetchAt = Date.now();
         console.log('☁️ Restored database from Supabase Cloud');
       } else if (fs.existsSync(DATA_FILE)) {
         try {
@@ -256,14 +259,51 @@ async function fetchFromCloud() {
   }
 }
 
-async function syncAllToCloud() {
+async function ensureFreshCloudData(force = false) {
+  if (!SHOULD_USE_CLOUD_SYNC || !process.env.VERCEL || !memDbInstance || !poolInstance) {
+    return false;
+  }
+  const ttlMs = 3000;
+  if (!force && Date.now() - lastCloudFetchAt < ttlMs) {
+    return true;
+  }
+  if (cloudRefreshPromise) {
+    return cloudRefreshPromise;
+  }
+
+  cloudRefreshPromise = (async () => {
+    try {
+      const cloudData = await fetchFromCloud();
+      if (!cloudData || !Array.isArray(cloudData.users) || cloudData.users.length === 0) {
+        return false;
+      }
+      const clearOrder = [...CLOUD_SYNC_TABLES].reverse();
+      for (const table of clearOrder) {
+        await poolInstance.query(`DELETE FROM ${table}`);
+      }
+      await restoreData(poolInstance, cloudData);
+      await syncSerialSequences(memDbInstance, poolInstance);
+      lastCloudFetchAt = Date.now();
+      return true;
+    } catch (err) {
+      console.warn('⚠️ Cloud refresh skipped:', err.message);
+      return false;
+    } finally {
+      cloudRefreshPromise = null;
+    }
+  })();
+
+  return cloudRefreshPromise;
+}
+
+async function syncAllToCloud(options = {}) {
   if (!SHOULD_USE_CLOUD_SYNC || !memDbInstance) return;
   const data = dumpData(memDbInstance);
 
   for (const table of CLOUD_SYNC_TABLES) {
     const rows = data[table] || [];
-    if (rows.length > 0) {
-      try {
+    try {
+      if (rows.length > 0) {
         await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=id`, {
           method: 'POST',
           headers: {
@@ -274,11 +314,24 @@ async function syncAllToCloud() {
           },
           body: JSON.stringify(rows)
         });
-      } catch (err) {
-        console.warn(`⚠️ Failed to sync table ${table} to Supabase:`, err.message);
       }
+      if (options.syncDeletions) {
+        const deleteFilter = rows.length > 0
+          ? `id=not.in.(${rows.map((r) => r.id).join(',')})`
+          : 'id=gt.0';
+        await fetch(`${SUPABASE_URL}/rest/v1/${table}?${deleteFilter}`, {
+          method: 'DELETE',
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`
+          }
+        });
+      }
+    } catch (err) {
+      console.warn(`⚠️ Failed to sync table ${table} to Supabase:`, err.message);
     }
   }
+  lastCloudFetchAt = Date.now();
 }
 
 async function syncSerialSequences(db, pool) {
@@ -330,7 +383,7 @@ function dumpData(db) {
   return dump;
 }
 
-async function saveMemoryDb() {
+async function saveMemoryDb(options = {}) {
   if (!memDbInstance) return;
   try {
     const data = dumpData(memDbInstance);
@@ -340,7 +393,7 @@ async function saveMemoryDb() {
       // Ignore read-only filesystem on serverless platforms (Vercel)
     }
     if (SHOULD_USE_CLOUD_SYNC) {
-      await syncAllToCloud();
+      await syncAllToCloud(options);
     }
   } catch (err) {
     console.error('Failed to save memory database:', err.message);
@@ -705,5 +758,6 @@ async function seedInitialData(pool) {
 
 module.exports = {
   getMemoryDb,
-  saveMemoryDb
+  saveMemoryDb,
+  ensureFreshCloudData
 };

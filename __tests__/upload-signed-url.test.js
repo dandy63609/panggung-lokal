@@ -131,4 +131,54 @@ describe('Upload Signed URL & CSP Preview Regression Guards', () => {
     expect(res.body.items[1].fileType).toBe('video');
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
+
+  it('preserves mixed mediaType on multi-slide posts and appends slides one at a time via PUT /api/posts/:id/slides', async () => {
+    const photoPostRes = await request(app)
+      .post('/api/posts')
+      .set('Authorization', `Bearer ${bandToken}`)
+      .send({
+        mediaType: 'photo',
+        mediaUrl: 'https://demo-proj.supabase.co/storage/v1/object/public/media/photo-1.png',
+        caption: 'Soundcheck tahap 1',
+      });
+
+    expect(photoPostRes.status).toBe(201);
+    const createdPostId = photoPostRes.body.data.id;
+    expect(photoPostRes.body.data.mediaType).toBe('photo');
+
+    const appendRes = await request(app)
+      .put(`/api/posts/${createdPostId}/slides`)
+      .set('Authorization', `Bearer ${bandToken}`)
+      .send({
+        slides: [
+          {
+            type: 'video',
+            url: 'https://demo-proj.supabase.co/storage/v1/object/public/media/clip-2.mp4',
+          },
+        ],
+      });
+
+    expect(appendRes.status).toBe(200);
+    expect(appendRes.body.success).toBe(true);
+    expect(appendRes.body.data.mediaType).toBe('mixed');
+    expect(appendRes.body.data.slides).toHaveLength(2);
+    expect(appendRes.body.data.slides[0].type).toBe('photo');
+    expect(appendRes.body.data.slides[1].type).toBe('video');
+
+    const mixedCreateRes = await request(app)
+      .post('/api/posts')
+      .set('Authorization', `Bearer ${bandToken}`)
+      .send({
+        mediaType: 'mixed',
+        mediaUrl: 'https://demo-proj.supabase.co/storage/v1/object/public/media/photo-a.png',
+        slides: [
+          { type: 'photo', url: 'https://demo-proj.supabase.co/storage/v1/object/public/media/photo-a.png' },
+          { type: 'video', url: 'https://demo-proj.supabase.co/storage/v1/object/public/media/video-b.mp4' },
+        ],
+      });
+
+    expect(mixedCreateRes.status).toBe(201);
+    expect(mixedCreateRes.body.data.mediaType).toBe('mixed');
+    expect(mixedCreateRes.body.data.slides).toHaveLength(2);
+  });
 });

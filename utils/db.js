@@ -1,6 +1,6 @@
 const { Pool: PgPool } = require('pg');
 require('dotenv').config();
-const { getMemoryDb, saveMemoryDb } = require('./memoryDb');
+const { getMemoryDb, saveMemoryDb, ensureFreshCloudData } = require('./memoryDb');
 
 let activePool = null;
 let isUsingMemory = false;
@@ -56,6 +56,13 @@ const query = async (text, params) => {
     await memoryReadyPromise;
   }
 
+  const isModifying = /^\s*(INSERT|UPDATE|DELETE|DROP|ALTER)/i.test(text);
+  const isDelete = /^\s*DELETE\b/i.test(text);
+  let refreshedBeforeWrite = false;
+  if (isUsingMemory) {
+    refreshedBeforeWrite = await ensureFreshCloudData(isModifying);
+  }
+
   const start = Date.now();
   try {
     const res = await activePool.query(text, params);
@@ -65,8 +72,8 @@ const query = async (text, params) => {
     }
     
     // Auto save if memory db and modifying
-    if (isUsingMemory && /^\s*(INSERT|UPDATE|DELETE|DROP|ALTER)/i.test(text)) {
-      await saveMemoryDb();
+    if (isUsingMemory && isModifying) {
+      await saveMemoryDb({ syncDeletions: isDelete && refreshedBeforeWrite });
     }
     
     return res;
@@ -97,6 +104,7 @@ const transaction = async (callback) => {
   if (isUsingMemory && memoryReadyPromise) {
     await memoryReadyPromise;
   }
+  const refreshedBeforeTx = isUsingMemory ? await ensureFreshCloudData(true) : false;
 
   const client = await activePool.connect();
   try {
@@ -104,7 +112,7 @@ const transaction = async (callback) => {
     const result = await callback(client);
     await client.query('COMMIT');
     if (isUsingMemory) {
-      await saveMemoryDb();
+      await saveMemoryDb({ syncDeletions: refreshedBeforeTx });
     }
     return result;
   } catch (error) {

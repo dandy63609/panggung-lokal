@@ -1,6 +1,23 @@
 const db = require('../utils/db');
 
 class BandPost {
+  static resolveCollectionMediaType(slides, fallbackType = 'photo') {
+    if (!Array.isArray(slides) || slides.length === 0) {
+      return fallbackType || 'photo';
+    }
+    const types = new Set(slides.map((s) => (s && s.type) || 'photo'));
+    if (types.has('photo') && types.has('video')) {
+      return 'mixed';
+    }
+    if (types.has('video')) {
+      return 'video';
+    }
+    if (types.has('audio')) {
+      return 'audio';
+    }
+    return slides[0]?.type || fallbackType || 'photo';
+  }
+
   static parseSlidesInput(rawSlides) {
     if (Array.isArray(rawSlides)) {
       return rawSlides;
@@ -98,9 +115,10 @@ class BandPost {
     }
 
     const firstSlide = slides[0] || {};
-    const primaryType = firstSlide.type || data.mediaType || 'photo';
+    const firstPhotoSlide = slides.find((s) => (s?.type || 'photo') === 'photo');
+    const primaryType = BandPost.resolveCollectionMediaType(slides, data.mediaType);
     const primaryUrl = firstSlide.url || data.mediaUrl || '';
-    const thumbUrl = data.thumbnailUrl || (primaryType === 'video' ? (data.thumbnailUrl || primaryUrl) : primaryUrl);
+    const thumbUrl = data.thumbnailUrl || firstPhotoSlide?.url || primaryUrl;
     const slidesJson = JSON.stringify(slides);
 
     const result = await db.query(
@@ -119,6 +137,48 @@ class BandPost {
       ]
     );
     return new BandPost(result.rows[0]);
+  }
+
+  /**
+   * Append additional slides to an existing post carousel (ensuring band ownership)
+   */
+  static async appendSlides(id, bandProfileId, newSlides = [], captionOverride) {
+    const existingRes = await db.query(
+      'SELECT * FROM band_posts WHERE id = $1 AND band_profile_id = $2',
+      [id, bandProfileId]
+    );
+    if (existingRes.rows.length === 0) {
+      return null;
+    }
+
+    const current = new BandPost(existingRes.rows[0]);
+    const mergedSlides = [...current.slides, ...newSlides].filter((s) => s && s.url);
+    const primaryType = BandPost.resolveCollectionMediaType(mergedSlides, current.mediaType);
+    const firstSlide = mergedSlides[0] || {};
+    const firstPhoto = mergedSlides.find((s) => s.type === 'photo');
+    const primaryUrl = firstSlide.url || current.mediaUrl;
+    const thumbUrl = firstPhoto?.url || current.thumbnailUrl || primaryUrl;
+    const nextCaption = typeof captionOverride === 'string' && captionOverride.trim() !== ''
+      ? captionOverride.trim()
+      : current.caption;
+
+    const updatedRes = await db.query(
+      `UPDATE band_posts
+       SET media_type = $1, media_url = $2, thumbnail_url = $3, caption = $4, slides = $5
+       WHERE id = $6 AND band_profile_id = $7
+       RETURNING *`,
+      [
+        primaryType,
+        primaryUrl,
+        thumbUrl,
+        nextCaption,
+        JSON.stringify(mergedSlides),
+        id,
+        bandProfileId
+      ]
+    );
+
+    return updatedRes.rows[0] ? new BandPost(updatedRes.rows[0]) : null;
   }
 
   /**

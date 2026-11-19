@@ -19,6 +19,8 @@ import {
   Clock,
   Radio,
   CheckCircle2,
+  Layers,
+  ImageOff,
 } from 'lucide-react'
 import { fallbackBands } from '../data/bandsData'
 import { BandCard } from '../components/ui/BandCard'
@@ -30,7 +32,7 @@ import {
 } from '../components/ui/SocialIcons'
 import { BroadcastInquirySection } from '../components/band-detail/BroadcastInquirySection'
 import { PostViewerModal, DirectBookingModal } from '../components/band-detail/BandDetailModals'
-import { formatWhatsAppPhone, sanitizeExternalUrl } from '../lib/bandHelpers'
+import { formatWhatsAppPhone, parsePostSlides, sanitizeExternalUrl } from '../lib/bandHelpers'
 import { formatRupiah } from '../lib/utils'
 import { authClient, type AuthUser } from '../lib/auth'
 import type { Band, BandPost, MediaFile, RiderItem } from '../types'
@@ -53,6 +55,7 @@ export const BandDetailPage: React.FC = () => {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState<boolean>(false)
   const [activePost, setActivePost] = useState<BandPost | null>(null)
   const [galleryFilter, setGalleryFilter] = useState<'all' | 'photo' | 'video'>('all')
+  const [brokenCardThumbIds, setBrokenCardThumbIds] = useState<Record<number, boolean>>({})
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false)
@@ -277,10 +280,14 @@ export const BandDetailPage: React.FC = () => {
     ]
   }, [band])
 
-  // Filtered posts based on category
+  // Filtered posts based on category (including mixed carousels)
   const filteredPosts = useMemo(() => {
     if (galleryFilter === 'all') return allPosts
-    return allPosts.filter((p) => p.mediaType === galleryFilter)
+    return allPosts.filter((p) => {
+      if (p.mediaType === galleryFilter) return true
+      const slides = parsePostSlides(p, true)
+      return slides.some((s) => s.type === galleryFilter)
+    })
   }, [allPosts, galleryFilter])
 
   // Related bands (3 bands from other genres/cities)
@@ -1037,66 +1044,119 @@ export const BandDetailPage: React.FC = () => {
 
           {/* 4-Column Responsive Work Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-            {filteredPosts.map((post) => (
-              <div
-                key={post.id}
-                onClick={() => setActivePost(post)}
-                className="group relative bg-[#121212] border border-[#242424] hover:border-[#E01E37] rounded-xl flex flex-col justify-between overflow-hidden cursor-pointer transition-all duration-300 shadow-md hover:shadow-[0_8px_30px_rgba(224,30,55,0.2)]"
-              >
-                {/* Media Thumbnail */}
-                <div className="relative w-full aspect-[4/3] bg-[#0A0A0A] overflow-hidden">
-                  <img
-                    src={post.mediaUrl || post.thumbnailUrl}
-                    alt={post.caption || 'Portofolio Panggung'}
-                    className="w-full h-full object-cover grayscale contrast-115 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500 ease-out"
-                  />
+            {filteredPosts.map((post) => {
+              const postSlides = parsePostSlides(post, true)
+              const slideCount = postSlides.length
+              const hasPhotoSlide = postSlides.some((s) => s.type === 'photo')
+              const hasVideoSlide = postSlides.some((s) => s.type === 'video')
+              const hasMixed = post.mediaType === 'mixed' || (hasPhotoSlide && hasVideoSlide)
+              const primarySlide = postSlides[0]
+              const primaryUrl = primarySlide?.url || post.mediaUrl || post.thumbnailUrl || ''
+              const isPrimaryVideo =
+                primarySlide?.type === 'video' ||
+                (!primarySlide?.type && post.mediaType === 'video') ||
+                /\.(mp4|webm|mov|m4v)(\?|$)/i.test(primaryUrl)
+              const isCardBroken = Boolean(brokenCardThumbIds[post.id])
 
-                  {/* Media Type Badge */}
-                  <div className="absolute top-2.5 left-2.5 z-10">
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-white bg-black/80 backdrop-blur-sm border border-white/10 px-2 py-0.5 font-bold flex items-center gap-1 rounded">
-                      {post.mediaType === 'video' ? (
-                        <>
-                          <Film className="w-3 h-3 text-[#E01E37]" />
-                          <span>VIDEO</span>
-                        </>
-                      ) : (
-                        <>
-                          <Camera className="w-3 h-3 text-white" />
-                          <span>FOTO</span>
-                        </>
+              return (
+                <div
+                  key={post.id}
+                  onClick={() => setActivePost(post)}
+                  className="group relative bg-[#121212] border border-[#242424] hover:border-[#E01E37] rounded-xl flex flex-col justify-between overflow-hidden cursor-pointer transition-all duration-300 shadow-md hover:shadow-[0_8px_30px_rgba(224,30,55,0.2)]"
+                >
+                  {/* Media Thumbnail */}
+                  <div className="relative w-full aspect-[4/3] bg-[#0A0A0A] overflow-hidden">
+                    {isPrimaryVideo ? (
+                      <video
+                        src={primaryUrl}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : isCardBroken || !primaryUrl ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-[#141414] text-[#707070] p-4 text-center">
+                        <ImageOff className="w-6 h-6 mb-1.5" aria-hidden="true" />
+                        <span className="font-mono text-[10px] uppercase tracking-wider">
+                          Pratinjau tidak tersedia
+                        </span>
+                      </div>
+                    ) : (
+                      <img
+                        src={primaryUrl}
+                        alt={post.caption || 'Portofolio Panggung'}
+                        onError={() =>
+                          setBrokenCardThumbIds((prev) => ({ ...prev, [post.id]: true }))
+                        }
+                        className="w-full h-full object-cover grayscale contrast-115 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500 ease-out"
+                      />
+                    )}
+
+                    {/* Media Type Badge */}
+                    <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 flex-wrap">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-white bg-black/80 backdrop-blur-sm border border-white/10 px-2 py-0.5 font-bold flex items-center gap-1 rounded">
+                        {hasMixed ? (
+                          <>
+                            <Layers className="w-3 h-3 text-[#E01E37]" aria-hidden="true" />
+                            <span className="text-[#E01E37]">CAMPURAN</span>
+                          </>
+                        ) : isPrimaryVideo ? (
+                          <>
+                            <Film className="w-3 h-3 text-[#E01E37]" aria-hidden="true" />
+                            <span>VIDEO</span>
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="w-3 h-3 text-white" aria-hidden="true" />
+                            <span>FOTO</span>
+                          </>
+                        )}
+                      </span>
+                      {slideCount > 1 && (
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-white bg-black/85 border border-white/15 px-2 py-0.5 font-bold rounded">
+                          {slideCount} SLIDE
+                        </span>
                       )}
-                    </span>
+                    </div>
+
+                    {/* Views Pill */}
+                    <div className="absolute top-2.5 right-2.5 z-10">
+                      <span className="font-mono text-[10px] text-[#A0A0A0] bg-black/80 backdrop-blur-sm px-2 py-0.5 flex items-center gap-1 border border-white/5 rounded">
+                        <Eye className="w-3 h-3 text-white/70" />
+                        <span>{post.viewsCount || 0}</span>
+                      </span>
+                    </div>
+
+                    {isPrimaryVideo && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                        <span className="w-11 h-11 rounded-full bg-black/75 border border-white/25 flex items-center justify-center text-white shadow-lg">
+                          <Play className="w-5 h-5 fill-white ml-0.5" aria-hidden="true" />
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Dark Vignette Overlay on Hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-60 group-hover:opacity-80 transition-opacity pointer-events-none" />
                   </div>
 
-                  {/* Views Pill */}
-                  <div className="absolute top-2.5 right-2.5 z-10">
-                    <span className="font-mono text-[10px] text-[#A0A0A0] bg-black/80 backdrop-blur-sm px-2 py-0.5 flex items-center gap-1 border border-white/5 rounded">
-                      <Eye className="w-3 h-3 text-white/70" />
-                      <span>{post.viewsCount || 0}</span>
-                    </span>
+                  {/* Card Footer: Snippet & Action */}
+                  <div className="p-4 bg-[#101010] border-t border-[#1F1F1F] space-y-2">
+                    <p className="text-xs text-[#B5B5B5] line-clamp-2 leading-relaxed min-h-[32px]">
+                      {post.caption || 'Dokumentasi performa panggung live resmi.'}
+                    </p>
+                    <div className="pt-2 border-t border-[#1C1C1C] flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-[#666] uppercase">
+                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }) : 'DOKUMENTASI'}
+                      </span>
+                      <span className="text-[#E01E37] group-hover:translate-x-0.5 transition-transform font-bold flex items-center gap-1">
+                        <span>LIHAT</span>
+                        <span>▸</span>
+                      </span>
+                    </div>
                   </div>
-
-                  {/* Dark Vignette Overlay on Hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                 </div>
-
-                {/* Card Footer: Snippet & Action */}
-                <div className="p-4 bg-[#101010] border-t border-[#1F1F1F] space-y-2">
-                  <p className="text-xs text-[#B5B5B5] line-clamp-2 leading-relaxed min-h-[32px]">
-                    {post.caption || 'Dokumentasi performa panggung live resmi.'}
-                  </p>
-                  <div className="pt-2 border-t border-[#1C1C1C] flex items-center justify-between text-[11px] font-mono">
-                    <span className="text-[#666] uppercase">
-                      {post.createdAt ? new Date(post.createdAt).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }) : 'DOKUMENTASI'}
-                    </span>
-                    <span className="text-[#E01E37] group-hover:translate-x-0.5 transition-transform font-bold flex items-center gap-1">
-                      <span>LIHAT</span>
-                      <span>▸</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </section>
 

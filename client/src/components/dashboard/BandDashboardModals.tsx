@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Upload,
   X,
   FolderOpen,
   Sparkles,
   Film,
+  Camera,
   ImageOff,
   Loader2,
   Plus,
@@ -43,6 +44,9 @@ interface UploadMediaModalProps {
   uploadedItems: UploadedMediaItem[]
   uploadCaption: string
   uploadSubmitting: boolean
+  existingPosts?: BandPost[]
+  targetPostId?: number | null
+  onTargetPostChange?: (postId: number | null) => void
   onClose: () => void
   onFilesSelected: (files: FileList | File[]) => void
   onRemoveItem: (id: string) => void
@@ -56,6 +60,9 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
   uploadedItems,
   uploadCaption,
   uploadSubmitting,
+  existingPosts = [],
+  targetPostId = null,
+  onTargetPostChange,
   onClose,
   onFilesSelected,
   onRemoveItem,
@@ -63,6 +70,8 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
   onSubmit,
 }) => {
   const [brokenPreviewIds, setBrokenPreviewIds] = useState<Record<string, boolean>>({})
+  const photoInputRef = useRef<HTMLInputElement | null>(null)
+  const videoInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     if (!isOpen) return
@@ -81,6 +90,7 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
   const videoCount = uploadedItems.filter((i) => i.type === 'video').length
   const hasUploading = uploadedItems.some((i) => i.uploading)
   const failedItems = uploadedItems.filter((i) => Boolean(i.error) || (!i.uploading && !i.serverUrl))
+  const isAppendingToPost = Boolean(targetPostId)
 
   return (
     <div
@@ -101,6 +111,28 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
             e.target.value = ''
           }}
         />
+        <input
+          ref={photoInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files) onFilesSelected(e.target.files)
+            e.target.value = ''
+          }}
+        />
+        <input
+          ref={videoInputRef}
+          type="file"
+          multiple
+          accept="video/*"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files) onFilesSelected(e.target.files)
+            e.target.value = ''
+          }}
+        />
 
         <div className="shrink-0 flex items-start sm:items-center justify-between gap-3 p-4 sm:p-6 border-b border-[#242424] bg-[#141414]">
           <div className="flex items-start sm:items-center gap-2.5 min-w-0">
@@ -113,7 +145,7 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
                 UNGGAH KARYA // DIREKTORI LOKAL
               </h3>
               <span className="text-[11px] font-mono text-[#A0A0A0] block mt-0.5 leading-snug">
-                Pilih foto, video, atau campur keduanya dalam satu postingan panggung
+                Tambah foto & video sekaligus atau satu per satu ke dalam satu carousel
               </span>
             </div>
           </div>
@@ -129,10 +161,43 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
 
         <form onSubmit={onSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 overscroll-contain">
+            {existingPosts.length > 0 && onTargetPostChange && (
+              <div className="p-3 bg-[#161616] border border-[#282828] space-y-1.5">
+                <label
+                  htmlFor="upload-target-post"
+                  className="block text-[10px] font-mono uppercase tracking-wider text-[#A0A0A0]"
+                >
+                  Tujuan Postingan (Buat Carousel Baru atau Gabung ke Postingan Ada)
+                </label>
+                <select
+                  id="upload-target-post"
+                  value={targetPostId ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    onTargetPostChange(val ? Number(val) : null)
+                  }}
+                  className="w-full bg-[#101010] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs font-mono px-3 py-2.5 min-h-[44px] outline-none cursor-pointer"
+                >
+                  <option value="" className="bg-[#121212] text-white">
+                    + Buat Postingan Carousel Baru
+                  </option>
+                  {existingPosts.map((post, idx) => {
+                    const labelCaption = (post.caption || '').trim() || `Karya #${existingPosts.length - idx}`
+                    const shortLabel = labelCaption.length > 42 ? `${labelCaption.slice(0, 42)}...` : labelCaption
+                    return (
+                      <option key={post.id} value={post.id} className="bg-[#121212] text-white">
+                        Gabung ke Carousel: {shortLabel}
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+            )}
+
             {uploadedItems.length === 0 ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="p-6 sm:p-10 border-2 border-dashed border-[#3A3A3A] hover:border-[#E01E37] bg-[#151515] hover:bg-[#1A1A1A] transition-all text-center cursor-pointer group"
+                className="p-6 sm:p-8 border-2 border-dashed border-[#3A3A3A] hover:border-[#E01E37] bg-[#151515] hover:bg-[#1A1A1A] transition-all text-center cursor-pointer group"
               >
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#202020] group-hover:bg-[#E01E37]/20 border border-[#2F2F2F] group-hover:border-[#E01E37] flex items-center justify-center mx-auto mb-4 transition-colors">
                   <FolderOpen className="w-7 h-7 sm:w-8 sm:h-8 text-white group-hover:text-[#E01E37] transition-colors" />
@@ -140,20 +205,44 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
                 <h4 className="font-display text-xl sm:text-2xl text-white tracking-wider mb-2">
                   PILIH FOTO ATAU VIDEO DARI PERANGKAT
                 </h4>
-                <p className="text-xs text-[#A0A0A0] font-sans max-w-md mx-auto mb-6 leading-relaxed">
-                  Klik untuk membuka direktori file perangkat Anda. Mendukung gambar (JPG, PNG, WebP maks. 10 MB) dan video live (MP4, WebM, MOV maks. 50 MB).
+                <p className="text-xs text-[#A0A0A0] font-sans max-w-md mx-auto mb-5 leading-relaxed">
+                  Bisa pilih sekaligus atau satu per satu: tambah foto lalu tambah video untuk digabung menjadi 1 carousel. Gambar maks. 10 MB, Video (MP4/WebM/MOV) maks. 50 MB.
                 </p>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    fileInputRef.current?.click()
-                  }}
-                  className="px-5 py-3 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider inline-flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(224,30,55,0.3)] min-h-[44px]"
-                >
-                  <FolderOpen className="w-4 h-4" />
-                  <span>Pilih Berkas Media</span>
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      photoInputRef.current?.click()
+                    }}
+                    className="px-4 py-2.5 bg-[#1F1F1F] hover:bg-[#2C2C2C] border border-[#383838] text-white font-mono text-xs uppercase font-bold tracking-wider inline-flex items-center gap-2 cursor-pointer min-h-[44px]"
+                  >
+                    <Camera className="w-4 h-4 text-white" aria-hidden="true" />
+                    <span>+ Tambah Foto</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      videoInputRef.current?.click()
+                    }}
+                    className="px-4 py-2.5 bg-[#1F1F1F] hover:bg-[#2C2C2C] border border-[#E01E37]/50 text-white font-mono text-xs uppercase font-bold tracking-wider inline-flex items-center gap-2 cursor-pointer min-h-[44px]"
+                  >
+                    <Film className="w-4 h-4 text-[#E01E37]" aria-hidden="true" />
+                    <span>+ Tambah Video</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      fileInputRef.current?.click()
+                    }}
+                    className="px-4 py-2.5 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider inline-flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(224,30,55,0.3)] min-h-[44px]"
+                  >
+                    <FolderOpen className="w-4 h-4" aria-hidden="true" />
+                    <span>Foto & Video Sekaligus</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -274,17 +363,36 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="h-32 sm:h-32 border-2 border-dashed border-[#3A3A3A] hover:border-[#E01E37] bg-[#141414] hover:bg-[#1C1214] transition-all flex flex-col items-center justify-center p-3 text-center cursor-pointer group min-h-[44px]"
-                    title="Pilih foto atau video tambahan dari direktori"
+                    title="Pilih foto atau video tambahan ke carousel ini"
                   >
                     <div className="w-9 h-9 rounded-full bg-[#202020] group-hover:bg-[#E01E37] text-[#808080] group-hover:text-white flex items-center justify-center mb-1.5 transition-colors">
                       <Plus className="w-5 h-5" />
                     </div>
                     <span className="text-[11px] font-mono font-bold text-white uppercase tracking-wider group-hover:text-[#E01E37]">
-                      + TAMBAH MEDIA
+                      + TAMBAH SLIDE
                     </span>
                     <span className="text-[9px] font-mono text-[#707070] mt-0.5">
-                      Foto / Video Direktori
+                      Campur Foto / Video
                     </span>
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    className="px-3 py-2 bg-[#1A1A1A] hover:bg-[#242424] border border-[#2E2E2E] text-white font-mono text-[11px] uppercase inline-flex items-center gap-1.5 min-h-[40px] cursor-pointer"
+                  >
+                    <Camera className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>+ Tambah Foto</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => videoInputRef.current?.click()}
+                    className="px-3 py-2 bg-[#1A1A1A] hover:bg-[#242424] border border-[#E01E37]/40 text-white font-mono text-[11px] uppercase inline-flex items-center gap-1.5 min-h-[40px] cursor-pointer"
+                  >
+                    <Film className="w-3.5 h-3.5 text-[#E01E37]" aria-hidden="true" />
+                    <span>+ Tambah Video</span>
                   </button>
                 </div>
 
@@ -301,7 +409,11 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
                 htmlFor="upload-caption"
                 className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5 flex items-center justify-between gap-2"
               >
-                <span>Keterangan Karya / Momen Panggung</span>
+                <span>
+                  {isAppendingToPost
+                    ? 'Perbarui Keterangan (Opsional)'
+                    : 'Keterangan Karya / Momen Panggung'}
+                </span>
                 <span className="text-[10px] text-[#606060] font-mono shrink-0">CAPTION</span>
               </label>
               <textarea
@@ -309,7 +421,11 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
                 rows={3}
                 value={uploadCaption}
                 onChange={(e) => onCaptionChange(e.target.value)}
-                placeholder="Tuliskan cerita singkat momen konser, setlist lagu panggung, atau suasana live soundcheck..."
+                placeholder={
+                  isAppendingToPost
+                    ? 'Biarkan kosong untuk mempertahankan keterangan postingan sebelumnya...'
+                    : 'Tuliskan cerita singkat momen konser, setlist lagu panggung, atau suasana live soundcheck...'
+                }
                 className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 outline-none font-sans"
               />
             </div>
@@ -333,6 +449,10 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Mempublikasikan...</span>
                 </>
+              ) : isAppendingToPost ? (
+                <span>
+                  Tambahkan ke Carousel ({uploadedItems.length} Media) ▸
+                </span>
               ) : (
                 <span>
                   Publikasikan Karya {uploadedItems.length > 0 ? `(${uploadedItems.length} Slide)` : ''} ▸
@@ -353,6 +473,7 @@ interface PostDetailModalProps {
   onSlideIndexChange: React.Dispatch<React.SetStateAction<number>>
   onClose: () => void
   onDeletePost: (postId: number) => void
+  onAddMediaToPost?: (postId: number) => void
 }
 
 export const PostDetailModal: React.FC<PostDetailModalProps> = ({
@@ -362,14 +483,23 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
   onSlideIndexChange,
   onClose,
   onDeletePost,
+  onAddMediaToPost,
 }) => {
+  const [brokenUrlMap, setBrokenUrlMap] = useState<Record<string, boolean>>({})
+
   if (!post) return null
+
+  const currentSlide = slides[slideIndex]
+  const currentUrl = currentSlide?.url || ''
+  const isCurrentVideo =
+    currentSlide?.type === 'video' || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(currentUrl)
+  const isBroken = Boolean(currentUrl && brokenUrlMap[currentUrl])
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#121212] border border-[#2E2E2E] w-full max-w-xl p-6 relative shadow-2xl">
+      <div className="bg-[#121212] border border-[#2E2E2E] w-full max-w-xl p-6 relative shadow-2xl max-h-[90dvh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-[#242424] mb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-mono uppercase tracking-widest text-[#E01E37] font-bold">
               DETAIL KARYA // INSIGHT
             </span>
@@ -390,12 +520,26 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
         </div>
 
         <div className="h-72 w-full bg-black mb-4 overflow-hidden border border-[#222222] relative flex items-center justify-center">
-          {slides[slideIndex]?.type === 'video' ? (
-            <video src={slides[slideIndex]?.url} controls className="w-full h-full object-contain" />
+          {isCurrentVideo ? (
+            <video
+              key={currentUrl}
+              src={currentUrl}
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full h-full object-contain"
+            />
+          ) : isBroken || !currentUrl ? (
+            <div className="flex flex-col items-center justify-center text-center text-[#808080] p-4">
+              <ImageOff className="w-8 h-8 mb-1.5" aria-hidden="true" />
+              <span className="font-mono text-xs">Pratinjau media tidak tersedia</span>
+            </div>
           ) : (
             <img
-              src={slides[slideIndex]?.url}
+              key={currentUrl}
+              src={currentUrl}
               alt={`Slide ${slideIndex + 1}`}
+              onError={() => setBrokenUrlMap((prev) => ({ ...prev, [currentUrl]: true }))}
               className="w-full h-full object-contain"
             />
           )}
@@ -441,15 +585,27 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
           {post.caption || 'Tanpa keterangan teks.'}
         </p>
 
-        <div className="flex items-center justify-between pt-3 border-t border-[#242424]">
-          <button
-            type="button"
-            onClick={() => onDeletePost(post.id)}
-            className="px-3.5 py-2 bg-red-950/30 hover:bg-red-900/50 text-[#E01E37] border border-[#E01E37]/40 text-xs font-mono uppercase min-h-[44px] flex items-center gap-1.5 cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Hapus Karya Ini</span>
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#242424]">
+          <div className="flex items-center gap-2 flex-wrap">
+            {onAddMediaToPost && (
+              <button
+                type="button"
+                onClick={() => onAddMediaToPost(post.id)}
+                className="px-3.5 py-2 bg-[#E01E37] hover:bg-[#C71B30] text-white text-xs font-mono uppercase font-bold min-h-[44px] flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah ke Carousel</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onDeletePost(post.id)}
+              className="px-3.5 py-2 bg-red-950/30 hover:bg-red-900/50 text-[#E01E37] border border-[#E01E37]/40 text-xs font-mono uppercase min-h-[44px] flex items-center gap-1.5 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Hapus Karya Ini</span>
+            </button>
+          </div>
           <button
             type="button"
             onClick={onClose}

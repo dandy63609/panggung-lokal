@@ -1,6 +1,7 @@
-import React from 'react'
-import { X, Play, Eye, Phone } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { X, Eye, Phone, ChevronLeft, ChevronRight, ImageOff, Film, Camera } from 'lucide-react'
 import { formatRupiah } from '../../lib/utils'
+import { parsePostSlides } from '../../lib/bandHelpers'
 import type { Band, BandPost } from '../../types'
 
 interface PostViewerModalProps {
@@ -14,71 +15,201 @@ export const PostViewerModal: React.FC<PostViewerModalProps> = ({
   activePost,
   onClose,
 }) => {
+  const [slideState, setSlideState] = useState<{ postId: number | null; index: number }>({
+    postId: activePost?.id ?? null,
+    index: 0,
+  })
+  const [brokenUrls, setBrokenUrls] = useState<Record<string, boolean>>({})
+
+  const slides = parsePostSlides(activePost, true)
+  const rawIndex = slideState.postId === (activePost?.id ?? null) ? slideState.index : 0
+  const safeIndex = slides.length > 0 ? Math.min(rawIndex, slides.length - 1) : 0
+
+  useEffect(() => {
+    if (!activePost) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      } else if (e.key === 'ArrowLeft' && slides.length > 1) {
+        setSlideState({
+          postId: activePost.id,
+          index: safeIndex === 0 ? slides.length - 1 : safeIndex - 1,
+        })
+      } else if (e.key === 'ArrowRight' && slides.length > 1) {
+        setSlideState({
+          postId: activePost.id,
+          index: safeIndex === slides.length - 1 ? 0 : safeIndex + 1,
+        })
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activePost, slides.length, safeIndex, onClose])
+
   if (!activePost) return null
+
+  const currentSlide = slides[safeIndex] || {
+    type: activePost.mediaType === 'video' ? 'video' : 'photo',
+    url: activePost.mediaUrl || activePost.thumbnailUrl || '',
+  }
+  const isCurrentVideo =
+    currentSlide.type === 'video' || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(currentSlide.url || '')
+  const isBroken = Boolean(currentSlide.url && brokenUrls[currentSlide.url])
+
+  const goToPrev = () => {
+    setSlideState({
+      postId: activePost.id,
+      index: safeIndex === 0 ? slides.length - 1 : safeIndex - 1,
+    })
+  }
+
+  const goToNext = () => {
+    setSlideState({
+      postId: activePost.id,
+      index: safeIndex === slides.length - 1 ? 0 : safeIndex + 1,
+    })
+  }
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Pratinjau karya ${band.bandName}`}
+      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
       onClick={onClose}
     >
       <div
-        className="bg-[#101010] border border-[#242424] w-full max-w-3xl overflow-hidden relative shadow-2xl flex flex-col max-h-[90vh] rounded-2xl"
+        className="bg-[#101010] border border-[#242424] w-full max-w-3xl overflow-hidden relative shadow-2xl flex flex-col max-h-[90dvh] rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 sm:p-5 border-b border-[#202020] flex items-center justify-between bg-[#0C0C0C]">
-          <div className="flex items-center gap-3">
+        <div className="shrink-0 p-4 sm:p-5 border-b border-[#202020] flex items-center justify-between gap-3 bg-[#0C0C0C]">
+          <div className="flex items-center gap-3 min-w-0">
             <img
               src={band.profilePhotoUrl || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=200'}
               alt={band.bandName}
-              className="w-10 h-10 object-cover rounded-full border border-[#333]"
+              className="w-10 h-10 object-cover rounded-full border border-[#333] shrink-0"
             />
-            <div>
-              <div className="font-mono font-bold text-white text-sm uppercase">{band.bandName}</div>
-              <div className="font-mono text-[11px] text-white/60">
-                {activePost.createdAt
-                  ? new Date(activePost.createdAt).toLocaleDateString('id-ID', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })
-                  : 'DOKUMENTASI RESMI'}
+            <div className="min-w-0">
+              <div className="font-mono font-bold text-white text-sm uppercase truncate">
+                {band.bandName}
+              </div>
+              <div className="font-mono text-[11px] text-white/60 flex items-center gap-2 flex-wrap">
+                <span>
+                  {activePost.createdAt
+                    ? new Date(activePost.createdAt).toLocaleDateString('id-ID', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : 'DOKUMENTASI RESMI'}
+                </span>
+                {slides.length > 1 && (
+                  <span className="px-2 py-0.5 bg-[#E01E37]/20 border border-[#E01E37]/40 text-[#E01E37] text-[10px] font-bold rounded">
+                    SLIDE {safeIndex + 1} / {slides.length}
+                  </span>
+                )}
               </div>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#888] hover:text-white hover:bg-white/10 transition-colors rounded-full"
+            className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#888] hover:text-white hover:bg-white/10 transition-colors rounded-full shrink-0 cursor-pointer"
             aria-label="Tutup pratinjau karya"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="relative bg-black flex-1 min-h-[300px] max-h-[500px] flex items-center justify-center overflow-hidden">
-          {activePost.mediaType === 'video' ? (
-            <div className="w-full h-full flex items-center justify-center relative">
-              <img
-                src={activePost.mediaUrl || activePost.thumbnailUrl}
-                alt="Video thumbnail"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <span className="w-16 h-16 rounded-full bg-[#E01E37] text-white flex items-center justify-center shadow-lg">
-                  <Play className="w-8 h-8 fill-white ml-1" />
-                </span>
-              </div>
+        <div className="relative bg-black flex-1 min-h-[260px] sm:min-h-[340px] max-h-[520px] flex items-center justify-center overflow-hidden">
+          {isCurrentVideo ? (
+            <video
+              key={currentSlide.url}
+              src={currentSlide.url}
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full h-full max-h-[500px] object-contain bg-black"
+            />
+          ) : isBroken || !currentSlide.url ? (
+            <div className="flex flex-col items-center justify-center text-center p-6 text-[#808080]">
+              <ImageOff className="w-10 h-10 mb-2" aria-hidden="true" />
+              <span className="font-mono text-xs uppercase tracking-wider">
+                Media foto tidak tersedia
+              </span>
             </div>
           ) : (
             <img
-              src={activePost.mediaUrl || activePost.thumbnailUrl}
-              alt="Dokumentasi karya band"
-              className="w-full h-full object-contain max-h-[480px]"
+              key={currentSlide.url}
+              src={currentSlide.url}
+              alt={`Dokumentasi karya band slide ${safeIndex + 1}`}
+              onError={() =>
+                setBrokenUrls((prev) => ({ ...prev, [currentSlide.url]: true }))
+              }
+              className="w-full h-full object-contain max-h-[500px]"
             />
+          )}
+
+          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-black/80 backdrop-blur-sm border border-white/15 rounded font-mono text-[10px] uppercase tracking-wider text-white flex items-center gap-1.5 pointer-events-none">
+            {isCurrentVideo ? (
+              <>
+                <Film className="w-3 h-3 text-[#E01E37]" aria-hidden="true" />
+                <span>VIDEO</span>
+              </>
+            ) : (
+              <>
+                <Camera className="w-3 h-3 text-white" aria-hidden="true" />
+                <span>FOTO</span>
+              </>
+            )}
+          </div>
+
+          {slides.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={goToPrev}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 min-w-[44px] min-h-[44px] bg-black/80 hover:bg-[#E01E37] text-white flex items-center justify-center border border-white/20 transition-colors rounded-full cursor-pointer"
+                aria-label="Slide sebelumnya"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={goToNext}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 min-w-[44px] min-h-[44px] bg-black/80 hover:bg-[#E01E37] text-white flex items-center justify-center border border-white/20 transition-colors rounded-full cursor-pointer"
+                aria-label="Slide berikutnya"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
           )}
         </div>
 
-        <div className="p-5 border-t border-[#202020] bg-[#0C0C0C] space-y-3">
+        {slides.length > 1 && (
+          <div className="shrink-0 px-4 py-2.5 bg-[#0A0A0A] border-t border-[#1E1E1E] flex items-center gap-2 overflow-x-auto">
+            {slides.map((s, idx) => {
+              const sIsVideo = s.type === 'video' || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(s.url || '')
+              return (
+                <button
+                  key={`${s.url}-${idx}`}
+                  type="button"
+                  onClick={() => setSlideState({ postId: activePost.id, index: idx })}
+                  className={`px-3 py-1.5 min-h-[36px] rounded font-mono text-[10px] uppercase tracking-wider shrink-0 flex items-center gap-1.5 border transition-colors cursor-pointer ${
+                    idx === safeIndex
+                      ? 'bg-[#E01E37] border-[#E01E37] text-white font-bold'
+                      : 'bg-[#151515] border-[#2A2A2A] text-[#A0A0A0] hover:text-white'
+                  }`}
+                >
+                  {sIsVideo ? <Film className="w-3 h-3" aria-hidden="true" /> : <Camera className="w-3 h-3" aria-hidden="true" />}
+                  <span>Slide {idx + 1}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        <div className="shrink-0 p-4 sm:p-5 border-t border-[#202020] bg-[#0C0C0C] space-y-2.5">
           <div className="flex items-center justify-between text-xs font-mono">
             <span className="text-[#E01E37] font-bold uppercase tracking-wider flex items-center gap-1.5">
               <Eye className="w-3.5 h-3.5" />
@@ -86,7 +217,7 @@ export const PostViewerModal: React.FC<PostViewerModalProps> = ({
             </span>
             <span className="text-[#666] uppercase">REFFBAND ARCHIVE</span>
           </div>
-          <p className="text-sm text-[#D4D4D4] leading-relaxed font-sans">
+          <p className="text-sm text-[#D4D4D4] leading-relaxed font-sans whitespace-pre-wrap">
             {activePost.caption || 'Dokumentasi resmi panggung live musisi terkurasi.'}
           </p>
         </div>

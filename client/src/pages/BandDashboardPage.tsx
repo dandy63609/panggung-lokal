@@ -69,7 +69,9 @@ export const BandDashboardPage: React.FC = () => {
   // Upload Form State (Multi-file & Mixed Media from Local Directory)
   const [uploadedItems, setUploadedItems] = useState<UploadedMediaItem[]>([])
   const [uploadCaption, setUploadCaption] = useState('')
+  const [uploadTargetPostId, setUploadTargetPostId] = useState<number | null>(null)
   const [uploadSubmitting, setUploadSubmitting] = useState(false)
+  const [brokenDashboardThumbIds, setBrokenDashboardThumbIds] = useState<Record<number, boolean>>({})
 
   const [editForm, setEditForm] = useState<EditProfileFormState>({
     bandName: '',
@@ -163,13 +165,9 @@ export const BandDashboardPage: React.FC = () => {
     }
   }, [navigate, applyDashboardResponse])
 
-  const handleOpenUploadModal = (triggerPickerImmediately = false) => {
+  const handleOpenUploadModal = (targetPostId: number | null = null) => {
+    setUploadTargetPostId(targetPostId)
     setIsUploadModalOpen(true)
-    if (triggerPickerImmediately) {
-      setTimeout(() => {
-        fileInputRef.current?.click()
-      }, 150)
-    }
   }
 
   const handleFilesSelected = async (files: FileList | File[]) => {
@@ -297,27 +295,36 @@ export const BandDashboardPage: React.FC = () => {
     }))
 
     const firstItem = uploadedItems[0]
+    const firstPhotoItem = uploadedItems.find((i) => i.type === 'photo')
     const hasPhoto = uploadedItems.some((i) => i.type === 'photo')
     const hasVideo = uploadedItems.some((i) => i.type === 'video')
     const postType = hasPhoto && hasVideo ? 'mixed' : firstItem.type
 
-    const res = await authClient.createPost({
-      mediaType: postType,
-      mediaUrl: firstItem.serverUrl!,
-      thumbnailUrl: firstItem.serverUrl!,
-      caption: uploadCaption.trim(),
-      slides: slides.length > 1 ? slides : undefined,
-    })
+    const res = uploadTargetPostId
+      ? await authClient.addSlidesToPost(uploadTargetPostId, {
+          slides,
+          caption: uploadCaption.trim() || undefined,
+        })
+      : await authClient.createPost({
+          mediaType: postType,
+          mediaUrl: firstItem.serverUrl!,
+          thumbnailUrl: firstPhotoItem?.serverUrl || firstItem.serverUrl!,
+          caption: uploadCaption.trim(),
+          slides: slides.length > 1 ? slides : undefined,
+        })
 
     if (res.success) {
       showToast(
-        slides.length > 1
-          ? `Karya campuran (${slides.length} media) berhasil dipublikasikan!`
-          : 'Karya baru berhasil dipublikasikan ke etalase!'
+        uploadTargetPostId
+          ? `${slides.length} media baru ditambahkan ke carousel!`
+          : slides.length > 1
+            ? `Karya carousel (${slides.length} media) berhasil dipublikasikan!`
+            : 'Karya baru berhasil dipublikasikan ke etalase!'
       )
       setIsUploadModalOpen(false)
       clearUploadedItems()
       setUploadCaption('')
+      setUploadTargetPostId(null)
       fetchDashboard()
     } else {
       showToast(res.message || 'Gagal mengunggah karya.', 'error')
@@ -750,7 +757,7 @@ export const BandDashboardPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => handleOpenUploadModal(true)}
+                  onClick={() => handleOpenUploadModal()}
                   className="px-6 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.35)] cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
@@ -859,7 +866,7 @@ export const BandDashboardPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => handleOpenUploadModal(true)}
+                onClick={() => handleOpenUploadModal()}
                 className="px-4 py-2 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs font-bold uppercase tracking-wider min-h-[44px] flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(224,30,55,0.25)]"
               >
                 <Plus className="w-4 h-4" />
@@ -876,7 +883,7 @@ export const BandDashboardPage: React.FC = () => {
                 </p>
                 <button
                   type="button"
-                  onClick={() => handleOpenUploadModal(true)}
+                  onClick={() => handleOpenUploadModal()}
                   className="px-5 py-2.5 bg-[#E01E37] text-white font-mono text-xs uppercase tracking-wider font-bold min-h-[44px]"
                 >
                   + Unggah Karya Sekarang
@@ -919,10 +926,17 @@ export const BandDashboardPage: React.FC = () => {
                             preload="metadata"
                             className="w-full h-full object-cover"
                           />
+                        ) : brokenDashboardThumbIds[post.id] || !mediaUrl ? (
+                          <div className="w-full h-full flex items-center justify-center bg-[#151515] text-[#707070] text-xs font-mono">
+                            Pratinjau tidak tersedia
+                          </div>
                         ) : (
                           <img
                             src={mediaUrl}
                             alt={post.caption || 'Karya Musik'}
+                            onError={() =>
+                              setBrokenDashboardThumbIds((prev) => ({ ...prev, [post.id]: true }))
+                            }
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         )}
@@ -1326,8 +1340,12 @@ export const BandDashboardPage: React.FC = () => {
         uploadedItems={uploadedItems}
         uploadCaption={uploadCaption}
         uploadSubmitting={uploadSubmitting}
+        existingPosts={posts}
+        targetPostId={uploadTargetPostId}
+        onTargetPostChange={setUploadTargetPostId}
         onClose={() => {
           setIsUploadModalOpen(false)
+          setUploadTargetPostId(null)
           clearUploadedItems()
         }}
         onFilesSelected={handleFilesSelected}
@@ -1343,6 +1361,10 @@ export const BandDashboardPage: React.FC = () => {
         onSlideIndexChange={setDetailSlideIndex}
         onClose={() => setSelectedPostDetail(null)}
         onDeletePost={handleDeletePost}
+        onAddMediaToPost={(postId) => {
+          setSelectedPostDetail(null)
+          handleOpenUploadModal(postId)
+        }}
       />
 
       <EditProfileModal
