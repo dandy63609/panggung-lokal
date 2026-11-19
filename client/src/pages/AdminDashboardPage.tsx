@@ -15,6 +15,8 @@ import {
   Database,
   Radio,
   Sliders,
+  Trash2,
+  X,
 } from 'lucide-react'
 import { authClient, type AuthUser } from '../lib/auth'
 
@@ -35,6 +37,8 @@ interface AdminUser {
   account_type: string
   created_at: string
   is_active: boolean
+  band_profile_id?: number | null
+  band_name?: string | null
 }
 
 interface AdminReport {
@@ -54,6 +58,9 @@ export const AdminDashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'reports' | 'system'>('users')
   const [userFilter, setUserFilter] = useState<'all' | 'band' | 'organizer'>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
+  const [deletingUserId, setDeletingUserId] = useState<number | string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
   // Default Mock/Fallback metrics if backend is cold
@@ -112,7 +119,7 @@ export const AdminDashboardPage: React.FC = () => {
           const json = await res.json()
           if (json.success && json.data) {
             if (json.data.summary) setSummary(json.data.summary)
-            if (json.data.recentUsers && json.data.recentUsers.length > 0) {
+            if (Array.isArray(json.data.recentUsers)) {
               setUsers(json.data.recentUsers)
             }
             if (json.data.pendingReports) {
@@ -149,7 +156,7 @@ export const AdminDashboardPage: React.FC = () => {
           const json = await res.json()
           if (json.success && json.data && !cancelled) {
             if (json.data.summary) setSummary(json.data.summary)
-            if (json.data.recentUsers && json.data.recentUsers.length > 0) {
+            if (Array.isArray(json.data.recentUsers)) {
               setUsers(json.data.recentUsers)
             }
             if (json.data.pendingReports) {
@@ -232,6 +239,48 @@ export const AdminDashboardPage: React.FC = () => {
     }
   }
 
+  // Close delete confirmation modal with Escape when idle
+  useEffect(() => {
+    if (!deleteTarget || deletingUserId !== null) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setDeleteTarget(null)
+        setDeleteError(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [deleteTarget, deletingUserId])
+
+  // Permanently delete Band or EO user account
+  const handleConfirmDeleteUser = async () => {
+    if (!deleteTarget) return
+    const target = deleteTarget
+    setDeletingUserId(target.id)
+    setDeleteError(null)
+    try {
+      const res = await fetch(`/api/admin/users/${target.id}`, {
+        method: 'DELETE',
+        headers: authClient.getAuthHeaders(),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) {
+        setDeleteError(
+          json?.message || `Gagal menghapus akun #${target.id}. Pastikan sesi admin aktif.`
+        )
+        return
+      }
+      setUsers((prev) => prev.filter((u) => String(u.id) !== String(target.id)))
+      setDeleteTarget(null)
+      showToast(json.message || `Akun ${target.email} berhasil dihapus permanen.`, 'success')
+      loadAdminMetrics(false)
+    } catch {
+      setDeleteError('Gagal menghubungi server untuk menghapus akun.')
+    } finally {
+      setDeletingUserId(null)
+    }
+  }
+
   // Resolve Moderation Report
   const handleResolveReport = async (reportId: number) => {
     try {
@@ -261,6 +310,7 @@ export const AdminDashboardPage: React.FC = () => {
           : u.account_type === userFilter)
       const matchesSearch =
         u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (u.band_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         String(u.id).includes(searchQuery)
       return matchesFilter && matchesSearch
     })
@@ -687,7 +737,7 @@ export const AdminDashboardPage: React.FC = () => {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari email..."
+                    placeholder="Cari email atau nama band..."
                     className="pl-9 pr-3 py-2 bg-[#181818] border border-[#2E2E2E] rounded-lg text-white font-mono text-xs focus:border-[#E01E37] focus:outline-none min-h-[44px] w-48 sm:w-60"
                   />
                 </div>
@@ -745,51 +795,94 @@ export const AdminDashboardPage: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3.5 px-4 text-[#888]">#{u.id}</td>
-                        <td className="py-3.5 px-4 font-bold text-white">{u.email}</td>
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase ${
-                              u.account_type === 'band'
-                                ? 'bg-[#E01E37]/15 text-[#E01E37] border border-[#E01E37]/30'
-                                : 'bg-white/10 text-white border border-white/20'
-                            }`}
-                          >
-                            {u.account_type.toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-[#999]">
-                          {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '2026-11-01'}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-flex items-center gap-1 ${
-                              u.is_active
-                                ? 'bg-white/15 text-white border border-white/30'
-                                : 'bg-[#E01E37]/20 text-[#E01E37] border border-[#E01E37]/40'
-                            }`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-white' : 'bg-[#E01E37]'}`} />
-                            {u.is_active ? 'AKTIF' : 'SUSPENDED'}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleSuspendUser(u.id, u.is_active)}
-                            className={`px-3 py-1.5 rounded-lg border font-mono text-[11px] uppercase transition-all min-h-[40px] cursor-pointer ${
-                              u.is_active
-                                ? 'border-[#E01E37]/40 text-[#E01E37] hover:bg-[#E01E37] hover:text-white'
-                                : 'border-white/30 text-white hover:bg-white hover:text-black'
-                            }`}
-                          >
-                            {u.is_active ? 'Tangguhkan' : 'Aktifkan'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    filteredUsers.map((u) => {
+                      const isBandAccount = u.account_type === 'band'
+                      const isAdminAccount = u.account_type === 'admin'
+                      const isSelf = String(u.id) === String(currentUser?.id)
+                      const roleLabel = isBandAccount
+                        ? 'BAND'
+                        : isAdminAccount
+                          ? 'ADMIN'
+                          : 'EO / PENYELENGGARA'
+
+                      return (
+                        <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3.5 px-4 text-[#A0A0A0]">#{u.id}</td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-white">{u.email}</div>
+                            {u.band_name && u.band_profile_id ? (
+                              <Link
+                                to={`/band/${u.band_profile_id}`}
+                                className="inline-block mt-0.5 text-[11px] text-[#A0A0A0] hover:text-[#F87171] underline underline-offset-2 transition-colors"
+                              >
+                                Band: {u.band_name}
+                              </Link>
+                            ) : u.band_name ? (
+                              <div className="mt-0.5 text-[11px] text-[#A0A0A0]">
+                                Band: {u.band_name}
+                              </div>
+                            ) : null}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase whitespace-nowrap ${
+                                isBandAccount
+                                  ? 'bg-[#E01E37]/15 text-[#F87171] border border-[#E01E37]/30'
+                                  : 'bg-white/10 text-white border border-white/20'
+                              }`}
+                            >
+                              {roleLabel}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-[#A0A0A0] whitespace-nowrap">
+                            {u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '2026-11-01'}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-flex items-center gap-1 whitespace-nowrap ${
+                                u.is_active
+                                  ? 'bg-white/15 text-white border border-white/30'
+                                  : 'bg-[#E01E37]/20 text-[#F87171] border border-[#E01E37]/40'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-white' : 'bg-[#F87171]'}`} />
+                              {u.is_active ? 'AKTIF' : 'SUSPENDED'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSuspendUser(u.id, u.is_active)}
+                                disabled={isAdminAccount || isSelf}
+                                className={`px-3 py-1.5 rounded-lg border font-mono text-[11px] uppercase transition-all min-h-[44px] whitespace-nowrap cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                                  u.is_active
+                                    ? 'border-[#F87171]/40 text-[#F87171] hover:bg-[#E01E37] hover:border-[#E01E37] hover:text-white'
+                                    : 'border-white/30 text-white hover:bg-white hover:text-black'
+                                }`}
+                              >
+                                {u.is_active ? 'Tangguhkan' : 'Aktifkan'}
+                              </button>
+                              {!isAdminAccount && !isSelf && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDeleteError(null)
+                                    setDeleteTarget(u)
+                                  }}
+                                  aria-label={`Hapus akun ${u.email}`}
+                                  title={`Hapus permanen akun ${u.email}`}
+                                  className="px-3 py-1.5 rounded-lg border border-[#F87171]/40 bg-[#1A0D0F] text-[#F87171] hover:bg-[#E01E37] hover:border-[#E01E37] hover:text-white font-mono text-[11px] uppercase transition-all min-h-[44px] inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                                  <span>Hapus</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })
                   )}
                 </tbody>
               </table>
@@ -927,6 +1020,110 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
       </div>
+
+      {/* Delete User Confirmation Modal */}
+      {deleteTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-user-modal-title"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
+          onClick={() => {
+            if (deletingUserId === null) {
+              setDeleteTarget(null)
+              setDeleteError(null)
+            }
+          }}
+        >
+          <div
+            className="bg-[#121212] border-2 border-[#E01E37] rounded-2xl w-full max-w-[calc(100vw-1.5rem)] sm:max-w-md max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 p-5 border-b border-[#242424] flex items-center justify-between gap-3">
+              <div>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-[#F87171] font-bold block">
+                  KONFIRMASI HAPUS AKUN
+                </span>
+                <h3 id="delete-user-modal-title" className="font-mono text-base font-bold text-white uppercase mt-0.5">
+                  Hapus Akun Pengguna
+                </h3>
+              </div>
+              <button
+                type="button"
+                disabled={deletingUserId !== null}
+                onClick={() => {
+                  setDeleteTarget(null)
+                  setDeleteError(null)
+                }}
+                aria-label="Tutup dialog konfirmasi hapus"
+                className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-[#A0A0A0] hover:text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-40"
+              >
+                <X className="w-5 h-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4">
+              <div className="bg-[#0B0B0B] border border-[#242424] rounded-xl p-4 space-y-2 font-mono text-xs">
+                <div className="flex justify-between gap-3">
+                  <span className="text-[#A0A0A0]">ID AKUN</span>
+                  <span className="text-white font-bold">#{deleteTarget.id}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-[#A0A0A0]">EMAIL</span>
+                  <span className="text-white font-bold break-all text-right">{deleteTarget.email}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-[#A0A0A0]">TIPE AKUN</span>
+                  <span className="text-[#F87171] font-bold uppercase">
+                    {deleteTarget.account_type === 'band' ? 'BAND' : 'EO / PENYELENGGARA'}
+                  </span>
+                </div>
+                {deleteTarget.band_name && (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-[#A0A0A0]">NAMA BAND</span>
+                    <span className="text-white font-bold text-right">{deleteTarget.band_name}</span>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-[#CCCCCC] font-sans leading-relaxed">
+                {deleteTarget.account_type === 'band'
+                  ? 'Tindakan ini permanen. Profil band, seluruh postingan karya, berkas media, dan riwayat inquiry terkait akun ini akan ikut dihapus.'
+                  : 'Tindakan ini permanen. Akun penyelenggara (EO), riwayat broadcast lowongan, dan data koneksi terkait akan ikut dihapus.'}
+              </p>
+
+              {deleteError && (
+                <div className="p-3 rounded-lg bg-[#E01E37]/15 border border-[#E01E37] text-xs font-sans text-white">
+                  {deleteError}
+                </div>
+              )}
+            </div>
+
+            <div className="shrink-0 p-5 border-t border-[#242424] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 bg-[#0E0E0E]">
+              <button
+                type="button"
+                disabled={deletingUserId !== null}
+                onClick={() => {
+                  setDeleteTarget(null)
+                  setDeleteError(null)
+                }}
+                className="min-h-[44px] px-4 py-2.5 rounded-xl border border-[#333333] text-[#CCCCCC] hover:text-white hover:bg-white/5 font-mono text-xs uppercase font-bold transition-colors cursor-pointer disabled:opacity-40"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deletingUserId !== null}
+                onClick={handleConfirmDeleteUser}
+                className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{deletingUserId !== null ? 'Menghapus...' : 'Hapus Permanen'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

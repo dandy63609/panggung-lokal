@@ -30,9 +30,14 @@ router.get('/metrics', async (req, res) => {
     const totalConnections = parseInt(totalConnectionsResult.rows[0].count, 10) || 0;
     const conversionRate = totalViews > 0 ? ((totalConnections / totalViews) * 100).toFixed(2) : '0.00';
 
-    // Recent signups
+    // Registered users (Band & EO accounts) with optional band profile name
     const recentUsersResult = await db.query(
-      'SELECT id, email, account_type, created_at, is_active FROM users ORDER BY created_at DESC LIMIT 10'
+      `SELECT u.id, u.email, u.account_type, u.created_at, u.is_active,
+              bp.id AS band_profile_id, bp.band_name
+       FROM users u
+       LEFT JOIN band_profiles bp ON bp.user_id = u.id
+       ORDER BY u.created_at DESC
+       LIMIT 100`
     );
 
     // Pending reports
@@ -168,6 +173,105 @@ router.put('/users/:id/suspend', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Gagal memperbarui status akun'
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/users/:id
+ * Permanently delete a band or organizer/general user account and its owned records
+ */
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID pengguna tidak valid'
+      });
+    }
+
+    if (String(req.user.id) === String(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tidak dapat menghapus akun admin yang sedang digunakan'
+      });
+    }
+
+    const existingResult = await db.query(
+      'SELECT id, email, account_type FROM users WHERE id = $1',
+      [userId]
+    );
+    if (existingResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pengguna tidak ditemukan'
+      });
+    }
+
+    const targetUser = existingResult.rows[0];
+    if (targetUser.account_type === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Tidak dapat menghapus akun administrator'
+      });
+    }
+
+    const deletedUser = await db.transaction(async (client) => {
+      const profileRes = await client.query(
+        'SELECT id FROM band_profiles WHERE user_id = $1',
+        [userId]
+      );
+      const bandProfileId = profileRes.rows[0]?.id || null;
+
+      if (bandProfileId) {
+        await client.query('DELETE FROM connections WHERE band_profile_id = $1', [bandProfileId]);
+        await client.query('DELETE FROM media_files WHERE band_profile_id = $1', [bandProfileId]);
+        await client.query('DELETE FROM band_posts WHERE band_profile_id = $1', [bandProfileId]);
+        await client.query(
+          'UPDATE job_broadcasts SET source_band_profile_id = NULL WHERE source_band_profile_id = $1',
+          [bandProfileId]
+        );
+        await client.query(
+          "DELETE FROM reports WHERE LOWER(reported_entity_type) IN ('band', 'band_profile') AND reported_entity_id = $1",
+          [bandProfileId]
+        );
+        await client.query('DELETE FROM band_profiles WHERE id = $1', [bandProfileId]);
+      }
+
+      await client.query('DELETE FROM connections WHERE organizer_user_id = $1', [userId]);
+      await client.query('DELETE FROM job_broadcasts WHERE organizer_user_id = $1', [userId]);
+      await client.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [userId]);
+      await client.query('UPDATE reports SET reporter_user_id = NULL WHERE reporter_user_id = $1', [userId]);
+
+      const delRes = await client.query(
+        'DELETE FROM users WHERE id = $1 RETURNING id, email, account_type',
+        [userId]
+      );
+      return delRes.rows[0] || null;
+    });
+
+    if (!deletedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pengguna tidak ditemukan'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Akun ${deletedUser.email} berhasil dihapus permanen`,
+      data: {
+        id: deletedUser.id,
+        email: deletedUser.email,
+        accountType: deletedUser.account_type
+      }
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal menghapus akun pengguna'
     });
   }
 });

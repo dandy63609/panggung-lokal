@@ -76,43 +76,84 @@ export const BandDetailPage: React.FC = () => {
     }
   }, [])
 
-  // Find base band data from fallback
-  const baseBand = useMemo(() => {
-    const numId = parseInt(effectiveId, 10)
-    const found = fallbackBands.find((b) => b.id === numId)
-    return found || fallbackBands[0]
-  }, [effectiveId])
+  // Parse requested band profile ID cleanly without silently defaulting unknown IDs to band #1 (Kelana Ombak)
+  const parsedRouteId = parseInt(effectiveId, 10)
+  const isValidBandId = Number.isInteger(parsedRouteId) && parsedRouteId > 0
+  const requestedId = isValidBandId ? parsedRouteId : -1
 
-  const [prevBaseBandId, setPrevBaseBandId] = useState(baseBand.id)
-  const [band, setBand] = useState<Band>(baseBand)
+  const fallbackMatch = useMemo(() => {
+    if (!isValidBandId) return null
+    return fallbackBands.find((b) => b.id === requestedId) || null
+  }, [isValidBandId, requestedId])
 
-  if (baseBand.id !== prevBaseBandId) {
-    setPrevBaseBandId(baseBand.id)
-    setBand(baseBand)
+  const [prevRequestedId, setPrevRequestedId] = useState(requestedId)
+  const [band, setBand] = useState<Band | null>(fallbackMatch)
+  const [loadingBand, setLoadingBand] = useState<boolean>(isValidBandId && !fallbackMatch)
+  const [notFoundError, setNotFoundError] = useState<boolean>(!isValidBandId)
+  const [liveRelatedBands, setLiveRelatedBands] = useState<Band[] | null>(null)
+
+  if (requestedId !== prevRequestedId) {
+    setPrevRequestedId(requestedId)
+    setBand(fallbackMatch)
+    setLoadingBand(isValidBandId && !fallbackMatch)
+    setNotFoundError(!isValidBandId)
     setActiveSlide(0)
     setIsPlayingAudio(false)
     setAudioCurrentTime(0)
+    setActivePost(null)
+    setBrokenCardThumbIds({})
   }
 
-  // Sync fetched live band details when route target changes
+  // Sync fetched live band details when route target or auth session changes
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    if (!isValidBandId) {
+      return
+    }
     let cancelled = false
 
     async function fetchBandProfile() {
       try {
-        const res = await fetch(`/api/bands/profile/${baseBand.id}`)
-        if (res.ok && !cancelled) {
-          const json = await res.json()
-          if (json.success && json.data && !cancelled) {
-            setBand((prev) => ({
-              ...prev,
-              ...json.data,
-            }))
+        const [profileRes, recentRes] = await Promise.all([
+          fetch(`/api/bands/profile/${requestedId}`, {
+            headers: authClient.getAuthHeaders(),
+          }),
+          fetch('/api/bands/recent?limit=4', {
+            headers: authClient.getAuthHeaders(),
+          }).catch(() => null),
+        ])
+
+        if (recentRes && recentRes.ok && !cancelled) {
+          const recentJson = await recentRes.json().catch(() => null)
+          if (recentJson?.success && Array.isArray(recentJson.data) && !cancelled) {
+            setLiveRelatedBands(recentJson.data)
           }
         }
+
+        if (profileRes.ok && !cancelled) {
+          const json = await profileRes.json()
+          if (json.success && json.data && !cancelled) {
+            setBand(fallbackMatch ? { ...fallbackMatch, ...json.data } : json.data)
+            setNotFoundError(false)
+            setLoadingBand(false)
+            return
+          }
+        }
+
+        if ((profileRes.status === 404 || profileRes.status === 400) && !cancelled) {
+          setBand(null)
+          setNotFoundError(true)
+        } else if (!fallbackMatch && !cancelled) {
+          setNotFoundError(true)
+        }
       } catch {
-        // Fallback active
+        if (!fallbackMatch && !cancelled) {
+          setNotFoundError(true)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingBand(false)
+        }
       }
     }
     fetchBandProfile()
@@ -120,10 +161,11 @@ export const BandDetailPage: React.FC = () => {
     return () => {
       cancelled = true
     }
-  }, [baseBand.id])
+  }, [requestedId, isValidBandId, fallbackMatch, currentUser?.id])
 
   // Extract Audio tracks from mediaFiles
   const audioTracks: MediaFile[] = useMemo(() => {
+    if (!band) return []
     const files = (band.mediaFiles || []).filter((m) => m.file_type === 'audio')
     if (files.length > 0) {
       return files.map((f) => ({
@@ -215,9 +257,11 @@ export const BandDetailPage: React.FC = () => {
 
   const audioProgressPercent = audioDuration > 0 ? (audioCurrentTime / audioDuration) * 100 : 0
 
-  // Extract all portfolio posts
+  // Extract all portfolio posts (show honest empty state for newly registered bands with no posts yet)
   const allPosts: BandPost[] = useMemo(() => {
+    if (!band) return []
     if (band.posts && band.posts.length > 0) return band.posts
+    if (band.id > 8) return []
     return [
       {
         id: band.id * 100 + 1,
@@ -262,8 +306,9 @@ export const BandDetailPage: React.FC = () => {
     ]
   }, [band])
 
-  // Stage Visual Carousel: use the band-selected post carousel if configured, otherwise 8 default slides
+  // Stage Visual Carousel: use the band-selected post carousel if configured, otherwise default slides
   const gallerySlides = useMemo(() => {
+    if (!band) return []
     if (band.stageVisualPostId) {
       const selectedPost = allPosts.find((p) => p.id === band.stageVisualPostId)
       if (selectedPost) {
@@ -302,27 +347,33 @@ export const BandDetailPage: React.FC = () => {
   const safeActiveSlide = gallerySlides.length > 0 ? activeSlide % gallerySlides.length : 0
   const currentStageSlide = gallerySlides[safeActiveSlide] || gallerySlides[0]
 
-  // Related bands (3 bands from other genres/cities)
+  // Related bands (3 live bands from other genres/cities, falling back cleanly offline)
   const relatedBands = useMemo(() => {
-    return fallbackBands.filter((b) => b.id !== band.id).slice(0, 3)
-  }, [band.id])
+    const pool = liveRelatedBands && liveRelatedBands.length > 0 ? liveRelatedBands : fallbackBands
+    return pool.filter((b) => b.id !== band?.id).slice(0, 3)
+  }, [band?.id, liveRelatedBands])
 
   // Calculated estimated rate based on sets
-  const baseRate = band.budgetMin || 3500000
-  const totalPrice = Math.round(baseRate * setQuantity)
+  const hasFixedRate = Boolean(band?.budgetMin && band.budgetMin > 0)
+  const baseRate = hasFixedRate ? (band?.budgetMin || 0) : 0
+  const totalPrice = hasFixedRate ? Math.round(baseRate * setQuantity) : 0
 
   const handleDirectWhatsApp = () => {
-    const cleanPhone = formatWhatsAppPhone(band.phone, '6281234567890')
+    if (!band?.phone) return
+    const cleanPhone = formatWhatsAppPhone(band.phone, '')
+    if (!cleanPhone) return
+    const rateLabel = hasFixedRate ? formatRupiah(totalPrice) : 'Negosiasi'
     const message = encodeURIComponent(
       `Halo Management ${band.bandName}, kami dari Event Organizer ingin mengajukan penawaran booking panggung melalui Reffband:\n` +
       `- Durasi: ${setQuantity} Set Performance\n` +
-      `- Estimasi Rate: ${formatRupiah(totalPrice)}\n` +
+      `- Estimasi Rate: ${rateLabel}\n` +
       `Mohon informasi ketersediaan jadwal tanggal dan konfirmasi spesifikasi technical rider panggung Anda. Terima kasih!`
     )
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank')
   }
 
   const handleShare = () => {
+    if (!band) return
     if (navigator.share) {
       navigator.share({ title: band.bandName, url: window.location.href }).catch(() => {})
     } else {
@@ -332,7 +383,7 @@ export const BandDetailPage: React.FC = () => {
 
   // Fallback / Customizable Rider items
   const displayRiderItems: RiderItem[] = useMemo(() => {
-    if (band.riderItems && band.riderItems.length > 0) {
+    if (band?.riderItems && band.riderItems.length > 0) {
       return band.riderItems
     }
     return [
@@ -353,7 +404,42 @@ export const BandDetailPage: React.FC = () => {
         description: 'Dedicated isolated power 220V dengan grounded stabilizer khusus panggung audio',
       },
     ]
-  }, [band.riderItems])
+  }, [band])
+
+  if (loadingBand && !band) {
+    return (
+      <div className="w-full bg-[#000000] text-white min-h-screen flex flex-col items-center justify-center p-6 font-mono">
+        <div className="w-12 h-12 rounded-full border-2 border-[#222222] border-t-[#E01E37] animate-spin mb-4" />
+        <div className="text-xs uppercase tracking-widest text-[#A0A0A0]">
+          MEMUAT PROFIL BAND...
+        </div>
+      </div>
+    )
+  }
+
+  if (notFoundError || !band) {
+    return (
+      <div className="w-full bg-[#000000] text-white min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#121212] border border-[#262626] rounded-2xl p-8 text-center space-y-5 shadow-xl">
+          <div className="font-mono text-xs uppercase tracking-widest text-[#F87171] font-bold">
+            404 · PROFIL TIDAK DITEMUKAN
+          </div>
+          <h1 className="font-display text-2xl sm:text-3xl text-white uppercase tracking-wide">
+            Profil Band Tidak Tersedia
+          </h1>
+          <p className="text-sm text-[#A0A0A0] font-sans leading-relaxed">
+            Profil musisi yang Anda cari tidak ditemukan atau akun telah dihapus dari katalog Reffband.
+          </p>
+          <Link
+            to="/cari-band"
+            className="inline-flex items-center justify-center min-h-[44px] px-6 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider transition-colors"
+          >
+            Kembali ke Katalog Band
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="w-full bg-[#000000] text-white min-h-screen">
@@ -465,7 +551,7 @@ export const BandDetailPage: React.FC = () => {
                   <span className="text-[#333]">•</span>
                   <div className="flex items-center gap-1.5 text-white/80">
                     <Phone className="w-3.5 h-3.5 text-white/60" />
-                    <span>MANAJEMEN: {band.phone || '0812-3456-7890'}</span>
+                    <span>MANAJEMEN: {band.phone || 'Belum tercantum'}</span>
                   </div>
                 </div>
               </div>
@@ -596,7 +682,7 @@ export const BandDetailPage: React.FC = () => {
                 {/* Metric 3: Starting Rate */}
                 <div>
                   <div className="text-white font-display text-xl sm:text-2xl tracking-wide text-[#E01E37]">
-                    {formatRupiah(band.budgetMin || 3500000)}
+                    {hasFixedRate && band.budgetMin ? formatRupiah(band.budgetMin) : 'Negosiasi'}
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
                     TARIF MULAI / SET
@@ -885,7 +971,7 @@ export const BandDetailPage: React.FC = () => {
                     TOTAL ESTIMASI RATE
                   </span>
                   <div className="font-mono text-base sm:text-lg font-bold text-[#E01E37] tracking-tight">
-                    {formatRupiah(totalPrice)}
+                    {hasFixedRate ? formatRupiah(totalPrice) : 'Negosiasi'}
                   </div>
                 </div>
               </div>
@@ -918,7 +1004,7 @@ export const BandDetailPage: React.FC = () => {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="font-mono text-white text-[11px] font-bold min-w-[70px] text-center select-none">
+                <span className="font-mono text-white text-[11px] font-bold min-w-[70px] text-center select-none whitespace-nowrap">
                   SLIDE {safeActiveSlide + 1} / {gallerySlides.length}
                 </span>
                 <button
@@ -1038,7 +1124,18 @@ export const BandDetailPage: React.FC = () => {
             </span>
           </div>
 
-          {/* 4-Column Responsive Work Grid */}
+          {/* 4-Column Responsive Work Grid or Honest Empty State */}
+          {allPosts.length === 0 ? (
+            <div className="bg-[#121212] border border-[#242424] rounded-2xl p-10 text-center space-y-2">
+              <Camera className="w-8 h-8 text-[#808080] mx-auto" aria-hidden="true" />
+              <p className="font-mono text-sm text-white uppercase font-bold">
+                Belum Ada Karya Diunggah
+              </p>
+              <p className="text-xs text-[#A0A0A0] font-sans">
+                {band.bandName} belum menambahkan dokumentasi foto atau video panggung. Gunakan fitur inquiry atau hubungi kontak manajemen di atas.
+              </p>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             {allPosts.map((post) => {
               const postSlides = parsePostSlides(post, true)
@@ -1154,6 +1251,7 @@ export const BandDetailPage: React.FC = () => {
               )
             })}
           </div>
+          )}
         </section>
 
         <BroadcastInquirySection sourceBandProfileId={band.id} currentUser={currentUser} />

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Sliders, X, Phone, ArrowUpRight, Trash2 } from 'lucide-react'
 import type { Band } from '../../types'
 import { formatRupiah } from '../../lib/utils'
@@ -151,13 +152,14 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
 
                       {/* Action Links */}
                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#262626]">
-                        <a
-                          href={`/profile.html?id=${band.id}`}
+                        <Link
+                          to={`/band/${band.id}`}
+                          onClick={() => setIsOpen(false)}
                           className="min-h-[44px] flex items-center justify-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-white bg-[#262626] hover:bg-[#333333] transition-colors"
                         >
                           <span>Rider</span>
                           <ArrowUpRight className="w-3.5 h-3.5 text-[#E01E37]" />
-                        </a>
+                        </Link>
 
                         {waUrl ? (
                           <a

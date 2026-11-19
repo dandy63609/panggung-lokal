@@ -29,24 +29,30 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [comparedBands, setComparedBands] = useState<Band[]>([])
   const [loading, setLoading] = useState<boolean>(!initialBands)
-  const [visibleCount, setVisibleCount] = useState<number>(6)
+  const [visibleCount, setVisibleCount] = useState<number>(9)
 
-  // Fetch bands from backend API or combine with rich fallback
+  // Fetch bands from backend API or combine with rich fallback when backend is offline / guest sneak peek
   useEffect(() => {
+    let cancelled = false
+
     async function fetchBands() {
       try {
         setLoading(true)
-        const res = await fetch('/api/bands/search?limit=24', {
+        const res = await fetch('/api/bands/search?limit=50', {
           headers: authClient.getAuthHeaders(),
         })
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const json = await res.json()
           const apiBands: Band[] = Array.isArray(json.data)
             ? json.data
             : json.data?.bands || []
 
+          if (json.success && !json.isSneakPeek) {
+            setBands([...apiBands].sort((a, b) => a.id - b.id))
+            return
+          }
+
           if (apiBands.length > 0) {
-            // Merge API bands with fallback matching by id or bandName
             const merged = [...apiBands]
             fallbackBands.forEach((fb) => {
               const alreadyPresent = merged.some(
@@ -61,16 +67,35 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
             return
           }
         }
-        setBands(fallbackBands)
+        if (!cancelled) {
+          setBands(fallbackBands)
+        }
       } catch {
-        setBands(fallbackBands)
+        if (!cancelled) {
+          setBands(fallbackBands)
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
 
     if (!initialBands || initialBands.length === 0) {
       fetchBands()
+    }
+
+    const onAuthChange = () => {
+      if (!initialBands || initialBands.length === 0) {
+        fetchBands()
+      }
+    }
+    window.addEventListener('auth-change', onAuthChange)
+    window.addEventListener('storage', onAuthChange)
+    return () => {
+      cancelled = true
+      window.removeEventListener('auth-change', onAuthChange)
+      window.removeEventListener('storage', onAuthChange)
     }
   }, [initialBands])
 

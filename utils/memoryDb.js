@@ -301,37 +301,56 @@ async function syncAllToCloud(options = {}) {
   if (!SHOULD_USE_CLOUD_SYNC || !memDbInstance) return;
   const data = dumpData(memDbInstance);
 
+  // Upsert rows in parent-before-child order so foreign keys always resolve cleanly.
   for (const table of CLOUD_SYNC_TABLES) {
     const rows = data[table] || [];
+    if (rows.length === 0) continue;
     try {
-      if (rows.length > 0) {
-        await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=id`, {
-          method: 'POST',
-          headers: {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json',
-            Prefer: 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify(rows)
-        });
+      const upsertRes = await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=id`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(rows)
+      });
+      if (!upsertRes.ok) {
+        const errBody = await upsertRes.text().catch(() => '');
+        console.warn(`⚠️ Failed to upsert table ${table} to Supabase (${upsertRes.status}): ${errBody}`);
       }
-      if (options.syncDeletions) {
+    } catch (err) {
+      console.warn(`⚠️ Failed to sync table ${table} to Supabase:`, err.message);
+    }
+  }
+
+  // Delete removed rows in child-before-parent order to respect non-cascading foreign keys.
+  if (options.syncDeletions) {
+    const deleteOrder = [...CLOUD_SYNC_TABLES].reverse();
+    for (const table of deleteOrder) {
+      const rows = data[table] || [];
+      try {
         const deleteFilter = rows.length > 0
           ? `id=not.in.(${rows.map((r) => r.id).join(',')})`
           : 'id=gt.0';
-        await fetch(`${SUPABASE_URL}/rest/v1/${table}?${deleteFilter}`, {
+        const deleteRes = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${deleteFilter}`, {
           method: 'DELETE',
           headers: {
             apikey: SUPABASE_KEY,
             Authorization: `Bearer ${SUPABASE_KEY}`
           }
         });
+        if (!deleteRes.ok) {
+          const errBody = await deleteRes.text().catch(() => '');
+          console.warn(`⚠️ Failed to delete removed rows in ${table} on Supabase (${deleteRes.status}): ${errBody}`);
+        }
+      } catch (err) {
+        console.warn(`⚠️ Failed to delete removed rows in ${table} on Supabase:`, err.message);
       }
-    } catch (err) {
-      console.warn(`⚠️ Failed to sync table ${table} to Supabase:`, err.message);
     }
   }
+
   lastCloudFetchAt = Date.now();
 }
 

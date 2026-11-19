@@ -228,7 +228,7 @@ export const PostViewerModal: React.FC<PostViewerModalProps> = ({
 
 interface DirectBookingModalProps {
   isOpen: boolean
-  band: Pick<Band, 'bandName' | 'locationCity'>
+  band: Pick<Band, 'bandName' | 'locationCity' | 'phone'>
   setQuantity: number
   totalPrice: number
   onClose: () => void
@@ -243,22 +243,38 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
   onClose,
   onConfirmWhatsApp,
 }) => {
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
+
+  const cleanDigits = (band.phone || '').replace(/[^0-9]/g, '')
+  const isMasked = Boolean(band.phone && band.phone.includes('x'))
+  const hasReachablePhone = cleanDigits.length >= 6 && !isMasked
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Kontak booking ${band.bandName}`}
       className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="bg-[#121212] border-2 border-[#E01E37] w-full max-w-lg p-6 sm:p-8 relative shadow-[0_0_50px_rgba(224,30,55,0.3)] rounded-2xl"
+        className="bg-[#121212] border-2 border-[#E01E37] w-full max-w-lg p-6 sm:p-8 relative shadow-[0_0_50px_rgba(224,30,55,0.3)] rounded-2xl max-h-[90dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Tutup modal booking"
-          className="absolute top-4 right-4 w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#888] hover:text-white transition-colors rounded-full"
+          className="absolute top-4 right-4 w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#A0A0A0] hover:text-white transition-colors rounded-full cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -272,40 +288,47 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
 
         <div className="bg-[#0A0A0A] border border-[#222222] p-4 space-y-2 mb-6 font-mono text-xs rounded-xl">
           <div className="flex justify-between py-1 border-b border-[#181818]">
-            <span className="text-[#777] uppercase">FORMAT PANGGUNG</span>
+            <span className="text-[#888] uppercase">FORMAT PANGGUNG</span>
             <span className="text-white font-bold uppercase">PERFORMA PANGGUNG LIVE</span>
           </div>
           <div className="flex justify-between py-1 border-b border-[#181818]">
-            <span className="text-[#777] uppercase">DURASI PENAMPILAN</span>
+            <span className="text-[#888] uppercase">DURASI PENAMPILAN</span>
             <span className="text-white font-bold uppercase">{setQuantity} SET PERFORMA</span>
           </div>
           <div className="flex justify-between py-1 border-b border-[#181818]">
-            <span className="text-[#777] uppercase">KOTA VENUE</span>
+            <span className="text-[#888] uppercase">KOTA VENUE</span>
             <span className="text-white font-bold uppercase">{band.locationCity}</span>
           </div>
           <div className="flex justify-between pt-1">
-            <span className="text-[#777] uppercase">TOTAL ESTIMASI BIAYA</span>
-            <span className="text-[#E01E37] font-bold text-sm">{formatRupiah(totalPrice)}</span>
+            <span className="text-[#888] uppercase">TOTAL ESTIMASI BIAYA</span>
+            <span className="text-[#E01E37] font-bold text-sm">
+              {totalPrice > 0 ? formatRupiah(totalPrice) : 'Negosiasi'}
+            </span>
           </div>
         </div>
 
-        <p className="text-xs text-[#999999] leading-relaxed mb-6 font-sans">
-          Anda akan diarahkan langsung ke WhatsApp manajemen resmi band untuk konfirmasi jadwal, penyelarasan technical rider panggung, dan kesepakatan surat kontrak.
+        <p className="text-xs text-[#A0A0A0] leading-relaxed mb-6 font-sans">
+          {hasReachablePhone
+            ? 'Anda akan diarahkan langsung ke WhatsApp manajemen resmi band untuk konfirmasi jadwal, penyelarasan technical rider panggung, dan kesepakatan surat kontrak.'
+            : isMasked
+              ? 'Masuk menggunakan akun EO / Penyelenggara untuk membuka nomor WhatsApp lengkap manajemen band.'
+              : 'Band ini belum mencantumkan nomor WhatsApp manajemen pada profilnya. Gunakan broadcast lowongan di bawah untuk menghubungi seluruh band.'}
         </p>
 
         <div className="space-y-3">
           <button
             type="button"
             onClick={onConfirmWhatsApp}
-            className="w-full min-h-[44px] h-12 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 rounded-xl cursor-pointer"
+            disabled={!hasReachablePhone}
+            className="w-full min-h-[44px] h-12 bg-[#E01E37] hover:bg-[#C71B30] disabled:bg-[#2A2A2A] disabled:text-[#888] disabled:cursor-not-allowed disabled:shadow-none text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 rounded-xl cursor-pointer"
           >
             <Phone className="w-4 h-4" />
-            <span>HUBUNGI VIA WHATSAPP RESMI</span>
+            <span>{hasReachablePhone ? 'HUBUNGI VIA WHATSAPP RESMI' : 'NOMOR WHATSAPP BELUM TERSEDIA'}</span>
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="w-full min-h-[44px] h-10 bg-transparent hover:bg-white/5 border border-white/10 text-[#888] hover:text-white font-mono text-xs uppercase tracking-wider transition-all rounded-xl cursor-pointer"
+            className="w-full min-h-[44px] h-10 bg-transparent hover:bg-white/5 border border-white/10 text-[#A0A0A0] hover:text-white font-mono text-xs uppercase tracking-wider transition-all rounded-xl cursor-pointer"
           >
             KEMBALI KE PROFIL
           </button>
