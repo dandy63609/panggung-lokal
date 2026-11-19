@@ -231,6 +231,144 @@ export const authClient = {
     }
   },
 
+  async parseResponseJson<T = Record<string, any>>(res: Response): Promise<T | null> {
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) {
+      return null
+    }
+    try {
+      return (await res.json()) as T
+    } catch {
+      return null
+    }
+  },
+
+  resolveUploadErrorMessage(res: Response, jsonBody: Record<string, any> | null, fallback: string): string {
+    if (jsonBody?.error?.message) return jsonBody.error.message
+    if (jsonBody?.message) return jsonBody.message
+    if (res.status === 413) {
+      return 'Ukuran berkas melebihi batas unggah server (maks. 4.5 MB). Gunakan unggah cloud langsung.'
+    }
+    if (res.status === 401) {
+      return 'Sesi login Anda berakhir. Silakan masuk kembali.'
+    }
+    if (res.status === 429) {
+      return 'Terlalu banyak permintaan unggah. Tunggu beberapa menit lalu coba lagi.'
+    }
+    return `${fallback} (HTTP ${res.status})`
+  },
+
+  validateUploadFileClient(file: File): { valid: boolean; fileType: 'photo' | 'video' | 'audio'; mimeType: string; message?: string } {
+    const ext = (file.name.split('.').pop() || '').toLowerCase()
+    const rawMime = (file.type || '').split(';')[0].trim().toLowerCase()
+    const extMimeMap: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
+      gif: 'image/gif',
+      mp4: 'video/mp4',
+      webm: 'video/webm',
+      mov: 'video/quicktime',
+      m4v: 'video/x-m4v',
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      ogg: 'audio/ogg',
+      m4a: 'audio/mp4',
+    }
+    const mimeType = (rawMime && rawMime !== 'application/octet-stream' ? rawMime : extMimeMap[ext]) || rawMime || 'application/octet-stream'
+    const isVideo = mimeType.startsWith('video/')
+    const isAudio = mimeType.startsWith('audio/')
+    const fileType: 'photo' | 'video' | 'audio' = isVideo ? 'video' : isAudio ? 'audio' : 'photo'
+
+    const maxBytes = isVideo ? 50 * 1024 * 1024 : isAudio ? 20 * 1024 * 1024 : 10 * 1024 * 1024
+    if (file.size > maxBytes) {
+      const limitLabel = isVideo ? '50 MB' : isAudio ? '20 MB' : '10 MB'
+      return { valid: false, fileType, mimeType, message: `Ukuran berkas melebihi batas ${limitLabel}` }
+    }
+    return { valid: true, fileType, mimeType }
+  },
+
+  async uploadSingleMultipart(file: File, endpoint?: string): Promise<{
+    success: boolean
+    fileUrl?: string
+    fileType?: 'photo' | 'video'
+    filename?: string
+    message?: string
+  }> {
+    const meta = this.validateUploadFileClient(file)
+    const isPhoto = meta.fileType === 'photo'
+    const targetEndpoint = endpoint || (isPhoto ? '/api/upload/photo' : '/api/upload/media')
+    const formData = new FormData()
+    formData.append(isPhoto ? 'photo' : 'media', file)
+
+    const res = await fetch(targetEndpoint, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: formData,
+    })
+    const data = await this.parseResponseJson(res)
+    if (res.ok && data?.success && data.fileUrl) {
+      return {
+        success: true,
+        fileUrl: data.fileUrl,
+        fileType: isPhoto ? 'photo' : 'video',
+        filename: data.filename,
+      }
+    }
+    return {
+      success: false,
+      message: this.resolveUploadErrorMessage(res, data, 'Gagal mengunggah berkas'),
+    }
+  },
+
+  async uploadFileToSignedUrl(
+    file: File,
+    descriptor: {
+      mode?: string
+      signedUrl?: string
+      publicUrl?: string
+      filename?: string
+      fileType?: 'photo' | 'video' | 'audio'
+      mimeType?: string
+      fallbackEndpoint?: string
+    }
+  ): Promise<{
+    success: boolean
+    fileUrl?: string
+    fileType?: 'photo' | 'video'
+    filename?: string
+    message?: string
+  }> {
+    if (descriptor.mode !== 'direct' || !descriptor.signedUrl || !descriptor.publicUrl) {
+      return this.uploadSingleMultipart(file, descriptor.fallbackEndpoint)
+    }
+
+    const meta = this.validateUploadFileClient(file)
+    const putRes = await fetch(descriptor.signedUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': descriptor.mimeType || meta.mimeType,
+      },
+      body: file,
+    })
+
+    if (!putRes.ok) {
+      const errText = await putRes.text().catch(() => '')
+      return {
+        success: false,
+        message: `Gagal mengunggah berkas ke cloud (${putRes.status})${errText ? `: ${errText.slice(0, 80)}` : ''}`,
+      }
+    }
+
+    return {
+      success: true,
+      fileUrl: descriptor.publicUrl,
+      fileType: meta.fileType === 'video' ? 'video' : 'photo',
+      filename: descriptor.filename,
+    }
+  },
+
   async uploadFile(file: File): Promise<{
     success: boolean
     fileUrl?: string
@@ -238,27 +376,70 @@ export const authClient = {
     filename?: string
     message?: string
   }> {
-    try {
-      const formData = new FormData()
-      const isPhoto = file.type.startsWith('image/')
-      const uploadEndpoint = isPhoto ? '/api/upload/photo' : '/api/upload/media'
-      formData.append(isPhoto ? 'photo' : 'media', file)
+    const meta = this.validateUploadFileClient(file)
+    if (!meta.valid) {
+      return { success: false, message: meta.message }
+    }
 
-      const res = await fetch(uploadEndpoint, {
+    try {
+      const signRes = await fetch('/api/upload/signed-url', {
         method: 'POST',
-        headers: this.getAuthHeaders(),
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: meta.mimeType,
+          fileSize: file.size,
+          category: meta.fileType === 'photo' ? 'photo' : 'media',
+        }),
       })
-      const data = await res.json()
-      if (data.success && data.fileUrl) {
+      const signData = await this.parseResponseJson(signRes)
+      if (!signRes.ok || !signData?.success) {
         return {
-          success: true,
-          fileUrl: data.fileUrl,
-          fileType: isPhoto ? 'photo' : 'video',
-          filename: data.filename,
+          success: false,
+          message: this.resolveUploadErrorMessage(signRes, signData, 'Gagal menyiapkan unggahan berkas'),
         }
       }
-      return { success: false, message: data.message || 'Gagal mengunggah berkas' }
+      return await this.uploadFileToSignedUrl(file, signData)
+    } catch {
+      return { success: false, message: 'Gagal menghubungi server untuk upload berkas' }
+    }
+  },
+
+  async requestBatchSignedUploads(files: File[]): Promise<{
+    success: boolean
+    items?: Array<Record<string, any>>
+    message?: string
+  }> {
+    try {
+      const payloadFiles = files.map((file) => {
+        const meta = this.validateUploadFileClient(file)
+        return {
+          filename: file.name,
+          mimeType: meta.mimeType,
+          fileSize: file.size,
+          category: meta.fileType === 'photo' ? 'photo' : 'media',
+        }
+      })
+
+      const res = await fetch('/api/upload/signed-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
+        },
+        body: JSON.stringify({ files: payloadFiles }),
+      })
+      const data = await this.parseResponseJson(res)
+      if (!res.ok || !data?.success || !Array.isArray(data.items)) {
+        return {
+          success: false,
+          message: this.resolveUploadErrorMessage(res, data, 'Gagal menyiapkan unggahan berkas'),
+        }
+      }
+      return { success: true, items: data.items }
     } catch {
       return { success: false, message: 'Gagal menghubungi server untuk upload berkas' }
     }

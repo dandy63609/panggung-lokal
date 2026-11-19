@@ -177,50 +177,74 @@ export const BandDashboardPage: React.FC = () => {
     if (!fileArray.length) return
 
     const newItems: UploadedMediaItem[] = fileArray.map((file) => {
-      const isVideo = file.type.startsWith('video/')
+      const meta = authClient.validateUploadFileClient(file)
       return {
         id: Math.random().toString(36).substring(2, 9),
         file,
-        type: isVideo ? 'video' : 'photo',
+        type: meta.fileType === 'video' ? 'video' : 'photo',
         previewUrl: URL.createObjectURL(file),
         name: file.name,
         size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-        uploading: true,
+        uploading: meta.valid,
+        error: meta.valid ? undefined : meta.message,
       }
     })
 
     setUploadedItems((prev) => [...prev, ...newItems])
 
-    // Upload files sequentially/concurrently to server
-    for (const item of newItems) {
-      if (!item.file) continue
-      try {
-        const res = await authClient.uploadFile(item.file)
-        if (res.success && res.fileUrl) {
-          setUploadedItems((prev) =>
-            prev.map((p) =>
-              p.id === item.id
-                ? { ...p, serverUrl: res.fileUrl, uploading: false }
-                : p
-            )
+    const validItems = newItems.filter((item) => item.file && !item.error)
+    if (validItems.length === 0) return
+
+    // Chunk in batches of up to 10 files so multi-slide uploads consume a single signed-URL call
+    for (let offset = 0; offset < validItems.length; offset += 10) {
+      const chunk = validItems.slice(offset, offset + 10)
+      const batchSign = await authClient.requestBatchSignedUploads(chunk.map((item) => item.file!))
+
+      if (!batchSign.success || !batchSign.items) {
+        const chunkIds = new Set(chunk.map((item) => item.id))
+        setUploadedItems((prev) =>
+          prev.map((p) =>
+            chunkIds.has(p.id)
+              ? { ...p, uploading: false, error: batchSign.message || 'Gagal menyiapkan unggah berkas' }
+              : p
           )
-        } else {
+        )
+        continue
+      }
+
+      for (let i = 0; i < chunk.length; i += 1) {
+        const item = chunk[i]
+        const descriptor = batchSign.items[i]
+        if (!item.file || !descriptor) continue
+
+        try {
+          const res = await authClient.uploadFileToSignedUrl(item.file, descriptor)
+          if (res.success && res.fileUrl) {
+            setUploadedItems((prev) =>
+              prev.map((p) =>
+                p.id === item.id
+                  ? { ...p, serverUrl: res.fileUrl, uploading: false }
+                  : p
+              )
+            )
+          } else {
+            setUploadedItems((prev) =>
+              prev.map((p) =>
+                p.id === item.id
+                  ? { ...p, uploading: false, error: res.message || 'Gagal upload' }
+                  : p
+              )
+            )
+          }
+        } catch {
           setUploadedItems((prev) =>
             prev.map((p) =>
               p.id === item.id
-                ? { ...p, uploading: false, error: res.message || 'Gagal upload' }
+                ? { ...p, uploading: false, error: 'Kendala upload' }
                 : p
             )
           )
         }
-      } catch {
-        setUploadedItems((prev) =>
-          prev.map((p) =>
-            p.id === item.id
-              ? { ...p, uploading: false, error: 'Kendala upload' }
-              : p
-          )
-        )
       }
     }
   }
@@ -453,7 +477,7 @@ export const BandDashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-[#0A0A0A] text-[#F5F5F5] pb-24 selection:bg-[#E01E37] selection:text-white relative">
+    <div className="min-h-[calc(100vh-80px)] bg-[#0A0A0A] text-[#F5F5F5] pb-24 selection:bg-[#E01E37] selection:text-white relative overflow-x-hidden">
       {/* Background Circuit Grid Texture */}
       <div
         className="absolute inset-0 pointer-events-none opacity-15 bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:32px_32px]"
@@ -866,6 +890,8 @@ export const BandDashboardPage: React.FC = () => {
                   const hasMixed =
                     postSlides.some((s) => s.type === 'photo') && postSlides.some((s) => s.type === 'video')
                   const isVideo = post.mediaType === 'video'
+                  const firstSlideType = slideCount > 0 ? postSlides[0]?.type : undefined
+                  const isPrimaryVideo = firstSlideType === 'video' || (!firstSlideType && isVideo)
                   const mediaUrl =
                     (slideCount > 0 && postSlides[0]?.url) ||
                     post.mediaUrl ||
@@ -885,11 +911,21 @@ export const BandDashboardPage: React.FC = () => {
                           setDetailSlideIndex(0)
                         }}
                       >
-                        <img
-                          src={mediaUrl}
-                          alt={post.caption || 'Karya Musik'}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
+                        {isPrimaryVideo ? (
+                          <video
+                            src={mediaUrl}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <img
+                            src={mediaUrl}
+                            alt={post.caption || 'Karya Musik'}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        )}
 
                         {/* Format Badges */}
                         <div className="absolute top-2.5 left-2.5 px-2 py-0.5 bg-black/80 backdrop-blur-md text-[10px] font-mono uppercase tracking-wider text-white border border-white/10 flex items-center gap-1">

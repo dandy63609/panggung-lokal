@@ -22,9 +22,9 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com"],
       scriptSrcAttr: ["'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
       mediaSrc: ["'self'", "https:", "data:", "blob:"],
-      connectSrc: ["'self'", "https://accounts.google.com"],
+      connectSrc: ["'self'", "https://accounts.google.com", "https://*.supabase.co"],
       frameSrc: ["'self'", "https://accounts.google.com"],
       upgradeInsecureRequests: isProduction ? [] : null
     },
