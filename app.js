@@ -91,11 +91,18 @@ const spaRoutes = [
   '/dashboard-admin',
 ];
 
+const sendSpaIndex = (res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  return res.sendFile(clientDistIndex, { etag: false, lastModified: false });
+};
+
 if (fs.existsSync(clientDistDir)) {
   app.use(express.static(clientDistDir, { index: false }));
   app.get(spaRoutes, (req, res, next) => {
     if (fs.existsSync(clientDistIndex)) {
-      return res.sendFile(clientDistIndex);
+      return sendSpaIndex(res);
     }
     return next();
   });
@@ -108,7 +115,7 @@ if (process.env.VERCEL) {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/admin.html', require('./middleware/auth').requireAdminPage, (req, res) => {
   if (fs.existsSync(clientDistIndex)) {
-    return res.sendFile(clientDistIndex);
+    return sendSpaIndex(res);
   }
   return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
@@ -137,9 +144,8 @@ app.use('/api/reports', require('./routes/reports'));
 // Root route
 app.get('/', (req, res) => {
   if (req.headers.accept && req.headers.accept.includes('text/html') && !req.headers.accept.includes('application/json')) {
-    const clientDistIndex = path.resolve(__dirname, 'client', 'dist', 'index.html');
     if (fs.existsSync(clientDistIndex)) {
-      return res.sendFile(clientDistIndex);
+      return sendSpaIndex(res);
     }
     return res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
   }

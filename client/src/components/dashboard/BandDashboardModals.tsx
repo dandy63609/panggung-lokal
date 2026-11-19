@@ -99,7 +99,7 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
       aria-labelledby="upload-media-modal-title"
       className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center overflow-hidden"
     >
-      <div className="bg-[#121212] border border-[#2E2E2E] w-full max-w-2xl max-h-[90dvh] flex flex-col relative shadow-2xl overflow-hidden">
+      <div className="bg-[#121212] border border-[#2E2E2E] w-full max-w-[calc(100vw-1.5rem)] sm:max-w-2xl max-h-[90dvh] flex flex-col relative shadow-2xl overflow-hidden">
         <input
           ref={fileInputRef}
           type="file"
@@ -162,12 +162,12 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
         <form onSubmit={onSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 overscroll-contain">
             {existingPosts.length > 0 && onTargetPostChange && (
-              <div className="p-3 bg-[#161616] border border-[#282828] space-y-1.5">
+              <div className="p-3 bg-[#161616] border border-[#282828] space-y-1.5 min-w-0">
                 <label
                   htmlFor="upload-target-post"
                   className="block text-[10px] font-mono uppercase tracking-wider text-[#A0A0A0]"
                 >
-                  Tujuan Postingan (Buat Carousel Baru atau Gabung ke Postingan Ada)
+                  Tujuan Postingan (Carousel Baru / Gabung)
                 </label>
                 <select
                   id="upload-target-post"
@@ -176,17 +176,17 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
                     const val = e.target.value
                     onTargetPostChange(val ? Number(val) : null)
                   }}
-                  className="w-full bg-[#101010] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs font-mono px-3 py-2.5 min-h-[44px] outline-none cursor-pointer"
+                  className="w-full max-w-full min-w-0 truncate bg-[#101010] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs font-mono px-3 py-2.5 min-h-[44px] outline-none cursor-pointer"
                 >
                   <option value="" className="bg-[#121212] text-white">
                     + Buat Postingan Carousel Baru
                   </option>
                   {existingPosts.map((post, idx) => {
                     const labelCaption = (post.caption || '').trim() || `Karya #${existingPosts.length - idx}`
-                    const shortLabel = labelCaption.length > 42 ? `${labelCaption.slice(0, 42)}...` : labelCaption
+                    const shortLabel = labelCaption.length > 28 ? `${labelCaption.slice(0, 28)}...` : labelCaption
                     return (
                       <option key={post.id} value={post.id} className="bg-[#121212] text-white">
-                        Gabung ke Carousel: {shortLabel}
+                        Gabung ke: {shortLabel}
                       </option>
                     )
                   })}
