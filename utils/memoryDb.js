@@ -5,7 +5,8 @@ const bcrypt = require('bcrypt');
 
 const DATA_FILE = path.join(__dirname, '..', 'data', 'panggung_lokal.json');
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '';
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '';
 const SHOULD_USE_CLOUD_SYNC = Boolean(
   process.env.NODE_ENV !== 'test' && SUPABASE_URL && SUPABASE_KEY
 );
