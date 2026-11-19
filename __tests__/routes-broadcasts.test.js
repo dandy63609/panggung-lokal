@@ -151,4 +151,44 @@ describe('Job Broadcast & Venue Attachment API', () => {
     expect(matchOnBand2.venueLocation).toBe('Gedung Sabuga Bandung');
     expect(matchOnBand2.attachments[0].originalName).toBe('venue-layout.pdf');
   });
+
+  it('preserves HTTPS cloud storage attachment URLs while stripping unsafe protocols', async () => {
+    const cloudUrl =
+      'https://awccpftjirfmxbvugqtk.supabase.co/storage/v1/object/public/media/1795085032000-qa-venue-brief.pdf';
+
+    const res = await request(app)
+      .post('/api/broadcasts')
+      .set('Authorization', `Bearer ${organizerToken}`)
+      .send({
+        organizerName: 'Cloud Broadcast EO',
+        organizerEmail: 'kafe.selatan@gmail.com',
+        organizerPhone: '081234567890',
+        eventDate: '2026-12-28',
+        performStartTime: '19:00',
+        performEndTime: '20:30',
+        venueLocation: 'Taman Budaya Yogyakarta',
+        eventScale: 4,
+        eventDetails: 'Event broadcast dengan lampiran Supabase Storage.',
+        attachments: [
+          {
+            fileUrl: cloudUrl,
+            originalName: 'qa-venue-brief.pdf',
+            mimeType: 'application/pdf',
+            size: 120,
+          },
+          {
+            fileUrl: 'javascript:alert(1)',
+            originalName: 'xss.js',
+            mimeType: 'text/javascript',
+            size: 20,
+          },
+        ],
+      })
+      .expect(201);
+
+    createdBroadcastIds.push(res.body.data.id);
+    expect(res.body.data.attachments).toHaveLength(1);
+    expect(res.body.data.attachments[0].fileUrl).toBe(cloudUrl);
+    expect(res.body.data.attachments[0].originalName).toBe('qa-venue-brief.pdf');
+  });
 });

@@ -72,9 +72,13 @@ router.post('/', requireOrganizer, async (req, res) => {
         });
       }
       safeAttachments = attachments
-        .filter((att) => att && typeof att.fileUrl === 'string' && att.fileUrl.startsWith('/uploads/'))
+        .filter((att) => {
+          if (!att || typeof att.fileUrl !== 'string') return false;
+          const cleanUrl = att.fileUrl.trim();
+          return cleanUrl.startsWith('/uploads/') || /^https?:\/\//i.test(cleanUrl);
+        })
         .map((att) => ({
-          fileUrl: att.fileUrl,
+          fileUrl: att.fileUrl.trim(),
           originalName: String(att.originalName || 'lampiran').slice(0, 200),
           mimeType: String(att.mimeType || '').slice(0, 120),
           size: Number(att.size) || 0,
