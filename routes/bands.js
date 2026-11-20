@@ -130,12 +130,25 @@ router.get('/profile/:id', async (req, res) => {
       });
     }
 
-    // Increment profile view count asynchronously
-    BandProfile.incrementViews(band.id).catch(err => console.error('Error incrementing views:', err));
-
     const user = extractOptionalUser(req);
     const isAuthenticated = !!user;
     const isSneakPeek = !isAuthenticated;
+
+    // View tracking rules:
+    // Only increment profile views if the visitor is NOT the owner of this band!
+    // ("fitur view di hitung kalo ada akun eo atau musisi lain intinya orang lain bukan akun kita yang buka")
+    const isOwner = Boolean(
+      user &&
+      band.userId &&
+      String(user.id) === String(band.userId)
+    );
+    const isPreview = req.query.preview === 'true' || isOwner;
+
+    let updatedProfileViews = band.profileViews;
+    if (!isPreview) {
+      BandProfile.incrementViews(band.id).catch(err => console.error('Error incrementing views:', err));
+      updatedProfileViews = band.profileViews + 1;
+    }
 
     // Fetch Instagram-style posts and media files
     const posts = await BandPost.findByBandProfileId(band.id);
@@ -151,9 +164,10 @@ router.get('/profile/:id', async (req, res) => {
       data: {
         ...band,
         phone: displayPhone,
-        profileViews: band.profileViews + 1,
+        profileViews: updatedProfileViews,
         posts,
-        mediaFiles
+        mediaFiles,
+        isOwner
       }
     });
   } catch (error) {

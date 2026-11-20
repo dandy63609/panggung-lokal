@@ -65,6 +65,7 @@ export interface Band {
   stageVisualPostId?: number | null
   posts?: BandPost[]
   mediaFiles?: MediaFile[]
+  isOwner?: boolean
 }
 
 export interface SearchBandsResponse {

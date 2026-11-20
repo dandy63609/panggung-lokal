@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const BandPost = require('../models/BandPost');
 const BandProfile = require('../models/BandProfile');
-const { requireAuth, requireBand } = require('../middleware/auth');
+const { requireAuth, requireBand, extractOptionalUser } = require('../middleware/auth');
 
 const isValidPositiveId = (val) => Number.isInteger(val) && val > 0;
 const isSafeMediaUrl = (url) =>
@@ -32,11 +32,36 @@ router.post('/:id/view', async (req, res) => {
     if (!isValidPositiveId(postId)) {
       return res.status(400).json({ success: false, message: 'ID postingan tidak valid' });
     }
-    const post = await BandPost.incrementViews(postId);
+    const post = await BandPost.findById(postId);
     if (!post) {
       return res.status(404).json({ success: false, message: 'Postingan tidak ditemukan' });
     }
-    return res.json({ success: true, data: { viewsCount: post.viewsCount } });
+
+    // View tracking rules:
+    // Only increment view if the visitor is NOT the owner of the band that created this post!
+    // ("fitur view di hitung kalo ada akun eo atau musisi lain intinya orang lain bukan akun kita yang buka")
+    const user = extractOptionalUser(req);
+    const band = await BandProfile.findById(post.bandProfileId);
+    const isOwner = Boolean(
+      user &&
+      band &&
+      band.userId &&
+      String(user.id) === String(band.userId)
+    );
+
+    if (isOwner) {
+      return res.json({
+        success: true,
+        message: 'Tayangan postingan tidak dihitung untuk pemilik akun sendiri',
+        data: { viewsCount: post.viewsCount, isOwner: true }
+      });
+    }
+
+    const updatedPost = await BandPost.incrementViews(postId);
+    return res.json({
+      success: true,
+      data: { viewsCount: updatedPost.viewsCount, isOwner: false }
+    });
   } catch (error) {
     console.error('Error tracking post view:', error);
     return res.status(500).json({ success: false, message: 'Gagal mencatat tayangan' });

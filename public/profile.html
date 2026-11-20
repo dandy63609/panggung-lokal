@@ -646,8 +646,8 @@
       activePost = post;
       activeSlideIndex = 0;
 
-      // Track view impression asynchronously
-      if (window.apiTrackPostView) {
+      // Track view impression asynchronously if visitor is NOT the band owner
+      if (window.apiTrackPostView && (!currentBand || !currentBand.isOwner)) {
         apiTrackPostView(postId);
         post.viewsCount = (post.viewsCount || 0) + 1;
       }

@@ -195,13 +195,16 @@ export const BandDetailPage: React.FC = () => {
 
   // Check if current user is the owner of this band
   const isOwner = Boolean(
-    currentUser &&
-    currentUser.accountType === 'band' &&
+    band?.isOwner ||
     (
-      (band?.userId && Number(currentUser.id) === Number(band.userId)) ||
-      (currentUser.bandProfile?.id && Number(currentUser.bandProfile.id) === Number(band?.id)) ||
-      (currentUser.bandProfile?.slug && band?.slug && currentUser.bandProfile.slug.toLowerCase() === band.slug.toLowerCase()) ||
-      (currentUser.bandProfile?.bandName && band?.bandName && currentUser.bandProfile.bandName.toLowerCase() === band.bandName.toLowerCase())
+      currentUser &&
+      currentUser.accountType === 'band' &&
+      (
+        (band?.userId && Number(currentUser.id) === Number(band.userId)) ||
+        (currentUser.bandProfile?.id && Number(currentUser.bandProfile.id) === Number(band?.id)) ||
+        (currentUser.bandProfile?.slug && band?.slug && currentUser.bandProfile.slug.toLowerCase() === band.slug.toLowerCase()) ||
+        (currentUser.bandProfile?.bandName && band?.bandName && currentUser.bandProfile.bandName.toLowerCase() === band.bandName.toLowerCase())
+      )
     )
   )
   const canManage = isOwner || currentUser?.accountType === 'admin'
@@ -428,9 +431,9 @@ export const BandDetailPage: React.FC = () => {
     const cleanPhone = formatWhatsAppPhone(band.phone, '')
     if (!cleanPhone) return
 
-    // Record connection / lead in backend if authenticated
+    // Record connection / lead in backend if authenticated and NOT the owner
     try {
-      if (currentUser && band.id) {
+      if (currentUser && band.id && !isOwner) {
         fetch('/api/connections', {
           method: 'POST',
           headers: {
@@ -1318,7 +1321,15 @@ export const BandDetailPage: React.FC = () => {
               return (
                 <div
                   key={post.id}
-                  onClick={() => setActivePost(post)}
+                  onClick={() => {
+                    setActivePost(post)
+                    if (!isOwner) {
+                      fetch(`/api/posts/${post.id}/view`, {
+                        method: 'POST',
+                        headers: authClient.getAuthHeaders(),
+                      }).catch(() => {})
+                    }
+                  }}
                   className="group relative bg-[#121212] border border-[#242424] hover:border-[#E01E37] rounded-xl flex flex-col justify-between overflow-hidden cursor-pointer transition-all duration-300 shadow-md hover:shadow-[0_8px_30px_rgba(224,30,55,0.2)]"
                 >
                   {/* Media Thumbnail */}

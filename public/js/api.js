@@ -225,7 +225,10 @@ async function apiDeleteBandPost(postId) {
 
 async function apiTrackPostView(postId) {
   try {
-    const res = await fetch(`/api/posts/${postId}/view`, { method: 'POST' });
+    const res = await fetch(`/api/posts/${postId}/view`, {
+      method: 'POST',
+      headers: AuthManager.getAuthHeaders()
+    });
     return await res.json();
   } catch (e) {
     return { success: false };
