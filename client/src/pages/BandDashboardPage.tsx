@@ -38,6 +38,7 @@ import {
   TikTokIcon,
 } from '../components/ui/SocialIcons'
 import { JobBroadcastsTab } from '../components/dashboard/JobBroadcastsTab'
+import { AudioTracksTab } from '../components/dashboard/AudioTracksTab'
 import {
   UploadMediaModal,
   PostDetailModal,
@@ -55,7 +56,7 @@ export const BandDashboardPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<BandDashboardData | null>(null)
-  const [activeTab, setActiveTab] = useState<'feed' | 'rider' | 'analytics' | 'broadcasts'>('feed')
+  const [activeTab, setActiveTab] = useState<'feed' | 'audio' | 'rider' | 'analytics' | 'broadcasts'>('feed')
 
   // Modals state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -868,6 +869,22 @@ export const BandDashboardPage: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setActiveTab('audio')}
+            className={`px-3.5 sm:px-4 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'audio'
+                ? 'border-[#E01E37] text-white bg-[#141414]'
+                : 'border-transparent text-[#808080] hover:text-white hover:bg-[#111111]'
+            }`}
+          >
+            <Music className="w-3.5 h-3.5 text-[#E01E37] shrink-0" />
+            <span>Sampel Audio</span>
+            <span className="px-1.5 py-0.2 bg-[#222222] text-[#A0A0A0] text-[10px] shrink-0">
+              {(dashboardData?.mediaFiles || []).filter((m) => m.file_type === 'audio').length}
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('rider')}
             className={`px-3.5 sm:px-4 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'rider'
@@ -1142,6 +1159,16 @@ export const BandDashboardPage: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* Tab 1.5: Sampel Audio Resmi (Demo Master) */}
+        {activeTab === 'audio' && (
+          <AudioTracksTab
+            mediaFiles={dashboardData?.mediaFiles || []}
+            bandName={profile?.bandName}
+            onRefresh={fetchDashboard}
+            showToast={showToast}
+          />
         )}
 
         {/* Tab 2: Technical Rider */}

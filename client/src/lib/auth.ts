@@ -503,6 +503,39 @@ export const authClient = {
     }
   },
 
+  async addBandMedia(payload: {
+    fileType: 'audio' | 'photo' | 'video'
+    fileUrl: string
+    title: string
+    displayOrder?: number
+  }): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const res = await fetch('/api/bands/media', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
+        },
+        body: JSON.stringify(payload),
+      })
+      return await res.json()
+    } catch {
+      return { success: false, message: 'Gagal menambahkan berkas media' }
+    }
+  },
+
+  async deleteBandMedia(mediaId: number): Promise<{ success: boolean; message?: string }> {
+    try {
+      const res = await fetch(`/api/bands/media/${mediaId}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders(),
+      })
+      return await res.json()
+    } catch {
+      return { success: false, message: 'Gagal menghapus media' }
+    }
+  },
+
   async uploadBroadcastAttachments(files: File[]): Promise<{
     success: boolean
     files?: Array<{ fileUrl: string; originalName: string; mimeType: string; size: number }>
