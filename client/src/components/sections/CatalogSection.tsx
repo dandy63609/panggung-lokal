@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Filter, ChevronRight, SlidersHorizontal, Lock } from 'lucide-react'
+import { Filter, ChevronRight, SlidersHorizontal, Lock, Search, X } from 'lucide-react'
 import type { Band } from '../../types'
 import { fallbackBands } from '../../data/bandsData'
 import { BandCard } from '../ui/BandCard'
@@ -33,18 +33,23 @@ const INITIAL_FILTERS: FilterState = {
 }
 
 export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) => {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchQuery, setSearchQuery] = useState<string>(() =>
+    (searchParams.get('q') || searchParams.get('search') || '').trim()
+  )
   const [bands, setBands] = useState<Band[]>(initialBands || [])
   const [selectedCategory, setSelectedCategory] = useState<string>(() =>
     resolveInitialCategory(searchParams.get('genre'))
   )
 
-  // Synchronize category filter whenever genre query param in URL changes
+  // Synchronize category filter and search query whenever query param in URL changes
   useEffect(() => {
     const genreParam = searchParams.get('genre')
     if (genreParam !== null) {
       setSelectedCategory(resolveInitialCategory(genreParam))
     }
+    const qParam = searchParams.get('q') || searchParams.get('search') || ''
+    setSearchQuery(qParam.trim())
   }, [searchParams])
   const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS)
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
@@ -66,7 +71,9 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
 
       try {
         setLoading(true)
-        const res = await fetch('/api/bands/search?limit=50', {
+        const qParam = (searchParams.get('q') || searchParams.get('search') || '').trim()
+        const queryStr = qParam ? `&search=${encodeURIComponent(qParam)}` : ''
+        const res = await fetch(`/api/bands/search?limit=50${queryStr}`, {
           headers: authClient.getAuthHeaders(),
         })
         if (res.ok && !cancelled) {
@@ -122,7 +129,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
       window.removeEventListener('auth-change', onAuthChange)
       window.removeEventListener('storage', onAuthChange)
     }
-  }, [initialBands, currentUser])
+  }, [initialBands, currentUser, searchParams])
 
   // Count active extra filters
   const activeFilterCount = useMemo(() => {
@@ -132,9 +139,19 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
     return count
   }, [filters])
 
-  // Filter bands by category, mode, and drawer filters
+  // Filter bands by search keyword, category, and drawer filters
   const filteredBands = useMemo(() => {
     return bands.filter((band) => {
+      // 0. Keyword search filter (band name, genre, bio, or city)
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase()
+        const nameMatch = (band.name || '').toLowerCase().includes(q)
+        const genreMatch = (band.genre || '').toLowerCase().includes(q)
+        const bioMatch = (band.bio || '').toLowerCase().includes(q)
+        const cityMatch = (band.locationCity || '').toLowerCase().includes(q)
+        if (!nameMatch && !genreMatch && !bioMatch && !cityMatch) return false
+      }
+
       // 1. Category Tab
       if (!matchesGenreCategory(band.genre, selectedCategory)) {
         return false
@@ -159,7 +176,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
 
       return true
     })
-  }, [bands, selectedCategory, filters])
+  }, [bands, selectedCategory, filters, searchQuery])
 
   // Toggle compare item
   const handleToggleCompare = (band: Band) => {
@@ -304,6 +321,30 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
                   />
                 </div>
               </div>
+
+              {/* Active Search Query Chip */}
+              {searchQuery && (
+                <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-[#141414] border border-[#E01E37]/50 rounded-sm w-fit">
+                  <Search className="w-3.5 h-3.5 text-[#E01E37]" />
+                  <span className="font-mono text-xs text-[#A0A0A0]">Kata kunci:</span>
+                  <span className="font-mono text-xs font-bold text-white uppercase">"{searchQuery}"</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('')
+                      const next = new URLSearchParams(searchParams)
+                      next.delete('q')
+                      next.delete('search')
+                      setSearchParams(next)
+                    }}
+                    className="ml-1 p-0.5 text-[#A0A0A0] hover:text-white hover:bg-[#222222] rounded transition-colors cursor-pointer"
+                    title="Hapus kata kunci pencarian"
+                    aria-label="Hapus kata kunci"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* 3. PROPORTIONAL & UNIFORM BAND GRID (Consistent, Equal Layout For Each Band) */}
@@ -348,17 +389,24 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
               <div className="p-16 text-center bg-[#141414] border border-[#242424] space-y-4">
                 <Filter className="w-10 h-10 text-[#E01E37] mx-auto opacity-70" />
                 <p className="font-mono text-sm text-[#A0A0A0] uppercase tracking-wider">
-                  Tidak ada band yang sesuai dengan kombinasi filter saat ini.
+                  {searchQuery
+                    ? `Tidak ada band yang sesuai dengan kata kunci "${searchQuery}".`
+                    : 'Tidak ada band yang sesuai dengan kombinasi filter saat ini.'}
                 </p>
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedCategory('SEMUA')
                     setFilters(INITIAL_FILTERS)
+                    setSearchQuery('')
+                    const next = new URLSearchParams(searchParams)
+                    next.delete('q')
+                    next.delete('search')
+                    setSearchParams(next)
                   }}
-                  className="min-h-[44px] px-6 bg-[#E01E37] text-white font-mono text-xs font-bold uppercase tracking-wider"
+                  className="min-h-[44px] px-6 bg-[#E01E37] text-white font-mono text-xs font-bold uppercase tracking-wider cursor-pointer"
                 >
-                  Reset Semua Filter
+                  Reset Semua Filter &amp; Pencarian
                 </button>
               </div>
             )}
