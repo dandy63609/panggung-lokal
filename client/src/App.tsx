@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { useSmoothScroll } from './hooks/useSmoothScroll'
 import { Navbar } from './components/Navbar'
@@ -12,7 +12,32 @@ import { RegisterPage } from './pages/RegisterPage'
 import { BandDashboardPage } from './pages/BandDashboardPage'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { authClient } from './lib/auth'
 import type { PlatformStats } from './types'
+
+// Protected Route Guard for authenticated users
+interface ProtectedRouteProps {
+  children: React.ReactNode
+  requiredRole?: 'band' | 'admin' | 'organizer'
+}
+
+function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+  const user = authClient.getUser()
+  const location = useLocation()
+
+  if (!user) {
+    return <Navigate to={`/masuk?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />
+  }
+
+  if (requiredRole && user.accountType !== requiredRole) {
+    if (user.accountType === 'band') {
+      return <Navigate to="/dashboard-band" replace />
+    }
+    return <Navigate to="/cari-band" replace />
+  }
+
+  return <>{children}</>
+}
 
 // Automatically scrolls to top or target hash on route change
 function ScrollToTop() {
@@ -98,13 +123,62 @@ export default function App() {
               <Route path="/forgot-password.html" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password.html" element={<ForgotPasswordPage />} />
-              <Route path="/dashboard-band" element={<BandDashboardPage />} />
-              <Route path="/dashboard" element={<BandDashboardPage />} />
-              <Route path="/dashboard-band.html" element={<BandDashboardPage />} />
-              <Route path="/account" element={<BandDashboardPage />} />
-              <Route path="/admin" element={<AdminDashboardPage />} />
-              <Route path="/admin.html" element={<AdminDashboardPage />} />
-              <Route path="/dashboard-admin" element={<AdminDashboardPage />} />
+              <Route
+                path="/dashboard-band"
+                element={
+                  <ProtectedRoute requiredRole="band">
+                    <BandDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute requiredRole="band">
+                    <BandDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard-band.html"
+                element={
+                  <ProtectedRoute requiredRole="band">
+                    <BandDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/account"
+                element={
+                  <ProtectedRoute requiredRole="band">
+                    <BandDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin.html"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard-admin"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<HomePage stats={stats} />} />
             </Routes>
           </main>

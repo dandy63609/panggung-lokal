@@ -19,6 +19,7 @@ import {
 import { authClient } from '../lib/auth'
 
 function getPostLoginRoute(accountType: string | undefined, fallback: string): string {
+  if (fallback && fallback !== '/cari-band') return fallback
   if (accountType === 'band') return '/dashboard-band'
   if (accountType === 'admin') return '/admin'
   return fallback
@@ -29,7 +30,9 @@ export const LoginPage: React.FC = () => {
   const location = useLocation()
 
   // Track redirect path if user was trying to access a protected page
-  const fromLocation = (location.state as { from?: string })?.from || '/cari-band'
+  const searchParams = new URLSearchParams(location.search)
+  const redirectParam = searchParams.get('redirect')
+  const fromLocation = redirectParam || (location.state as { from?: string })?.from || '/cari-band'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

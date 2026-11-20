@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { X, Eye, Phone, ChevronLeft, ChevronRight, ImageOff, Film, Camera } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { X, Eye, Phone, ChevronLeft, ChevronRight, ImageOff, Film, Camera, Lock } from 'lucide-react'
 import { formatRupiah } from '../../lib/utils'
 import { isActualVideoSlide, parsePostSlides } from '../../lib/bandHelpers'
 import type { Band, BandPost } from '../../types'
+import type { AuthUser } from '../../lib/auth'
 
 interface PostViewerModalProps {
   band: Pick<Band, 'bandName' | 'profilePhotoUrl'>
@@ -230,6 +232,7 @@ interface DirectBookingModalProps {
   band: Pick<Band, 'bandName' | 'locationCity' | 'phone'>
   setQuantity: number
   totalPrice: number
+  currentUser?: AuthUser | null
   onClose: () => void
   onConfirmWhatsApp: () => void
 }
@@ -239,6 +242,7 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
   band,
   setQuantity,
   totalPrice,
+  currentUser,
   onClose,
   onConfirmWhatsApp,
 }) => {
@@ -285,6 +289,21 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
           <h2 className="font-mono text-2xl font-bold uppercase text-white">{band.bandName}</h2>
         </div>
 
+        {/* Warning card if user is not authenticated */}
+        {!currentUser && (
+          <div className="bg-[#1C1214] border border-[#E01E37]/50 rounded-xl p-4 sm:p-5 mb-6 text-center space-y-2.5 shadow-lg">
+            <div className="w-10 h-10 rounded-full bg-[#E01E37]/20 border border-[#E01E37]/60 text-[#E01E37] mx-auto flex items-center justify-center">
+              <Lock className="w-5 h-5" />
+            </div>
+            <h3 className="font-mono text-sm font-bold uppercase text-white tracking-wide">
+              Login Diperlukan Untuk Berinteraksi
+            </h3>
+            <p className="text-xs text-[#C0C0C0] font-sans leading-relaxed">
+              Anda sedang menjelajahi profil band. Untuk membuka nomor WhatsApp manajemen <strong className="text-white">{band.bandName}</strong> dan mengajukan penawaran booking panggung, silakan masuk ke akun Anda terlebih dahulu.
+            </p>
+          </div>
+        )}
+
         <div className="bg-[#0A0A0A] border border-[#222222] p-4 space-y-2 mb-6 font-mono text-xs rounded-xl">
           <div className="flex justify-between py-1 border-b border-[#181818]">
             <span className="text-[#888] uppercase">FORMAT PANGGUNG</span>
@@ -306,32 +325,59 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
           </div>
         </div>
 
-        <p className="text-xs text-[#A0A0A0] leading-relaxed mb-6 font-sans">
-          {hasReachablePhone
-            ? 'Anda akan diarahkan langsung ke WhatsApp manajemen resmi band untuk konfirmasi jadwal, penyelarasan technical rider panggung, dan kesepakatan surat kontrak.'
-            : isMasked
-              ? 'Masuk menggunakan akun EO / Penyelenggara untuk membuka nomor WhatsApp lengkap manajemen band.'
-              : 'Band ini belum mencantumkan nomor WhatsApp manajemen pada profilnya. Gunakan broadcast lowongan di bawah untuk menghubungi seluruh band.'}
-        </p>
+        {currentUser && (
+          <p className="text-xs text-[#A0A0A0] leading-relaxed mb-6 font-sans">
+            {hasReachablePhone
+              ? 'Anda akan diarahkan langsung ke WhatsApp manajemen resmi band untuk konfirmasi jadwal, penyelarasan technical rider panggung, dan kesepakatan surat kontrak.'
+              : isMasked
+                ? 'Masuk menggunakan akun EO / Penyelenggara untuk membuka nomor WhatsApp lengkap manajemen band.'
+                : 'Band ini belum mencantumkan nomor WhatsApp manajemen pada profilnya. Gunakan broadcast lowongan di bawah untuk menghubungi seluruh band.'}
+          </p>
+        )}
 
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={onConfirmWhatsApp}
-            disabled={!hasReachablePhone}
-            className="w-full min-h-[44px] h-12 bg-[#E01E37] hover:bg-[#C71B30] disabled:bg-[#2A2A2A] disabled:text-[#888] disabled:cursor-not-allowed disabled:shadow-none text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 rounded-xl cursor-pointer"
-          >
-            <Phone className="w-4 h-4" />
-            <span>{hasReachablePhone ? 'HUBUNGI VIA WHATSAPP RESMI' : 'NOMOR WHATSAPP BELUM TERSEDIA'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full min-h-[44px] h-10 bg-transparent hover:bg-white/5 border border-white/10 text-[#A0A0A0] hover:text-white font-mono text-xs uppercase tracking-wider transition-all rounded-xl cursor-pointer"
-          >
-            KEMBALI KE PROFIL
-          </button>
-        </div>
+        {!currentUser ? (
+          <div className="space-y-3">
+            <Link
+              to={`/masuk?redirect=${encodeURIComponent(window.location.pathname)}`}
+              className="w-full min-h-[44px] h-12 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 rounded-xl text-center"
+            >
+              <Lock className="w-4 h-4" />
+              <span>MASUK / LOGIN UNTUK HUBUNGI BAND</span>
+            </Link>
+            <Link
+              to="/daftar"
+              className="w-full min-h-[44px] h-10 bg-[#1A1A1A] hover:bg-[#252525] border border-white/10 text-[#CCCCCC] hover:text-white font-mono text-xs uppercase tracking-wider transition-all flex items-center justify-center rounded-xl text-center"
+            >
+              <span>DAFTAR AKUN BARU</span>
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full min-h-[44px] h-10 bg-transparent hover:bg-white/5 border border-white/10 text-[#A0A0A0] hover:text-white font-mono text-xs uppercase tracking-wider transition-all rounded-xl cursor-pointer"
+            >
+              KEMBALI KE PROFIL
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={onConfirmWhatsApp}
+              disabled={!hasReachablePhone}
+              className="w-full min-h-[44px] h-12 bg-[#E01E37] hover:bg-[#C71B30] disabled:bg-[#2A2A2A] disabled:text-[#888] disabled:cursor-not-allowed disabled:shadow-none text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 rounded-xl cursor-pointer"
+            >
+              <Phone className="w-4 h-4" />
+              <span>{hasReachablePhone ? 'HUBUNGI VIA WHATSAPP RESMI' : 'NOMOR WHATSAPP BELUM TERSEDIA'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full min-h-[44px] h-10 bg-transparent hover:bg-white/5 border border-white/10 text-[#A0A0A0] hover:text-white font-mono text-xs uppercase tracking-wider transition-all rounded-xl cursor-pointer"
+            >
+              KEMBALI KE PROFIL
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

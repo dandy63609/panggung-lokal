@@ -23,6 +23,7 @@ import {
   ImageOff,
   Settings,
   X,
+  Lock,
 } from 'lucide-react'
 import { fallbackBands } from '../data/bandsData'
 import { BandCard } from '../components/ui/BandCard'
@@ -888,8 +889,8 @@ export const BandDetailPage: React.FC = () => {
                     onClick={() => setIsOrderModalOpen(true)}
                     className="px-6 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] cursor-pointer"
                   >
-                    <Phone className="w-4 h-4" />
-                    <span>Booking Sekarang</span>
+                    {currentUser ? <Phone className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    <span>{currentUser ? 'Booking Sekarang' : 'Hubungi Band (Login)'}</span>
                   </button>
                 )}
               </div>
@@ -1149,7 +1150,8 @@ export const BandDetailPage: React.FC = () => {
                 onClick={() => setIsOrderModalOpen(true)}
                 className="min-h-[44px] h-12 px-6 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_25px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 rounded-xl cursor-pointer"
               >
-                <span>BOOKING SEKARANG</span>
+                {!currentUser && <Lock className="w-4 h-4" />}
+                <span>{currentUser ? 'BOOKING SEKARANG' : 'LOGIN UNTUK BOOKING'}</span>
                 <span className="text-white text-sm">▶</span>
               </button>
             </div>
@@ -1480,6 +1482,7 @@ export const BandDetailPage: React.FC = () => {
         band={band}
         setQuantity={setQuantity}
         totalPrice={totalPrice}
+        currentUser={currentUser}
         onClose={() => setIsOrderModalOpen(false)}
         onConfirmWhatsApp={handleDirectWhatsApp}
       />

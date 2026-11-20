@@ -7,6 +7,7 @@ try {
 } catch {
   OAuth2Client = null;
 }
+
 const User = require('../models/User');
 const BandProfile = require('../models/BandProfile');
 const db = require('../utils/db');

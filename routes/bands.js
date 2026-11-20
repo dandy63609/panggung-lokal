@@ -83,12 +83,11 @@ router.get('/recent', async (req, res) => {
     const user = extractOptionalUser(req);
     const isAuthenticated = !!user;
     const requestedLimit = parseInt(req.query.limit, 10) || 6;
-    const limit = isAuthenticated ? requestedLimit : 2;
-    const bands = await BandProfile.getRecent(limit);
+    const bands = await BandProfile.getRecent(requestedLimit);
 
     const isSneakPeek = !isAuthenticated;
     const responseBands = isSneakPeek
-      ? bands.slice(0, 2).map(b => ({
+      ? bands.map(b => ({
           ...b,
           phone: b.phone ? (b.phone.substring(0, 8) + 'xxxx') : null
         }))

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Filter, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Filter, ChevronRight, SlidersHorizontal, Lock } from 'lucide-react'
 import type { Band } from '../../types'
 import { fallbackBands } from '../../data/bandsData'
 import { BandCard } from '../ui/BandCard'
 import { FilterDrawer } from '../ui/FilterDrawer'
 import type { FilterState } from '../ui/FilterDrawer'
 import { CompareDrawer } from '../ui/CompareDrawer'
-import { authClient } from '../../lib/auth'
+import { authClient, type AuthUser } from '../../lib/auth'
 import { BAND_GENRE_FILTERS, CATALOG_FILTER_CATEGORIES, matchesGenreCategory } from '../../lib/genres'
 
 interface CatalogSectionProps {
@@ -53,6 +53,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
   const [comparedBands, setComparedBands] = useState<Band[]>([])
   const [loading, setLoading] = useState<boolean>(!initialBands)
   const [visibleCount, setVisibleCount] = useState<number>(9)
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authClient.getUser())
 
   // Fetch live bands from backend API; only fall back when backend fails or returns offline empty
   useEffect(() => {
@@ -94,6 +95,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
     }
 
     const onAuthChange = () => {
+      setCurrentUser(authClient.getUser())
       if (!initialBands || initialBands.length === 0) {
         fetchBands()
       }
@@ -254,6 +256,41 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
             </div>
           </div>
         </div>
+
+        {/* Guest Exploration Notice Banner */}
+        {!currentUser && (
+          <div className="bg-[#161214] border border-[#E01E37]/40 rounded-xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 font-mono text-xs shadow-lg">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-[#E01E37]/15 border border-[#E01E37]/40 flex items-center justify-center text-[#E01E37] shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-white font-bold uppercase tracking-wider flex items-center gap-2">
+                  <span>Mode Eksplorasi Publik</span>
+                  <span className="text-[10px] bg-[#E01E37] text-white px-2 py-0.5 rounded font-bold">GUEST</span>
+                </div>
+                <p className="text-[#A0A0A0] text-xs font-sans mt-0.5 leading-relaxed">
+                  Anda dapat melihat daftar seluruh band lokal terdaftar. Untuk berinteraksi, melakukan booking panggung, atau membuka kontak WhatsApp resmi, silakan masuk ke akun Anda.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto">
+              <Link
+                to="/masuk?redirect=/cari-band"
+                className="min-h-[40px] px-5 bg-[#E01E37] hover:bg-[#C71B30] text-white font-bold uppercase tracking-wider rounded-lg text-center flex items-center justify-center gap-1.5 transition-colors w-full md:w-auto shadow-md"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Masuk / Login</span>
+              </Link>
+              <Link
+                to="/daftar"
+                className="min-h-[40px] px-4 bg-[#202020] hover:bg-[#2A2A2A] border border-[#3A3A3A] text-white font-bold uppercase tracking-wider rounded-lg text-center flex items-center justify-center transition-colors w-full md:w-auto"
+              >
+                <span>Daftar</span>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* 3. PROPORTIONAL & UNIFORM BAND GRID (Consistent, Equal Layout For Each Band) */}
         {loading ? (
