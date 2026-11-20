@@ -4,7 +4,7 @@ import { Sliders, X, Phone, ArrowUpRight, Trash2 } from 'lucide-react'
 import type { Band } from '../../types'
 import { formatRupiah } from '../../lib/utils'
 import { authClient } from '../../lib/auth'
-import { formatWhatsAppPhone } from '../../lib/bandHelpers'
+import { formatWhatsAppPhone, getBandProfileUrl } from '../../lib/bandHelpers'
 
 interface CompareDrawerProps {
   comparedBands: Band[]
@@ -180,7 +180,7 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
                       {/* Action Links */}
                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#262626]">
                         <Link
-                          to={`/band/${band.id}`}
+                          to={getBandProfileUrl(band)}
                           onClick={() => setIsOpen(false)}
                           className="min-h-[44px] flex items-center justify-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-white bg-[#262626] hover:bg-[#333333] transition-colors"
                         >

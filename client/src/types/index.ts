@@ -42,6 +42,7 @@ export interface Band {
   id: number
   userId?: number
   bandName: string
+  slug?: string
   genre: string
   locationCity: string
   locationRegion?: string

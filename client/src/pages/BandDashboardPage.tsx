@@ -29,6 +29,7 @@ import {
   buildDashboardRiderItems,
   parsePostSlides,
   sanitizeExternalUrl,
+  getBandProfileUrl,
 } from '../lib/bandHelpers'
 import {
   SpotifyIcon,
@@ -573,7 +574,7 @@ export const BandDashboardPage: React.FC = () => {
             {/* Top-Right Floating Bookmark / Action Button */}
             {profile?.id && (
               <Link
-                to={`/band/${profile.id}`}
+                to={getBandProfileUrl(profile)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="absolute top-4 right-4 sm:top-5 sm:right-6 px-4 py-2 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 hover:border-[#E01E37] text-white flex items-center gap-2 transition-all shadow-lg hover:scale-105 cursor-pointer min-h-[44px] font-mono text-xs font-bold uppercase tracking-wider"

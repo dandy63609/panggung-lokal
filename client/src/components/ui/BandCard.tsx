@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Check, ArrowRight } from 'lucide-react'
 import type { Band } from '../../types'
 import { formatRupiah } from '../../lib/utils'
+import { getBandProfileUrl } from '../../lib/bandHelpers'
 
 interface BandCardProps {
   band: Band
@@ -152,7 +153,7 @@ export const BandCard: React.FC<BandCardProps> = ({
 
       {/* 2. CARD BODY & CONTENT AREA */}
       <Link
-        to={`/band/${band.id}`}
+        to={getBandProfileUrl(band)}
         className="flex-1 flex flex-col justify-between p-5 text-inherit no-underline space-y-4"
       >
         <div className="space-y-2">

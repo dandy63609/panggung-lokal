@@ -13,6 +13,7 @@ export interface AuthUser {
   bandProfile?: {
     id?: number
     bandName?: string
+    slug?: string
     genre?: string
     locationCity?: string
   } | null

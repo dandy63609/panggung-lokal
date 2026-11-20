@@ -110,19 +110,19 @@ router.get('/recent', async (req, res) => {
 
 /**
  * GET /api/bands/profile/:id
- * Get full band profile with Instagram-style posts and media
+ * Get full band profile with Instagram-style posts and media by numeric ID or URL slug
  */
 router.get('/profile/:id', async (req, res) => {
   try {
-    const profileId = parseInt(req.params.id, 10);
-    if (isNaN(profileId)) {
+    const rawIdentifier = req.params.id;
+    if (!rawIdentifier || typeof rawIdentifier !== 'string' || !rawIdentifier.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'ID Profil tidak valid'
+        message: 'Identifier profil tidak valid'
       });
     }
 
-    const band = await BandProfile.findById(profileId);
+    const band = await BandProfile.findByIdOrSlug(rawIdentifier);
     if (!band) {
       return res.status(404).json({
         success: false,
@@ -131,7 +131,7 @@ router.get('/profile/:id', async (req, res) => {
     }
 
     // Increment profile view count asynchronously
-    BandProfile.incrementViews(profileId).catch(err => console.error('Error incrementing views:', err));
+    BandProfile.incrementViews(band.id).catch(err => console.error('Error incrementing views:', err));
 
     const user = extractOptionalUser(req);
     const isAuthenticated = !!user;

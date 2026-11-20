@@ -1,5 +1,16 @@
 const db = require('../utils/db');
 
+function slugify(text) {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, 'dan')
+    .replace(/[\s\W-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 /**
  * BandProfile Model
  * Handles database operations for band profiles
@@ -9,6 +20,7 @@ class BandProfile {
     this.id = data.id;
     this.userId = data.user_id;
     this.bandName = data.band_name;
+    this.slug = slugify(this.bandName);
     this.genre = data.genre;
     this.locationCity = data.location_city;
     this.locationRegion = data.location_region;
@@ -78,6 +90,40 @@ class BandProfile {
       [id]
     );
     return result.rows[0] ? new BandProfile(result.rows[0]) : null;
+  }
+
+  /**
+   * Find band profile by ID or by URL slug
+   */
+  static async findByIdOrSlug(idOrSlug) {
+    if (!idOrSlug) return null;
+    const clean = String(idOrSlug).trim().toLowerCase();
+    const isNumeric = /^\d+$/.test(clean);
+
+    if (isNumeric) {
+      const byId = await this.findById(parseInt(clean, 10));
+      if (byId) return byId;
+    }
+
+    // Try finding by exact match or normalized name
+    const nameMatch = await db.query(
+      'SELECT * FROM band_profiles WHERE LOWER(band_name) = LOWER($1) LIMIT 1',
+      [clean.replace(/-/g, ' ')]
+    );
+    if (nameMatch.rows[0]) {
+      return new BandProfile(nameMatch.rows[0]);
+    }
+
+    // Scan all bands for generated slug match
+    const allResult = await db.query('SELECT * FROM band_profiles');
+    for (const row of allResult.rows) {
+      const band = new BandProfile(row);
+      if (band.slug === clean || slugify(band.bandName) === clean) {
+        return band;
+      }
+    }
+
+    return null;
   }
 
   /**

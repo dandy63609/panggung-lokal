@@ -133,3 +133,24 @@ export function sanitizeExternalUrl(rawValue?: string | null, handleBaseUrl?: st
 
   return null
 }
+
+export function slugify(text?: string | null): string {
+  if (!text) return ''
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, 'dan')
+    .replace(/[\s\W-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+export function getBandProfileUrl(
+  band?: { id?: number; slug?: string; bandName?: string } | null
+): string {
+  if (!band) return '/cari-band'
+  if (band.slug && band.slug.trim()) return `/band/${encodeURIComponent(band.slug.trim())}`
+  if (band.bandName && band.bandName.trim()) return `/band/${encodeURIComponent(slugify(band.bandName))}`
+  if (band.id) return `/band/${band.id}`
+  return '/cari-band'
+}

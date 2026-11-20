@@ -32,7 +32,14 @@ import {
 } from '../components/ui/SocialIcons'
 import { BroadcastInquirySection } from '../components/band-detail/BroadcastInquirySection'
 import { PostViewerModal, DirectBookingModal } from '../components/band-detail/BandDetailModals'
-import { formatWhatsAppPhone, isActualVideoSlide, parsePostSlides, sanitizeExternalUrl } from '../lib/bandHelpers'
+import {
+  formatWhatsAppPhone,
+  isActualVideoSlide,
+  parsePostSlides,
+  sanitizeExternalUrl,
+  slugify,
+  getBandProfileUrl,
+} from '../lib/bandHelpers'
 import { formatRupiah } from '../lib/utils'
 import { authClient, type AuthUser } from '../lib/auth'
 import type { Band, BandPost, MediaFile, RiderItem } from '../types'
@@ -47,7 +54,6 @@ function formatAudioTime(seconds: number): string {
 export const BandDetailPage: React.FC = () => {
   const { id: routeId } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
-  const effectiveId = routeId || searchParams.get('id') || '1'
 
   const [activeAccordion, setActiveAccordion] = useState<'specs' | 'kit' | 'hospitality'>('kit')
   const [setQuantity, setSetQuantity] = useState<number>(1)
@@ -76,27 +82,39 @@ export const BandDetailPage: React.FC = () => {
     }
   }, [])
 
-  // Parse requested band profile ID cleanly without silently defaulting unknown IDs to band #1 (Kelana Ombak)
-  const parsedRouteId = parseInt(effectiveId, 10)
-  const isValidBandId = Number.isInteger(parsedRouteId) && parsedRouteId > 0
-  const requestedId = isValidBandId ? parsedRouteId : -1
+  // Parse requested band profile identifier (supports both numeric ID e.g. "15" and URL slug e.g. "reffband")
+  const rawIdentifier = (routeId || searchParams.get('id') || '1').trim()
+  const isNumeric = /^\d+$/.test(rawIdentifier)
+  const numericId = isNumeric ? parseInt(rawIdentifier, 10) : null
+  const isValidIdentifier = Boolean(rawIdentifier)
 
   const fallbackMatch = useMemo(() => {
-    if (!isValidBandId) return null
-    return fallbackBands.find((b) => b.id === requestedId) || null
-  }, [isValidBandId, requestedId])
+    if (!isValidIdentifier) return null
+    if (numericId !== null && numericId > 0) {
+      return fallbackBands.find((b) => b.id === numericId) || null
+    }
+    const cleanSlug = rawIdentifier.toLowerCase()
+    return (
+      fallbackBands.find(
+        (b) =>
+          slugify(b.bandName) === cleanSlug ||
+          (b.slug && b.slug.toLowerCase() === cleanSlug) ||
+          b.bandName.toLowerCase() === cleanSlug
+      ) || null
+    )
+  }, [isValidIdentifier, numericId, rawIdentifier])
 
-  const [prevRequestedId, setPrevRequestedId] = useState(requestedId)
+  const [prevIdentifier, setPrevIdentifier] = useState(rawIdentifier)
   const [band, setBand] = useState<Band | null>(fallbackMatch)
-  const [loadingBand, setLoadingBand] = useState<boolean>(isValidBandId && !fallbackMatch)
-  const [notFoundError, setNotFoundError] = useState<boolean>(!isValidBandId)
+  const [loadingBand, setLoadingBand] = useState<boolean>(isValidIdentifier && !fallbackMatch)
+  const [notFoundError, setNotFoundError] = useState<boolean>(!isValidIdentifier)
   const [liveRelatedBands, setLiveRelatedBands] = useState<Band[] | null>(null)
 
-  if (requestedId !== prevRequestedId) {
-    setPrevRequestedId(requestedId)
+  if (rawIdentifier !== prevIdentifier) {
+    setPrevIdentifier(rawIdentifier)
     setBand(fallbackMatch)
-    setLoadingBand(isValidBandId && !fallbackMatch)
-    setNotFoundError(!isValidBandId)
+    setLoadingBand(isValidIdentifier && !fallbackMatch)
+    setNotFoundError(!isValidIdentifier)
     setActiveSlide(0)
     setIsPlayingAudio(false)
     setAudioCurrentTime(0)
@@ -107,7 +125,7 @@ export const BandDetailPage: React.FC = () => {
   // Sync fetched live band details when route target or auth session changes
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-    if (!isValidBandId) {
+    if (!isValidIdentifier) {
       return
     }
     let cancelled = false
@@ -115,7 +133,7 @@ export const BandDetailPage: React.FC = () => {
     async function fetchBandProfile() {
       try {
         const [profileRes, recentRes] = await Promise.all([
-          fetch(`/api/bands/profile/${requestedId}`, {
+          fetch(`/api/bands/profile/${encodeURIComponent(rawIdentifier)}`, {
             headers: authClient.getAuthHeaders(),
           }),
           fetch('/api/bands/recent?limit=4', {
@@ -161,7 +179,7 @@ export const BandDetailPage: React.FC = () => {
     return () => {
       cancelled = true
     }
-  }, [requestedId, isValidBandId, fallbackMatch, currentUser?.id])
+  }, [rawIdentifier, isValidIdentifier, fallbackMatch, currentUser?.id])
 
   // Extract Audio tracks from mediaFiles
   const audioTracks: MediaFile[] = useMemo(() => {
@@ -393,10 +411,11 @@ export const BandDetailPage: React.FC = () => {
 
   const handleShare = () => {
     if (!band) return
+    const shareUrl = window.location.origin + getBandProfileUrl(band)
     if (navigator.share) {
-      navigator.share({ title: band.bandName, url: window.location.href }).catch(() => {})
+      navigator.share({ title: band.bandName, url: shareUrl }).catch(() => {})
     } else {
-      navigator.clipboard.writeText(window.location.href)
+      navigator.clipboard.writeText(shareUrl)
     }
   }
 
