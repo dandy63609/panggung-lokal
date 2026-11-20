@@ -138,12 +138,21 @@ export const BandDetailPage: React.FC = () => {
   // Sync fetched live band details when route target or auth session changes
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-    if (!isValidIdentifier) {
+    if (!isValidIdentifier || !currentUser) {
+      if (!currentUser) {
+        setBand(null)
+        setLoadingBand(false)
+      }
       return
     }
     let cancelled = false
 
     async function fetchBandProfile() {
+      if (!authClient.getUser()) {
+        setBand(null)
+        setLoadingBand(false)
+        return
+      }
       try {
         const [profileRes, recentRes] = await Promise.all([
           fetch(`/api/bands/profile/${encodeURIComponent(rawIdentifier)}`, {
@@ -526,6 +535,45 @@ export const BandDetailPage: React.FC = () => {
           >
             Kembali ke Katalog Band
           </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="w-full min-h-[80vh] flex items-center justify-center bg-black px-4 py-20">
+        <div className="max-w-md w-full bg-[#141414] border border-[#E01E37]/50 p-8 sm:p-10 rounded-2xl text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 rounded-full bg-[#E01E37]/15 border border-[#E01E37]/50 text-[#E01E37] mx-auto flex items-center justify-center">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <span className="font-mono text-[11px] text-[#E01E37] font-bold tracking-widest uppercase bg-[#E01E37]/10 px-3 py-1 rounded-full border border-[#E01E37]/20">
+              Akses Terproteksi
+            </span>
+            <h1 className="font-mono text-xl sm:text-2xl font-bold uppercase text-white tracking-wider">
+              Profil Musisi Terkunci
+            </h1>
+            <p className="text-[#A0A0A0] text-xs font-sans leading-relaxed">
+              Untuk melihat portofolio live, audio rekaman demo, dan technical rider band ini, silakan daftar akun baru atau masuk ke akun Anda.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 pt-2">
+            <Link
+              to={`/daftar?redirect=${encodeURIComponent(window.location.pathname)}`}
+              className="w-full min-h-[46px] bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)]"
+            >
+              <span>Daftar Akun Baru</span>
+              <span className="text-white text-sm">▶</span>
+            </Link>
+            <Link
+              to={`/masuk?redirect=${encodeURIComponent(window.location.pathname)}`}
+              className="w-full min-h-[46px] bg-[#202020] hover:bg-[#2A2A2A] border border-[#3A3A3A] text-white font-mono font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-colors"
+            >
+              <Lock className="w-4 h-4 text-[#E01E37]" />
+              <span>Masuk ke Akun</span>
+            </Link>
+          </div>
         </div>
       </div>
     )

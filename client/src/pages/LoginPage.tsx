@@ -17,6 +17,7 @@ import {
   Building2,
 } from 'lucide-react'
 import { authClient } from '../lib/auth'
+import { INDONESIA_CITIES } from '../lib/cities'
 
 function getPostLoginRoute(accountType: string | undefined, fallback: string): string {
   if (fallback && fallback !== '/cari-band') return fallback
@@ -269,13 +270,17 @@ export const LoginPage: React.FC = () => {
                 <label className="block text-[11px] font-mono uppercase tracking-wider text-[#B0B0B0] mb-1">
                   Kota Domisili
                 </label>
-                <input
-                  type="text"
+                <select
                   value={googleCity}
                   onChange={(e) => setGoogleCity(e.target.value)}
-                  placeholder="Bandung"
-                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-sm px-3.5 py-2.5 min-h-[44px] outline-none font-sans"
-                />
+                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-sm px-3 py-2.5 min-h-[44px] outline-none font-sans cursor-pointer"
+                >
+                  {INDONESIA_CITIES.map((c) => (
+                    <option key={c} value={c} className="bg-[#181818] text-white">
+                      {c}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -495,7 +500,7 @@ export const LoginPage: React.FC = () => {
           <p className="text-xs text-[#909090] font-sans">
             Belum memiliki akun terdaftar?{' '}
             <Link
-              to="/daftar"
+              to={redirectParam ? `/daftar?redirect=${encodeURIComponent(redirectParam)}` : '/daftar'}
               className="text-[#E01E37] hover:underline font-mono font-bold uppercase tracking-wider ml-1 inline-flex items-center gap-1"
             >
               <span>Daftar Sekarang</span>

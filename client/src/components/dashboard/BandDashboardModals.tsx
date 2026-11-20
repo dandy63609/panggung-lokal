@@ -18,6 +18,7 @@ import {
   Globe,
 } from 'lucide-react'
 import { BAND_GENRE_OPTIONS } from '../../lib/genres'
+import { INDONESIA_CITIES } from '../../lib/cities'
 import { formatRupiah } from '../../lib/utils'
 import {
   SpotifyIcon,
@@ -781,15 +782,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   >
                     Kota Domisili *
                   </label>
-                  <input
+                  <select
                     id="edit-band-city"
-                    type="text"
                     value={editForm.locationCity}
                     onChange={(e) => onChange({ ...editForm, locationCity: e.target.value })}
-                    required
-                    placeholder="Contoh: Bandung"
-                    className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-sans"
-                  />
+                    className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-sans cursor-pointer"
+                  >
+                    {INDONESIA_CITIES.map((c) => (
+                      <option key={c} value={c} className="bg-[#181818] text-white">
+                        {c}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

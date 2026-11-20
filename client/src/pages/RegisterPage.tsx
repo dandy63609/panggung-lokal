@@ -19,12 +19,14 @@ import {
 } from 'lucide-react'
 import { authClient, type RegisterPayload } from '../lib/auth'
 import { BAND_GENRE_OPTIONS } from '../lib/genres'
+import { INDONESIA_CITIES } from '../lib/cities'
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
   const urlRole = searchParams.get('role')
+  const redirectParam = searchParams.get('redirect')
   const [prevUrlRole, setPrevUrlRole] = useState(urlRole)
 
   const [accountType, setAccountType] = useState<'band' | 'general'>(() => {
@@ -44,7 +46,7 @@ export const RegisterPage: React.FC = () => {
   const [bandName, setBandName] = useState('')
   const [orgName, setOrgName] = useState('')
   const [genre, setGenre] = useState(BAND_GENRE_OPTIONS[1])
-  const [locationCity, setLocationCity] = useState('')
+  const [locationCity, setLocationCity] = useState<string>(INDONESIA_CITIES[0])
 
   // UI state
   const [loading, setLoading] = useState(false)
@@ -79,7 +81,7 @@ export const RegisterPage: React.FC = () => {
           if (res.user?.accountType === 'band') {
             navigate('/dashboard-band')
           } else {
-            navigate('/cari-band')
+            navigate(redirectParam || '/cari-band')
           }
         }, 700)
       } else {
@@ -131,7 +133,7 @@ export const RegisterPage: React.FC = () => {
           if (res.user?.accountType === 'band') {
             navigate('/dashboard-band')
           } else {
-            navigate('/cari-band')
+            navigate(redirectParam || '/cari-band')
           }
         }, 700)
       } else {
@@ -405,15 +407,18 @@ export const RegisterPage: React.FC = () => {
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#707070]">
                       <MapPin className="w-4 h-4" />
                     </div>
-                    <input
+                    <select
                       id="reg-city"
-                      type="text"
                       value={locationCity}
                       onChange={(e) => setLocationCity(e.target.value)}
-                      placeholder="Bandung"
-                      required
-                      className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white placeholder-[#606060] text-sm pl-10 pr-4 py-3 min-h-[44px] transition-colors outline-none font-sans"
-                    />
+                      className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white text-sm pl-10 pr-4 py-3 min-h-[44px] transition-colors outline-none font-sans cursor-pointer"
+                    >
+                      {INDONESIA_CITIES.map((c) => (
+                        <option key={c} value={c} className="bg-[#181818] text-white">
+                          {c}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -454,15 +459,18 @@ export const RegisterPage: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#707070]">
                     <MapPin className="w-4 h-4" />
                   </div>
-                  <input
+                  <select
                     id="reg-city-org"
-                    type="text"
                     value={locationCity}
                     onChange={(e) => setLocationCity(e.target.value)}
-                    placeholder="Jakarta Selatan"
-                    required
-                    className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white placeholder-[#606060] text-sm pl-10 pr-4 py-3 min-h-[44px] transition-colors outline-none font-sans"
-                  />
+                    className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white text-sm pl-10 pr-4 py-3 min-h-[44px] transition-colors outline-none font-sans cursor-pointer"
+                  >
+                    {INDONESIA_CITIES.map((c) => (
+                      <option key={c} value={c} className="bg-[#181818] text-white">
+                        {c}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -527,7 +535,7 @@ export const RegisterPage: React.FC = () => {
           <p className="text-xs text-[#909090] font-sans">
             Sudah memiliki akun terdaftar?{' '}
             <Link
-              to="/masuk"
+              to={redirectParam ? `/masuk?redirect=${encodeURIComponent(redirectParam)}` : '/masuk'}
               className="text-[#E01E37] hover:underline font-mono font-bold uppercase tracking-wider ml-1 inline-flex items-center gap-1"
             >
               <span>Masuk di Sini</span>

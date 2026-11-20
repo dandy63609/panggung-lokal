@@ -604,9 +604,31 @@
         const res = await apiGetBands(searchParams);
         if (res.success) {
           const isAuthed = AuthManager.isAuthenticated();
-          countEl.textContent = res.isSneakPeek
-            ? `Pratinjau: 2 Band (Total ${res.pagination.total}+)`
-            : `Menemukan ${res.pagination.total} band`;
+          if (!isAuthed) {
+            countEl.textContent = 'Akses Terbatas: Daftar/Masuk untuk Melihat Musisi';
+            updateActiveFilterBadge();
+            grid.innerHTML = `
+              <div style="grid-column: 1 / -1; margin-top: var(--space-md); text-align: center; padding: clamp(28px, 5vw, 48px); background: #141414; border: 1px dashed rgba(224, 30, 55, 0.45); border-radius: var(--radius-md);">
+                <div style="font-size: 2.5rem; margin-bottom: 12px;">🔒</div>
+                <h3 style="font-family: var(--font-display); font-size: 1.6rem; color: #FFF; margin-bottom: 8px;">KATALOG BAND KHUSUS AKUN TERDAFTAR</h3>
+                <p style="color: var(--chalk-dim); margin-bottom: 24px; font-size: 0.95rem; max-width: 520px; margin-left: auto; margin-right: auto; line-height: 1.6;">
+                  Anda belum masuk atau mendaftar akun. Silakan daftarkan akun baru atau masuk untuk membuka seluruh katalog musisi, portofolio karya, dan kontak manajemen resmi.
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                  <a href="/register.html" class="btn btn--primary btn--md" style="min-height: 44px; padding: 0 24px;">
+                    <span>Daftar Akun Baru</span>
+                  </a>
+                  <a href="/login.html" class="btn btn--outline btn--md" style="min-height: 44px; padding: 0 24px;">
+                    <span>Masuk ke Akun</span>
+                  </a>
+                </div>
+              </div>
+            `;
+            paginationEl.innerHTML = '';
+            return;
+          }
+
+          countEl.textContent = `Menemukan ${res.pagination.total} band`;
           updateActiveFilterBadge();
 
           if (res.data.length === 0) {

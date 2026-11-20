@@ -30,8 +30,6 @@ function resolveInitialCategory(genreParam: string | null): string {
 const INITIAL_FILTERS: FilterState = {
   city: 'Semua',
   budgetRange: 'all',
-  soundcheckOnly: false,
-  riderOnly: false,
 }
 
 export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) => {
@@ -55,11 +53,17 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
   const [visibleCount, setVisibleCount] = useState<number>(9)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authClient.getUser())
 
-  // Fetch live bands from backend API; only fall back when backend fails or returns offline empty
+  // Fetch live bands from backend API for authenticated accounts
   useEffect(() => {
     let cancelled = false
 
     async function fetchBands() {
+      if (!authClient.getUser()) {
+        setBands([])
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
         const res = await fetch('/api/bands/search?limit=50', {
@@ -71,17 +75,17 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
             ? json.data
             : json.data?.bands || []
 
-          if (json.success) {
+          if (json.success && apiBands.length > 0) {
             setBands([...apiBands].sort((a, b) => a.id - b.id))
             return
           }
         }
         if (!cancelled) {
-          setBands(fallbackBands)
+          setBands(authClient.getUser() ? fallbackBands : [])
         }
       } catch {
         if (!cancelled) {
-          setBands(fallbackBands)
+          setBands(authClient.getUser() ? fallbackBands : [])
         }
       } finally {
         if (!cancelled) {
@@ -90,14 +94,25 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
       }
     }
 
-    if (!initialBands || initialBands.length === 0) {
-      fetchBands()
+    if (currentUser) {
+      if (!initialBands || initialBands.length === 0) {
+        fetchBands()
+      }
+    } else {
+      setBands([])
+      setLoading(false)
     }
 
     const onAuthChange = () => {
-      setCurrentUser(authClient.getUser())
-      if (!initialBands || initialBands.length === 0) {
-        fetchBands()
+      const u = authClient.getUser()
+      setCurrentUser(u)
+      if (u) {
+        if (!initialBands || initialBands.length === 0) {
+          fetchBands()
+        }
+      } else {
+        setBands([])
+        setLoading(false)
       }
     }
     window.addEventListener('auth-change', onAuthChange)
@@ -107,15 +122,13 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
       window.removeEventListener('auth-change', onAuthChange)
       window.removeEventListener('storage', onAuthChange)
     }
-  }, [initialBands])
+  }, [initialBands, currentUser])
 
   // Count active extra filters
   const activeFilterCount = useMemo(() => {
     let count = 0
     if (filters.city !== 'Semua') count++
     if (filters.budgetRange !== 'all') count++
-    if (filters.soundcheckOnly) count++
-    if (filters.riderOnly) count++
     return count
   }, [filters])
 
@@ -195,171 +208,174 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
           </p>
         </div>
 
-        {/* 2. STICKY FILTER BAR */}
-        <div className="sticky top-20 z-30 bg-black/90 backdrop-blur-md pt-2 pb-4">
-          <div className="flex items-center gap-2">
-            {/* Horizontal Category Tabs Bar with Mask Fade */}
-            <div className="category-mask flex items-center gap-3 overflow-x-auto no-scrollbar px-4 py-2 bg-[#141414] border border-[#242424] flex-1">
-              {CATEGORIES.map((cat, idx) => {
-                const active = selectedCategory === cat
-                return (
-                  <React.Fragment key={cat}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`min-h-[44px] px-2 font-mono text-xs uppercase tracking-wider whitespace-nowrap transition-colors shrink-0 flex items-center ${
-                        active
-                          ? 'text-[#E01E37] font-bold'
-                          : 'text-[#8A8A8A] hover:text-white'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                    {idx < CATEGORIES.length - 1 && (
-                      <span className="text-[#333333] font-mono text-xs select-none">/</span>
-                    )}
-                  </React.Fragment>
-                )
-              })}
+        {!currentUser ? (
+          /* Gated Lock Screen for Guests / Unregistered Visitors */
+          <div className="bg-[#141414] border border-[#E01E37]/50 rounded-2xl p-8 sm:p-14 text-center max-w-2xl mx-auto space-y-6 shadow-2xl my-8">
+            <div className="w-16 h-16 rounded-full bg-[#E01E37]/15 border border-[#E01E37]/50 text-[#E01E37] mx-auto flex items-center justify-center">
+              <Lock className="w-8 h-8" />
             </div>
-
-            {/* Square Filter Button with Count Badge */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => setFilterDrawerOpen(!filterDrawerOpen)}
-                aria-expanded={filterDrawerOpen}
-                aria-label="Buka drawer filter parameter"
-                className={`w-11 h-[44px] flex items-center justify-center border transition-colors bg-[#141414] ${
-                  activeFilterCount > 0
-                    ? 'border-[#E01E37] text-white'
-                    : 'border-[#242424] text-[#A0A0A0] hover:text-white hover:border-[#383838]'
-                }`}
+            <div className="space-y-3">
+              <span className="font-mono text-[11px] text-[#E01E37] font-bold tracking-widest uppercase bg-[#E01E37]/10 px-3 py-1 rounded-full border border-[#E01E37]/20">
+                Akses Terproteksi
+              </span>
+              <h2 className="font-mono text-xl sm:text-2xl font-bold uppercase text-white tracking-wider">
+                Daftar Akun Untuk Melihat Musisi
+              </h2>
+              <p className="text-[#A0A0A0] text-sm font-sans leading-relaxed max-w-lg mx-auto">
+                Katalog band lokal dan spesifikasi teknis panggung hanya dapat diakses oleh akun terdaftar. Daftarkan akun baru atau masuk untuk menjelajahi seluruh musisi siap tampil.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+              <Link
+                to="/daftar?redirect=/cari-band"
+                className="w-full sm:w-auto min-h-[46px] px-8 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)]"
               >
-                <SlidersHorizontal className="w-4 h-4 text-[#E01E37]" />
-                {activeFilterCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#E01E37] text-white font-bold text-[9px] flex items-center justify-center">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Filter Popover Dropdown */}
-              <FilterDrawer
-                isOpen={filterDrawerOpen}
-                onClose={() => setFilterDrawerOpen(false)}
-                filters={filters}
-                onFilterChange={setFilters}
-                onReset={() => setFilters(INITIAL_FILTERS)}
-                matchCount={filteredBands.length}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Guest Exploration Notice Banner */}
-        {!currentUser && (
-          <div className="bg-[#161214] border border-[#E01E37]/40 rounded-xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 font-mono text-xs shadow-lg">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-[#E01E37]/15 border border-[#E01E37]/40 flex items-center justify-center text-[#E01E37] shrink-0">
-                <Lock className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-white font-bold uppercase tracking-wider flex items-center gap-2">
-                  <span>Mode Eksplorasi Publik</span>
-                  <span className="text-[10px] bg-[#E01E37] text-white px-2 py-0.5 rounded font-bold">GUEST</span>
-                </div>
-                <p className="text-[#A0A0A0] text-xs font-sans mt-0.5 leading-relaxed">
-                  Anda dapat melihat daftar seluruh band lokal terdaftar. Untuk berinteraksi, melakukan booking panggung, atau membuka kontak WhatsApp resmi, silakan masuk ke akun Anda.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto">
+                <span>Daftar Akun Baru</span>
+                <span className="text-white text-sm">▶</span>
+              </Link>
               <Link
                 to="/masuk?redirect=/cari-band"
-                className="min-h-[40px] px-5 bg-[#E01E37] hover:bg-[#C71B30] text-white font-bold uppercase tracking-wider rounded-lg text-center flex items-center justify-center gap-1.5 transition-colors w-full md:w-auto shadow-md"
+                className="w-full sm:w-auto min-h-[46px] px-7 bg-[#202020] hover:bg-[#2A2A2A] border border-[#3A3A3A] text-white font-mono font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-colors"
               >
-                <Lock className="w-3.5 h-3.5" />
-                <span>Masuk / Login</span>
+                <Lock className="w-3.5 h-3.5 text-[#E01E37]" />
+                <span>Masuk ke Akun</span>
               </Link>
-              <Link
-                to="/daftar"
-                className="min-h-[40px] px-4 bg-[#202020] hover:bg-[#2A2A2A] border border-[#3A3A3A] text-white font-bold uppercase tracking-wider rounded-lg text-center flex items-center justify-center transition-colors w-full md:w-auto"
-              >
-                <span>Daftar</span>
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* 3. PROPORTIONAL & UNIFORM BAND GRID (Consistent, Equal Layout For Each Band) */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-[#141414] border border-[#242424] aspect-[16/18] animate-pulse p-4 flex flex-col justify-between">
-                <div className="w-full aspect-[16/10] bg-[#1E1E1E]" />
-                <div className="space-y-2 mt-4">
-                  <div className="h-4 bg-[#242424] w-3/4" />
-                  <div className="h-3 bg-[#1C1C1C] w-1/2" />
-                </div>
-                <div className="h-8 bg-[#1C1C1C] w-full mt-4" />
-              </div>
-            ))}
-          </div>
-        ) : displayBands.length > 0 ? (
-          <div className="space-y-6">
-            {/* Real-time Status Counter */}
-            <div className="flex items-center justify-between text-xs font-mono text-[#808080] pb-2 border-b border-[#1E1E1E]">
-              <span>
-                MENAMPILKAN <strong className="text-white">{displayBands.length}</strong> DARI <strong className="text-white">{filteredBands.length}</strong> BAND TERDAFTAR
-              </span>
-              <span className="text-[#E01E37]">STATUS: REAL-TIME AKTIF</span>
-            </div>
-
-            {/* Proportional 3-Column Uniform Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-              {displayBands.map((band) => (
-                <BandCard
-                  key={band.id}
-                  band={band}
-                  isCompared={comparedBands.some((b) => b.id === band.id)}
-                  onToggleCompare={handleToggleCompare}
-                  accentTag={band.genre?.toUpperCase()}
-                  glassTag={band.locationCity?.toUpperCase()}
-                />
-              ))}
             </div>
           </div>
         ) : (
-          <div className="p-16 text-center bg-[#141414] border border-[#242424] space-y-4">
-            <Filter className="w-10 h-10 text-[#E01E37] mx-auto opacity-70" />
-            <p className="font-mono text-sm text-[#A0A0A0] uppercase tracking-wider">
-              Tidak ada band yang sesuai dengan kombinasi filter saat ini.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCategory('SEMUA')
-                setFilters(INITIAL_FILTERS)
-              }}
-              className="min-h-[44px] px-6 bg-[#E01E37] text-white font-mono text-xs font-bold uppercase tracking-wider"
-            >
-              Reset Semua Filter
-            </button>
-          </div>
-        )}
+          <>
+            {/* 2. STICKY FILTER BAR */}
+            <div className="sticky top-20 z-30 bg-black/90 backdrop-blur-md pt-2 pb-4">
+              <div className="flex items-center gap-2">
+                {/* Horizontal Category Tabs Bar with Mask Fade */}
+                <div className="category-mask flex items-center gap-3 overflow-x-auto no-scrollbar px-4 py-2 bg-[#141414] border border-[#242424] flex-1">
+                  {CATEGORIES.map((cat, idx) => {
+                    const active = selectedCategory === cat
+                    return (
+                      <React.Fragment key={cat}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategory(cat)}
+                          className={`min-h-[44px] px-2 font-mono text-xs uppercase tracking-wider whitespace-nowrap transition-colors shrink-0 flex items-center ${
+                            active
+                              ? 'text-[#E01E37] font-bold'
+                              : 'text-[#8A8A8A] hover:text-white'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                        {idx < CATEGORIES.length - 1 && (
+                          <span className="text-[#333333] font-mono text-xs select-none">/</span>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </div>
 
-        {displayBands.length < filteredBands.length && (
-          <div className="w-full max-w-md mx-auto pt-8 text-center">
-            <button
-              type="button"
-              onClick={() => setVisibleCount((prev) => prev + 3)}
-              className="w-full h-[52px] bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>MUAT LEBIH BANYAK BAND</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+                {/* Square Filter Button with Count Badge */}
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setFilterDrawerOpen(!filterDrawerOpen)}
+                    aria-expanded={filterDrawerOpen}
+                    aria-label="Buka drawer filter parameter"
+                    className={`w-11 h-[44px] flex items-center justify-center border transition-colors bg-[#141414] ${
+                      activeFilterCount > 0
+                        ? 'border-[#E01E37] text-white'
+                        : 'border-[#242424] text-[#A0A0A0] hover:text-white hover:border-[#383838]'
+                    }`}
+                  >
+                    <SlidersHorizontal className="w-4 h-4 text-[#E01E37]" />
+                    {activeFilterCount > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#E01E37] text-white font-bold text-[9px] flex items-center justify-center">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Filter Popover Dropdown */}
+                  <FilterDrawer
+                    isOpen={filterDrawerOpen}
+                    onClose={() => setFilterDrawerOpen(false)}
+                    filters={filters}
+                    onFilterChange={setFilters}
+                    onReset={() => setFilters(INITIAL_FILTERS)}
+                    matchCount={filteredBands.length}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. PROPORTIONAL & UNIFORM BAND GRID (Consistent, Equal Layout For Each Band) */}
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="bg-[#141414] border border-[#242424] aspect-[16/18] animate-pulse p-4 flex flex-col justify-between">
+                    <div className="w-full aspect-[16/10] bg-[#1E1E1E]" />
+                    <div className="space-y-2 mt-4">
+                      <div className="h-4 bg-[#242424] w-3/4" />
+                      <div className="h-3 bg-[#1C1C1C] w-1/2" />
+                    </div>
+                    <div className="h-8 bg-[#1C1C1C] w-full mt-4" />
+                  </div>
+                ))}
+              </div>
+            ) : displayBands.length > 0 ? (
+              <div className="space-y-6">
+                {/* Real-time Status Counter */}
+                <div className="flex items-center justify-between text-xs font-mono text-[#808080] pb-2 border-b border-[#1E1E1E]">
+                  <span>
+                    MENAMPILKAN <strong className="text-white">{displayBands.length}</strong> DARI <strong className="text-white">{filteredBands.length}</strong> BAND TERDAFTAR
+                  </span>
+                  <span className="text-[#E01E37]">STATUS: REAL-TIME AKTIF</span>
+                </div>
+
+                {/* Proportional 3-Column Uniform Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                  {displayBands.map((band) => (
+                    <BandCard
+                      key={band.id}
+                      band={band}
+                      isCompared={comparedBands.some((b) => b.id === band.id)}
+                      onToggleCompare={handleToggleCompare}
+                      accentTag={band.genre?.toUpperCase()}
+                      glassTag={band.locationCity?.toUpperCase()}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="p-16 text-center bg-[#141414] border border-[#242424] space-y-4">
+                <Filter className="w-10 h-10 text-[#E01E37] mx-auto opacity-70" />
+                <p className="font-mono text-sm text-[#A0A0A0] uppercase tracking-wider">
+                  Tidak ada band yang sesuai dengan kombinasi filter saat ini.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory('SEMUA')
+                    setFilters(INITIAL_FILTERS)
+                  }}
+                  className="min-h-[44px] px-6 bg-[#E01E37] text-white font-mono text-xs font-bold uppercase tracking-wider"
+                >
+                  Reset Semua Filter
+                </button>
+              </div>
+            )}
+
+            {displayBands.length < filteredBands.length && (
+              <div className="w-full max-w-md mx-auto pt-8 text-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => prev + 3)}
+                  className="w-full h-[52px] bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>MUAT LEBIH BANYAK BAND</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

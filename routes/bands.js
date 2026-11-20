@@ -35,6 +35,21 @@ router.get('/search', async (req, res) => {
     const user = extractOptionalUser(req);
     const isAuthenticated = !!user;
 
+    if (!isAuthenticated) {
+      return res.json({
+        success: true,
+        data: [],
+        isSneakPeek: true,
+        message: 'Katalog band terkunci. Silakan daftar akun atau login untuk melihat daftar musisi.',
+        pagination: {
+          total: 0,
+          page: 1,
+          totalPages: 0,
+          limit: 0
+        }
+      });
+    }
+
     const result = await BandProfile.search({
       genre,
       location,
@@ -45,19 +60,11 @@ router.get('/search', async (req, res) => {
       limit: limit || 50
     });
 
-    const isSneakPeek = !isAuthenticated;
-    const responseBands = isSneakPeek
-      ? result.bands.map(b => ({
-          ...b,
-          phone: b.phone ? (b.phone.substring(0, 8) + 'xxxx') : null
-        }))
-      : result.bands;
-
     return res.json({
       success: true,
-      data: responseBands,
-      isSneakPeek,
-      message: isSneakPeek ? 'Mode pratinjau katalog. Silakan login untuk membuka nomor WhatsApp lengkap musisi.' : null,
+      data: result.bands,
+      isSneakPeek: false,
+      message: null,
       pagination: {
         total: result.total,
         page: result.page,
@@ -76,27 +83,28 @@ router.get('/search', async (req, res) => {
 
 /**
  * GET /api/bands/recent
- * Get recent bands for homepage (sneak peek for guests)
+ * Get recent bands for homepage (requires authentication)
  */
 router.get('/recent', async (req, res) => {
   try {
     const user = extractOptionalUser(req);
     const isAuthenticated = !!user;
+    if (!isAuthenticated) {
+      return res.json({
+        success: true,
+        data: [],
+        isSneakPeek: true,
+        message: 'Daftar musisi terkunci. Silakan daftar akun atau login.'
+      });
+    }
+
     const requestedLimit = parseInt(req.query.limit, 10) || 6;
     const bands = await BandProfile.getRecent(requestedLimit);
 
-    const isSneakPeek = !isAuthenticated;
-    const responseBands = isSneakPeek
-      ? bands.map(b => ({
-          ...b,
-          phone: b.phone ? (b.phone.substring(0, 8) + 'xxxx') : null
-        }))
-      : bands;
-
     return res.json({
       success: true,
-      data: responseBands,
-      isSneakPeek
+      data: bands,
+      isSneakPeek: false
     });
   } catch (error) {
     console.error('Get recent bands error:', error);

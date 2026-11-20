@@ -1,11 +1,10 @@
 import React, { useEffect } from 'react'
 import { X, Check } from 'lucide-react'
+import { INDONESIA_CITIES } from '../../lib/cities'
 
 export interface FilterState {
   city: string
   budgetRange: string
-  soundcheckOnly: boolean
-  riderOnly: boolean
 }
 
 interface FilterDrawerProps {
@@ -17,7 +16,7 @@ interface FilterDrawerProps {
   matchCount: number
 }
 
-const CITIES = ['Semua', 'Bandung', 'Yogyakarta', 'Surabaya', 'Jakarta', 'Denpasar', 'Semarang', 'Malang']
+const CITIES = ['Semua', ...INDONESIA_CITIES]
 const BUDGET_OPTIONS = [
   { id: 'all', label: 'Semua Rate' },
   { id: 'under3m', label: '< 3 Juta' },
@@ -139,38 +138,6 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
                 </button>
               )
             })}
-          </div>
-        </div>
-
-        {/* Filter Section 3: Status & Rider */}
-        <div className="space-y-3 pt-2 border-t border-[#242424]">
-          <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#A0A0A0] block">
-            Parameter Teknis Panggung
-          </label>
-          <div className="space-y-2">
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.soundcheckOnly}
-                onChange={(e) => onFilterChange({ ...filters, soundcheckOnly: e.target.checked })}
-                className="w-4 h-4 rounded-none accent-[#E01E37] bg-[#1C1C1C] border-[#333]"
-              />
-              <span className="font-mono text-xs text-[#D9D9D9] group-hover:text-white transition-colors uppercase">
-                Terkalibrasi Soundcheck FOH (100% Pass)
-              </span>
-            </label>
-
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.riderOnly}
-                onChange={(e) => onFilterChange({ ...filters, riderOnly: e.target.checked })}
-                className="w-4 h-4 rounded-none accent-[#E01E37] bg-[#1C1C1C] border-[#333]"
-              />
-              <span className="font-mono text-xs text-[#D9D9D9] group-hover:text-white transition-colors uppercase">
-                Technical Rider & Channel List Lengkap
-              </span>
-            </label>
           </div>
         </div>
 
