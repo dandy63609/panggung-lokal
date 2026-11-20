@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import {
   ChevronLeft,
@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Layers,
   ImageOff,
+  Settings,
 } from 'lucide-react'
 import { fallbackBands } from '../data/bandsData'
 import { BandCard } from '../components/ui/BandCard'
@@ -32,6 +33,7 @@ import {
 } from '../components/ui/SocialIcons'
 import { BroadcastInquirySection } from '../components/band-detail/BroadcastInquirySection'
 import { PostViewerModal, DirectBookingModal } from '../components/band-detail/BandDetailModals'
+import { ManageAudioModal } from '../components/band/ManageAudioModal'
 import {
   formatWhatsAppPhone,
   isActualVideoSlide,
@@ -69,6 +71,15 @@ export const BandDetailPage: React.FC = () => {
   const [activeTrackIndex, setActiveTrackIndex] = useState<number>(0)
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authClient.getUser())
+  const [isAudioManageModalOpen, setIsAudioManageModalOpen] = useState<boolean>(false)
+
+  // Auto-open manage audio modal if requested via URL query params
+  useEffect(() => {
+    const editParam = searchParams.get('edit') || searchParams.get('manageAudio')
+    if (editParam === 'audio' || editParam === 'true') {
+      setIsAudioManageModalOpen(true)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const syncAuth = () => {
@@ -181,6 +192,36 @@ export const BandDetailPage: React.FC = () => {
     }
   }, [rawIdentifier, isValidIdentifier, fallbackMatch, currentUser?.id])
 
+  // Check if current user is the owner of this band
+  const isOwner = Boolean(
+    currentUser &&
+    currentUser.accountType === 'band' &&
+    (
+      (band?.userId && Number(currentUser.id) === Number(band.userId)) ||
+      (currentUser.bandProfile?.id && Number(currentUser.bandProfile.id) === Number(band?.id)) ||
+      (currentUser.bandProfile?.slug && band?.slug && currentUser.bandProfile.slug.toLowerCase() === band.slug.toLowerCase()) ||
+      (currentUser.bandProfile?.bandName && band?.bandName && currentUser.bandProfile.bandName.toLowerCase() === band.bandName.toLowerCase())
+    )
+  )
+  const canManage = isOwner || currentUser?.accountType === 'admin'
+
+  const refetchBandProfile = useCallback(async () => {
+    if (!isValidIdentifier) return
+    try {
+      const res = await fetch(`/api/bands/profile/${encodeURIComponent(rawIdentifier)}`, {
+        headers: authClient.getAuthHeaders(),
+      })
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && json.data) {
+          setBand(fallbackMatch ? { ...fallbackMatch, ...json.data } : json.data)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refetch band profile:', err)
+    }
+  }, [isValidIdentifier, rawIdentifier, fallbackMatch])
+
   // Extract Audio tracks from mediaFiles
   const audioTracks: MediaFile[] = useMemo(() => {
     if (!band) return []
@@ -200,6 +241,12 @@ export const BandDetailPage: React.FC = () => {
       },
     ]
   }, [band])
+
+  useEffect(() => {
+    if (activeTrackIndex >= audioTracks.length && audioTracks.length > 0) {
+      setActiveTrackIndex(0)
+    }
+  }, [audioTracks.length, activeTrackIndex])
 
   const currentAudioTrack = audioTracks[activeTrackIndex] || audioTracks[0]
 
@@ -511,6 +558,47 @@ export const BandDetailPage: React.FC = () => {
       {/* MAIN CONTENT WRAPPER */}
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
+        {/* OWNER MODE NOTIFICATION BANNER */}
+        {canManage && (
+          <div className="mb-6 p-4 rounded-2xl bg-[#141012] border border-[#E01E37]/50 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#E01E37]/20 border border-[#E01E37]/50 flex items-center justify-center shrink-0">
+                <Music className="w-5 h-5 text-[#E01E37]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs uppercase font-bold text-white tracking-wider">
+                    Mode Pemilik Band · {band.bandName}
+                  </span>
+                  <span className="bg-[#E01E37] text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded uppercase">
+                    Pemilik
+                  </span>
+                </div>
+                <p className="text-xs text-[#A0A0A0] mt-0.5 font-sans">
+                  Anda sedang melihat profil band Anda seperti yang dilihat oleh EO. Anda dapat mengedit sampel lagu atau membuka dashboard band.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setIsAudioManageModalOpen(true)}
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(224,30,55,0.4)] cursor-pointer"
+              >
+                <Music className="w-4 h-4" />
+                <span>Edit Sampel Audio</span>
+              </button>
+              <Link
+                to="/dashboard-band"
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-[#1F1F1F] hover:bg-[#282828] text-white border border-white/10 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <Settings className="w-4 h-4 text-[#A0A0A0]" />
+                <span>Dashboard Band</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* 2. HERO PROFILE CARD (MATCHING REFERENCE UI & 2/3 COLORS PALETTE) */}
         <div className="bg-[#121212] border border-[#262626] rounded-3xl overflow-hidden shadow-2xl mb-8 relative group">
           {/* Cover Photo Banner with Vertical Gradient Dissolve */}
@@ -748,14 +836,34 @@ export const BandDetailPage: React.FC = () => {
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setIsOrderModalOpen(true)}
-                  className="px-6 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] cursor-pointer"
-                >
-                  <Phone className="w-4 h-4" />
-                  <span>Booking Sekarang</span>
-                </button>
+                {canManage ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIsAudioManageModalOpen(true)}
+                      className="px-6 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] cursor-pointer"
+                    >
+                      <Music className="w-4 h-4" />
+                      <span>Edit Sampel Audio</span>
+                    </button>
+                    <Link
+                      to="/dashboard-band"
+                      className="px-5 py-2.5 rounded-full bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333] font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Settings className="w-4 h-4 text-[#A0A0A0]" />
+                      <span>Dashboard Band</span>
+                    </Link>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsOrderModalOpen(true)}
+                    className="px-6 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] cursor-pointer"
+                  >
+                    <Phone className="w-4 h-4" />
+                    <span>Booking Sekarang</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -770,9 +878,21 @@ export const BandDetailPage: React.FC = () => {
                 SAMPEL AUDIO RESMI · LIVE MASTER DEMO
               </span>
             </div>
-            <span className="font-mono text-[10px] text-white bg-white/10 border border-white/20 px-2.5 py-0.5 uppercase tracking-wider rounded-full">
-              320 KBPS LIVE MASTER
-            </span>
+            <div className="flex items-center gap-2">
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => setIsAudioManageModalOpen(true)}
+                  className="px-3.5 py-1.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-[11px] uppercase font-bold tracking-wider flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(224,30,55,0.4)] cursor-pointer"
+                >
+                  <Music className="w-3.5 h-3.5" />
+                  <span>Edit / Unggah Audio</span>
+                </button>
+              )}
+              <span className="font-mono text-[10px] text-white bg-white/10 border border-white/20 px-2.5 py-0.5 uppercase tracking-wider rounded-full">
+                320 KBPS LIVE MASTER
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 relative z-10">
@@ -819,7 +939,7 @@ export const BandDetailPage: React.FC = () => {
 
               {/* Track Selector */}
               {audioTracks.length > 1 && (
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
                   <Music className="w-3.5 h-3.5 text-[#E01E37]" />
                   <span className="font-mono text-[10px] text-[#777] uppercase font-bold">PILIH TRACK:</span>
                   {audioTracks.map((tr, idx) => (
@@ -844,6 +964,26 @@ export const BandDetailPage: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Owner helper bar below track selector */}
+          {canManage && (
+            <div className="mt-4 pt-3.5 border-t border-[#222222] flex flex-wrap items-center justify-between gap-2.5 text-xs relative z-10">
+              <div className="flex items-center gap-2 text-[#A0A0A0]">
+                <Sliders className="w-3.5 h-3.5 text-[#E01E37]" />
+                <span className="font-sans">
+                  Mode Pemilik: Anda dapat mengunggah file MP3/WAV potongan lagu baru atau mengubah judul.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAudioManageModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-lg bg-[#181818] hover:bg-[#222222] text-white border border-[#E01E37]/50 font-mono text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 text-[#E01E37]" />
+                <span>Kelola Potongan Lagu ({audioTracks.length})</span>
+              </button>
+            </div>
+          )}
 
           {/* Hidden Audio Tag */}
           <audio
@@ -1345,6 +1485,15 @@ export const BandDetailPage: React.FC = () => {
         totalPrice={totalPrice}
         onClose={() => setIsOrderModalOpen(false)}
         onConfirmWhatsApp={handleDirectWhatsApp}
+      />
+
+      {/* Modal Kelola & Edit Sampel Audio Profil (Mode Pemilik) */}
+      <ManageAudioModal
+        isOpen={isAudioManageModalOpen}
+        onClose={() => setIsAudioManageModalOpen(false)}
+        mediaFiles={band.mediaFiles || []}
+        bandName={band.bandName}
+        onUpdated={refetchBandProfile}
       />
     </div>
   )

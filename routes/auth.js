@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const { OAuth2Client } = require('google-auth-library');
+let OAuth2Client;
+try {
+  ({ OAuth2Client } = require('google-auth-library'));
+} catch {
+  OAuth2Client = null;
+}
 const User = require('../models/User');
 const BandProfile = require('../models/BandProfile');
 const db = require('../utils/db');
@@ -233,6 +238,13 @@ router.post('/google', authLimiter, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Token kredensial Google wajib disertakan.'
+      });
+    }
+
+    if (!OAuth2Client) {
+      return res.status(503).json({
+        success: false,
+        message: 'Layanan login Google belum terpasang di server ini.'
       });
     }
 

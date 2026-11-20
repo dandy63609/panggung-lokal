@@ -536,6 +536,25 @@ export const authClient = {
     }
   },
 
+  async updateBandMedia(
+    mediaId: number,
+    payload: { title?: string; displayOrder?: number }
+  ): Promise<{ success: boolean; data?: any; message?: string }> {
+    try {
+      const res = await fetch(`/api/bands/media/${mediaId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders(),
+        },
+        body: JSON.stringify(payload),
+      })
+      return await res.json()
+    } catch {
+      return { success: false, message: 'Gagal memperbarui data media' }
+    }
+  },
+
   async uploadBroadcastAttachments(files: File[]): Promise<{
     success: boolean
     files?: Array<{ fileUrl: string; originalName: string; mimeType: string; size: number }>

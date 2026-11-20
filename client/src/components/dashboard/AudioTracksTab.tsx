@@ -13,6 +13,8 @@ import {
   FileAudio,
   Radio,
   ExternalLink,
+  Edit2,
+  Check,
 } from 'lucide-react'
 import { authClient } from '../../lib/auth'
 import type { MediaFile } from '../../types'
@@ -38,6 +40,11 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
   const [inputMode, setInputMode] = useState<'upload' | 'url'>('upload')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+
+  // Track inline title editing state
+  const [editingTrackId, setEditingTrackId] = useState<number | null>(null)
+  const [editingTitle, setEditingTitle] = useState('')
+  const [isUpdatingTitle, setIsUpdatingTitle] = useState(false)
 
   // Track playback state in dashboard preview
   const [playingTrackId, setPlayingTrackId] = useState<number | null>(null)
@@ -88,6 +95,34 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
       showToast('Gagal menghubungi server untuk menghapus audio.', 'error')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const handleStartEditTitle = (track: MediaFile) => {
+    setEditingTrackId(track.id)
+    setEditingTitle(track.title || '')
+  }
+
+  const handleSaveTitle = async (trackId: number) => {
+    if (!editingTitle.trim()) {
+      showToast('Judul lagu tidak boleh kosong.', 'error')
+      return
+    }
+
+    try {
+      setIsUpdatingTitle(true)
+      const res = await authClient.updateBandMedia(trackId, { title: editingTitle.trim() })
+      if (res.success) {
+        showToast('Judul lagu berhasil diperbarui!', 'success')
+        setEditingTrackId(null)
+        onRefresh()
+      } else {
+        showToast(res.message || 'Gagal memperbarui judul lagu.', 'error')
+      }
+    } catch {
+      showToast('Gagal memperbarui judul audio.', 'error')
+    } finally {
+      setIsUpdatingTitle(false)
     }
   }
 
@@ -217,6 +252,7 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
           {audioTracks.map((track, idx) => {
             const isPlaying = playingTrackId === track.id
             const isDeleting = deletingId === track.id
+            const isEditing = editingTrackId === track.id
 
             return (
               <div
@@ -252,16 +288,62 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
                         </span>
                       )}
                     </div>
-                    <h4 className="font-mono text-sm font-bold text-white truncate">
-                      {track.title || `${bandName || 'Band'} - Master Cut`}
-                    </h4>
+                    {isEditing ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          className="bg-[#0E0E0E] border border-[#E01E37] rounded px-2.5 py-1 text-xs text-white font-mono focus:outline-none min-w-[200px]"
+                          placeholder="Judul lagu..."
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSaveTitle(track.id)}
+                          disabled={isUpdatingTitle}
+                          className="p-1.5 rounded bg-[#E01E37] hover:bg-[#C71B30] text-white cursor-pointer disabled:opacity-50"
+                          title="Simpan judul"
+                        >
+                          {isUpdatingTitle ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingTrackId(null)}
+                          className="p-1.5 rounded bg-[#252525] hover:bg-[#333] text-[#A0A0A0] hover:text-white cursor-pointer"
+                          title="Batal"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <h4 className="font-mono text-sm font-bold text-white truncate">
+                        {track.title || `${bandName || 'Band'} - Master Cut`}
+                      </h4>
+                    )}
                     <p className="font-mono text-[11px] text-[#707070] truncate">
                       {track.file_url}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-center shrink-0">
+                  {!isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => handleStartEditTitle(track)}
+                      className="px-2.5 py-1.5 rounded bg-[#202020] hover:bg-[#2A2A2A] text-[#A0A0A0] hover:text-white font-mono text-xs uppercase font-bold tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Ubah judul lagu"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-[#E01E37]" />
+                      <span>Ganti Judul</span>
+                    </button>
+                  )}
+
                   <a
                     href={track.file_url}
                     target="_blank"

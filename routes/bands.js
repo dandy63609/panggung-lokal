@@ -474,4 +474,62 @@ router.delete('/media/:id', requireBand, async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/bands/media/:id
+ * Update media title or display order
+ */
+router.put('/media/:id', requireBand, async (req, res) => {
+  try {
+    const mediaId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(mediaId) || mediaId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID media tidak valid'
+      });
+    }
+
+    const profile = await BandProfile.findByUserId(req.user.id);
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil band tidak ditemukan'
+      });
+    }
+
+    const { title, displayOrder } = req.body;
+    const result = await db.query(
+      `UPDATE media_files 
+       SET title = COALESCE($1, title), 
+           display_order = COALESCE($2, display_order)
+       WHERE id = $3 AND band_profile_id = $4
+       RETURNING *`,
+      [
+        title !== undefined && title !== null && title.trim() !== '' ? title.trim() : null,
+        displayOrder !== undefined && Number.isInteger(displayOrder) ? displayOrder : null,
+        mediaId,
+        profile.id
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Media tidak ditemukan atau bukan milik band Anda'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Media berhasil diperbarui',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Update media error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal memperbarui media'
+    });
+  }
+});
+
 module.exports = router;

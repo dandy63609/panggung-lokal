@@ -56,7 +56,14 @@ export const BandDashboardPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<BandDashboardData | null>(null)
-  const [activeTab, setActiveTab] = useState<'feed' | 'audio' | 'rider' | 'analytics' | 'broadcasts'>('feed')
+  const [activeTab, setActiveTab] = useState<'feed' | 'audio' | 'rider' | 'analytics' | 'broadcasts'>(() => {
+    const params = new URLSearchParams(window.location.search)
+    const tabParam = params.get('tab')
+    if (tabParam === 'audio' || tabParam === 'rider' || tabParam === 'analytics' || tabParam === 'broadcasts') {
+      return tabParam
+    }
+    return 'feed'
+  })
 
   // Modals state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
