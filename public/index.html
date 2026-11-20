@@ -178,6 +178,29 @@
     </div>
   </section>
 
+  <!-- Section Pengaduan, Kritik & Saran -->
+  <section class="section" id="pengaduan" style="background-color: var(--stage-dark); border-top: 1px solid rgba(255, 255, 255, 0.08); border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: var(--space-3xl) 0;">
+    <div class="container" style="max-width: 800px; text-align: center;">
+      <span style="display: inline-block; background: rgba(224, 30, 55, 0.15); color: #E01E37; border: 1px solid rgba(224, 30, 55, 0.4); padding: 4px 14px; border-radius: 999px; font-family: monospace; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 16px;">
+        PENGADUAN, KRITIK &amp; SARAN
+      </span>
+      <h2 style="font-size: 2rem; color: #fff; margin-bottom: 12px; letter-spacing: 0.5px;">
+        SUARA ANDA MEMBANGUN REFFBAND
+      </h2>
+      <p style="color: var(--graphite); font-size: 0.95rem; line-height: 1.6; margin-bottom: 24px;">
+        Punya kritik, keluhan layanan, kendala teknis, atau saran pengembangan fitur? Sampaikan langsung kepada tim kami melalui kanal email resmi.
+      </p>
+      <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 12px; background: #141414; padding: 20px 32px; border: 1px solid #282828; border-radius: 12px;">
+        <span style="font-family: monospace; font-size: 1rem; color: #fff; font-weight: bold; letter-spacing: 0.5px;">
+          reffband1@gmail.com
+        </span>
+        <a href="mailto:reffband1@gmail.com?subject=Pengaduan%2C%20Kritik%20%26%20Saran%20-%20Reffband" class="btn btn--primary" style="font-size: 0.85rem; padding: 10px 24px;">
+          <span>Kirim Email Pengaduan</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer class="footer" style="margin-top: var(--space-3xl);">
     <div class="container">
@@ -198,6 +221,7 @@
             <li><a href="/search.html">Cari Band</a></li>
             <li><a href="/login.html">Masuk Akun</a></li>
             <li><a href="/register.html">Daftar Akun</a></li>
+            <li><a href="#pengaduan">Pengaduan &amp; Saran</a></li>
           </ul>
         </div>
 
@@ -208,6 +232,14 @@
             <li><a href="/search.html?location=Jakarta">Jakarta</a></li>
             <li><a href="/search.html?location=Yogyakarta">Yogyakarta</a></li>
             <li><a href="/search.html?location=Surabaya">Surabaya</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer__column-title">Pengaduan</h4>
+          <ul class="footer__links">
+            <li><a href="mailto:reffband1@gmail.com">reffband1@gmail.com</a></li>
+            <li><a href="#pengaduan">Kritik &amp; Saran</a></li>
           </ul>
         </div>
 
@@ -251,8 +283,6 @@
       if (currentUser && currentUser.accountType === 'admin') {
         const adminSection = document.getElementById('footer-admin-section');
         if (adminSection) adminSection.style.display = 'block';
-      }
-        console.warn('Gagal memuat metrik hero section:', err);
       }
 
       // 2. Floating Action Button (FAB) for unregistered/guest visitors (Item 3)

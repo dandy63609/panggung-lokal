@@ -361,6 +361,26 @@ export const BandDetailPage: React.FC = () => {
     if (!band?.phone) return
     const cleanPhone = formatWhatsAppPhone(band.phone, '')
     if (!cleanPhone) return
+
+    // Record connection / lead in backend if authenticated
+    try {
+      if (currentUser && band.id) {
+        fetch('/api/connections', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authClient.getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            bandProfileId: band.id,
+            connectionType: 'whatsapp_direct',
+            notes: `Direct WA booking: ${setQuantity} Set Performance`,
+          }),
+        }).catch(() => {})
+      }
+    } catch {
+      // Non-blocking
+    }
     const rateLabel = hasFixedRate ? formatRupiah(totalPrice) : 'Negosiasi'
     const message = encodeURIComponent(
       `Halo Management ${band.bandName}, kami dari Event Organizer ingin mengajukan penawaran booking panggung melalui Reffband:\n` +

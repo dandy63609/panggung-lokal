@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { Sliders, X, Phone, ArrowUpRight, Trash2 } from 'lucide-react'
 import type { Band } from '../../types'
 import { formatRupiah } from '../../lib/utils'
+import { authClient } from '../../lib/auth'
+import { formatWhatsAppPhone } from '../../lib/bandHelpers'
 
 interface CompareDrawerProps {
   comparedBands: Band[]
@@ -16,6 +18,29 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
   onClear,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
+
+  const handleWaClick = (targetBand: Band, url: string) => {
+    try {
+      const user = authClient.getUser()
+      if (user && targetBand.id) {
+        fetch('/api/connections', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authClient.getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            bandProfileId: targetBand.id,
+            connectionType: 'compare_whatsapp',
+            notes: `Comparison drawer WA contact: ${targetBand.bandName}`,
+          }),
+        }).catch(() => {})
+      }
+    } catch {
+      // Non-blocking
+    }
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 
   if (comparedBands.length === 0) return null
 
@@ -86,9 +111,11 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
               {/* Grid of Compared Bands */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {comparedBands.map((band) => {
-                  const cleanPhone = band.phone ? band.phone.replace(/[^0-9]/g, '') : null
-                  const waUrl = cleanPhone
-                    ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Halo ${band.bandName}, kami tertarik mengundang Anda tampil melalui Reffband.`)}`
+                  const isMasked = Boolean(band.phone && band.phone.includes('x'))
+                  const cleanPhone = formatWhatsAppPhone(band.phone, '')
+                  const canChatWa = Boolean(cleanPhone && !isMasked)
+                  const waUrl = canChatWa
+                    ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Halo Management ${band.bandName}, kami tertarik mengundang Anda tampil melalui Reffband.`)}`
                     : null
                   const budgetText = band.budgetMin && band.budgetMax
                     ? `${formatRupiah(band.budgetMin)} - ${formatRupiah(band.budgetMax)}`
@@ -162,17 +189,29 @@ export const CompareDrawer: React.FC<CompareDrawerProps> = ({
                         </Link>
 
                         {waUrl ? (
-                          <a
-                            href={waUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="min-h-[44px] flex items-center justify-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-white bg-[#25D366] hover:bg-[#1EBE5D] transition-colors"
+                          <button
+                            type="button"
+                            onClick={() => handleWaClick(band, waUrl)}
+                            className="min-h-[44px] flex items-center justify-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-white bg-[#25D366] hover:bg-[#1EBE5D] transition-colors cursor-pointer"
                           >
                             <Phone className="w-3.5 h-3.5" />
                             <span>WA</span>
-                          </a>
+                          </button>
+                        ) : isMasked ? (
+                          <Link
+                            to="/masuk"
+                            onClick={() => setIsOpen(false)}
+                            title="Masuk akun untuk membuka nomor WhatsApp lengkap"
+                            className="min-h-[44px] flex items-center justify-center gap-1 text-xs font-mono font-bold uppercase tracking-wider text-[#A0A0A0] hover:text-white bg-[#222222] hover:bg-[#2A2A2A] border border-[#333333] transition-colors"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-[#E01E37]" />
+                            <span>Masuk</span>
+                          </Link>
                         ) : (
-                          <span className="min-h-[44px] flex items-center justify-center text-xs font-mono text-[#666] bg-[#222]">
+                          <span
+                            className="min-h-[44px] flex items-center justify-center text-xs font-mono text-[#666] bg-[#222222]"
+                            title="Nomor WhatsApp belum dicantumkan"
+                          >
                             N/A
                           </span>
                         )}

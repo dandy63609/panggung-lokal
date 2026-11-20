@@ -65,24 +65,30 @@ export const Navbar: React.FC = () => {
           >
             Cari Band
           </Link>
-          <a
-            href="/#tentang"
+          <Link
+            to="/#tentang"
             className="text-xs font-mono font-medium text-[#A0A0A0] hover:text-white uppercase tracking-wider transition-colors py-2"
           >
             Tentang
-          </a>
-          <a
-            href="/#stage"
+          </Link>
+          <Link
+            to="/#stage"
             className="text-xs font-mono font-medium text-[#A0A0A0] hover:text-white uppercase tracking-wider transition-colors py-2"
           >
             Technical Rider
-          </a>
-          <a
-            href="/#faq"
+          </Link>
+          <Link
+            to="/#faq"
             className="text-xs font-mono font-medium text-[#A0A0A0] hover:text-white uppercase tracking-wider transition-colors py-2"
           >
             FAQ
-          </a>
+          </Link>
+          <Link
+            to="/#pengaduan"
+            className="text-xs font-mono font-medium text-[#A0A0A0] hover:text-white uppercase tracking-wider transition-colors py-2"
+          >
+            Pengaduan
+          </Link>
         </nav>
 
         {/* Right Auth & Actions */}
@@ -205,27 +211,34 @@ export const Navbar: React.FC = () => {
           >
             Cari Band
           </Link>
-          <a
-            href="/#tentang"
+          <Link
+            to="/#tentang"
             onClick={() => setMobileMenuOpen(false)}
             className="block text-sm font-mono text-[#A0A0A0] hover:text-[#E01E37] py-2.5 px-3 bg-[#1A1A1A] border border-[#2C2C2C]"
           >
             Tentang reffband
-          </a>
-          <a
-            href="/#stage"
+          </Link>
+          <Link
+            to="/#stage"
             onClick={() => setMobileMenuOpen(false)}
             className="block text-sm font-mono text-[#A0A0A0] hover:text-[#E01E37] py-2.5 px-3 bg-[#1A1A1A] border border-[#2C2C2C]"
           >
             Technical Rider
-          </a>
-          <a
-            href="/#faq"
+          </Link>
+          <Link
+            to="/#faq"
             onClick={() => setMobileMenuOpen(false)}
             className="block text-sm font-mono text-[#A0A0A0] hover:text-[#E01E37] py-2.5 px-3 bg-[#1A1A1A] border border-[#2C2C2C]"
           >
             FAQ
-          </a>
+          </Link>
+          <Link
+            to="/#pengaduan"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block text-sm font-mono text-[#A0A0A0] hover:text-[#E01E37] py-2.5 px-3 bg-[#1A1A1A] border border-[#2C2C2C]"
+          >
+            Pengaduan &amp; Saran
+          </Link>
           {currentUser ? (
             <div className="pt-2 space-y-2">
               {currentUser.accountType === 'band' ? (

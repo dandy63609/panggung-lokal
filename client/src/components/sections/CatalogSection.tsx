@@ -40,6 +40,14 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
   const [selectedCategory, setSelectedCategory] = useState<string>(() =>
     resolveInitialCategory(searchParams.get('genre'))
   )
+
+  // Synchronize category filter whenever genre query param in URL changes
+  useEffect(() => {
+    const genreParam = searchParams.get('genre')
+    if (genreParam !== null) {
+      setSelectedCategory(resolveInitialCategory(genreParam))
+    }
+  }, [searchParams])
   const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS)
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [comparedBands, setComparedBands] = useState<Band[]>([])

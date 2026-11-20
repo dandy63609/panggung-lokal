@@ -7,6 +7,7 @@ import { EcosystemDashboardSection } from '../components/sections/EcosystemDashb
 import { StageSpecsSection } from '../components/sections/StageSpecsSection'
 import { HowItWorksSection } from '../components/sections/HowItWorksSection'
 import { FaqSection } from '../components/sections/FaqSection'
+import { FeedbackSection } from '../components/sections/FeedbackSection'
 import type { PlatformStats } from '../types'
 
 interface HomePageProps {
@@ -53,6 +54,9 @@ export const HomePage: React.FC<HomePageProps> = ({ stats }) => {
 
       {/* 05 // Tanya Jawab (FAQ) */}
       <FaqSection />
+
+      {/* 06 // Pengaduan, Kritik & Saran */}
+      <FeedbackSection />
     </>
   )
 }

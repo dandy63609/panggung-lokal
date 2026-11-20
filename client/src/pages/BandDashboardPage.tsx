@@ -576,11 +576,12 @@ export const BandDashboardPage: React.FC = () => {
                 to={`/band/${profile.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="absolute top-4 right-4 sm:top-5 sm:right-6 w-11 h-11 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition-all shadow-lg hover:scale-105 cursor-pointer min-h-[44px] min-w-[44px]"
+                className="absolute top-4 right-4 sm:top-5 sm:right-6 px-4 py-2 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 hover:border-[#E01E37] text-white flex items-center gap-2 transition-all shadow-lg hover:scale-105 cursor-pointer min-h-[44px] font-mono text-xs font-bold uppercase tracking-wider"
                 title="Lihat Pratinjau Publik Profil Band"
                 aria-label="Lihat pratinjau publik profil band"
               >
-                <ExternalLink className="w-4 h-4 text-white" />
+                <span>Lihat Profil Publik</span>
+                <ExternalLink className="w-3.5 h-3.5 text-white" />
               </Link>
             )}
             {/* Direct Cover Upload Trigger Button */}

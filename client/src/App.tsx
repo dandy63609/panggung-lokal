@@ -14,13 +14,28 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import type { PlatformStats } from './types'
 
-// Automatically scrolls to top on route change
+// Automatically scrolls to top or target hash on route change
 function ScrollToTop() {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
 
   useEffect(() => {
+    if (hash) {
+      const targetId = hash.replace('#', '')
+      const el = document.getElementById(targetId)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' })
+        return
+      }
+      const timeout = setTimeout(() => {
+        const elDelayed = document.getElementById(targetId)
+        if (elDelayed) {
+          elDelayed.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 120)
+      return () => clearTimeout(timeout)
+    }
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-  }, [pathname])
+  }, [pathname, hash])
 
   return null
 }

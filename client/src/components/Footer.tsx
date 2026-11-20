@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, Mail } from 'lucide-react'
 import { InstagramIcon } from './ui/SocialIcons'
 import { authClient } from '../lib/auth'
 
@@ -17,9 +17,9 @@ export const Footer: React.FC = () => {
   return (
     <footer className="w-full bg-[#080808] border-t border-[#242424] pt-16 pb-12 text-[#9E9E9E]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`grid grid-cols-1 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-10 pb-12 border-b border-[#1E1E1E]`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-10 pb-12 border-b border-[#1E1E1E]`}>
           {/* Brand Col */}
-          <div className="md:col-span-2 space-y-4">
+          <div className="space-y-4">
             <div className="flex items-center gap-3">
               <img
                 src="/logo.png"
@@ -65,6 +65,9 @@ export const Footer: React.FC = () => {
               <li>
                 <a href="/#faq" className="hover:text-white transition-colors">Tanya Jawab</a>
               </li>
+              <li>
+                <a href="/#pengaduan" className="hover:text-white transition-colors">Pengaduan &amp; Saran</a>
+              </li>
             </ul>
           </div>
 
@@ -81,19 +84,43 @@ export const Footer: React.FC = () => {
                 <Link to="/masuk" className="hover:text-white transition-colors">Portal Penyelenggara</Link>
               </li>
               <li>
-                <Link to="/cari-band" className="hover:text-white transition-colors">Genre Rock & Metal</Link>
+                <Link to="/cari-band?genre=rock" className="hover:text-white transition-colors">Genre Rock & Metal</Link>
               </li>
               <li>
-                <Link to="/cari-band" className="hover:text-white transition-colors">Indie Pop & Folk</Link>
+                <Link to="/cari-band?genre=indie" className="hover:text-white transition-colors">Indie Pop & Folk</Link>
               </li>
             </ul>
           </div>
 
-          {/* Links 3 - Hanya tampil khusus akun Admin */}
+          {/* Links 3 - Pengaduan, Kritik & Saran */}
+          <div>
+            <h4 className="font-mono text-xs text-white uppercase tracking-widest mb-4 font-bold">
+              03 // Pengaduan
+            </h4>
+            <div className="space-y-2.5 text-xs font-mono">
+              <p className="text-[11px] text-[#757575] leading-relaxed">
+                Punya pengaduan kendala, kritik, atau saran pengembangan?
+              </p>
+              <div className="pt-1">
+                <a
+                  href="mailto:reffband1@gmail.com?subject=Pengaduan%2C%20Kritik%20%26%20Saran%20-%20Reffband"
+                  className="inline-flex items-center gap-1.5 text-xs text-white hover:text-[#E01E37] transition-colors break-all group font-bold"
+                  title="Kirim email ke reffband1@gmail.com"
+                >
+                  <Mail className="w-3.5 h-3.5 text-[#E01E37] shrink-0" />
+                  <span className="underline underline-offset-4 decoration-[#333333] group-hover:decoration-[#E01E37]">
+                    reffband1@gmail.com
+                  </span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Links 4 - Hanya tampil khusus akun Admin */}
           {isAdmin && (
             <div>
               <h4 className="font-mono text-xs text-[#00D9FF] uppercase tracking-widest mb-4 font-bold">
-                03 // Sistem (Admin)
+                04 // Sistem (Admin)
               </h4>
               <div className="space-y-2 text-xs font-mono">
                 <div className="flex items-center gap-2">

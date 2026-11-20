@@ -42,7 +42,7 @@ router.get('/band', requireBand, async (req, res) => {
           totalConnections: connectionStats.total || performance.totalWaClicks,
           totalPosts: performance.totalPosts,
           totalViews: performance.totalViews,
-          totalWaClicks: performance.totalWaClicks
+          totalWaClicks: Math.max(connectionStats.total || 0, performance.totalWaClicks || 0)
         },
         posts: performance.posts,
         mediaFiles,
