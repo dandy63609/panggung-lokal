@@ -22,6 +22,7 @@ import {
   Layers,
   ImageOff,
   Settings,
+  X,
 } from 'lucide-react'
 import { fallbackBands } from '../data/bandsData'
 import { BandCard } from '../components/ui/BandCard'
@@ -818,32 +819,56 @@ export const BandDetailPage: React.FC = () => {
 
               {/* Right: Rounded Pill Action Buttons for EO & Visitors */}
               <div className="flex items-center gap-3 flex-wrap">
+                {/* 1. Tombol Tunggal Sampel Audio / Demo Lagu */}
                 <button
                   type="button"
                   onClick={handleTogglePlayAudio}
-                  className="px-5 py-2.5 rounded-full bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333] font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer"
+                  className={`px-5 py-2.5 rounded-full font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer ${
+                    isPlayingAudio
+                      ? 'bg-[#E01E37] text-white shadow-[0_0_20px_rgba(224,30,55,0.6)] animate-pulse'
+                      : 'bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333]'
+                  }`}
+                  aria-label={isPlayingAudio ? 'Jeda sampel audio' : 'Putar sampel audio'}
                 >
                   {isPlayingAudio ? (
                     <>
                       <Pause className="w-3.5 h-3.5 fill-white" />
-                      <span>Jeda Audio</span>
+                      <span>Jeda Demo ({formatAudioTime(audioCurrentTime)})</span>
                     </>
                   ) : (
                     <>
                       <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
-                      <span>Dengar Demo</span>
+                      <span>Dengar Sampel Lagu</span>
                     </>
                   )}
                 </button>
+
+                {/* Indikator / Pilihan Track jika memiliki lebih dari 1 sampel lagu */}
+                {audioTracks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = (activeTrackIndex + 1) % audioTracks.length
+                      setActiveTrackIndex(next)
+                      setIsPlayingAudio(false)
+                      setAudioCurrentTime(0)
+                    }}
+                    className="px-3 py-2 rounded-full bg-[#181818] hover:bg-[#252525] text-[#A0A0A0] hover:text-white border border-[#333] font-mono text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Ganti ke potongan lagu berikutnya"
+                  >
+                    <Music className="w-3.5 h-3.5 text-[#E01E37]" />
+                    <span>Track {activeTrackIndex + 1}/{audioTracks.length}</span>
+                  </button>
+                )}
 
                 {canManage ? (
                   <>
                     <button
                       type="button"
                       onClick={() => setIsAudioManageModalOpen(true)}
-                      className="px-6 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] cursor-pointer"
+                      className="px-5 py-2.5 rounded-full bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333] font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer"
                     >
-                      <Music className="w-4 h-4" />
+                      <Music className="w-4 h-4 text-[#E01E37]" />
                       <span>Edit Sampel Audio</span>
                     </button>
                     <Link
@@ -869,62 +894,65 @@ export const BandDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. SAMPEL AUDIO DEMO PLAYER (Black, Red #E01E37, White) */}
-        <div className="bg-[#101010] border border-[#242424] rounded-2xl p-5 sm:p-6 mb-8 relative overflow-hidden shadow-xl">
-          <div className="flex items-center justify-between mb-4 relative z-10 flex-wrap gap-2">
-            <div className="flex items-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#E01E37] animate-pulse" />
-              <span className="font-mono text-xs uppercase tracking-widest text-white font-bold">
-                SAMPEL AUDIO RESMI · LIVE MASTER DEMO
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {canManage && (
+        {/* Floating Mini Player (Aktif ketika audio sedang diputar tanpa memakan tempat di halaman) */}
+        {isPlayingAudio && (
+          <aside
+            aria-label="Pemutar Audio Demo Melayang"
+            className="fixed bottom-5 right-5 left-5 sm:left-auto sm:w-[420px] z-50 bg-[#121212]/95 backdrop-blur-md border border-[#E01E37]/60 rounded-2xl p-4 shadow-[0_10px_35px_rgba(0,0,0,0.85)] flex flex-col gap-2.5 animate-in slide-in-from-bottom-5"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <button
                   type="button"
-                  onClick={() => setIsAudioManageModalOpen(true)}
-                  className="px-3.5 py-1.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-[11px] uppercase font-bold tracking-wider flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(224,30,55,0.4)] cursor-pointer"
+                  onClick={handleTogglePlayAudio}
+                  className="w-10 h-10 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(224,30,55,0.6)] cursor-pointer"
+                  aria-label="Jeda audio"
                 >
-                  <Music className="w-3.5 h-3.5" />
-                  <span>Edit / Unggah Audio</span>
+                  <Pause className="w-4 h-4 fill-white" />
                 </button>
-              )}
-              <span className="font-mono text-[10px] text-white bg-white/10 border border-white/20 px-2.5 py-0.5 uppercase tracking-wider rounded-full">
-                320 KBPS LIVE MASTER
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 relative z-10">
-            {/* Play / Pause Big Button */}
-            <button
-              type="button"
-              onClick={handleTogglePlayAudio}
-              className="w-12 h-12 min-w-[48px] min-h-[48px] rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white flex items-center justify-center transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] shrink-0 cursor-pointer"
-              aria-label={isPlayingAudio ? 'Jeda sampel audio' : 'Putar sampel audio'}
-            >
-              {isPlayingAudio ? (
-                <Pause className="w-5 h-5 fill-white" />
-              ) : (
-                <Play className="w-5 h-5 fill-white ml-0.5" />
-              )}
-            </button>
-
-            {/* Track Info & Interactive Waveform */}
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="flex items-center justify-between font-mono text-xs">
-                <span className="text-white font-bold truncate">
-                  {currentAudioTrack?.title || `${band.bandName} - Single Demo Track`}
-                </span>
-                <span className="text-[#888] shrink-0 ml-2 font-mono text-[11px]">
-                  {formatAudioTime(audioCurrentTime)} / {formatAudioTime(audioDuration || 38)}
-                </span>
+                <div className="min-w-0">
+                  <span className="font-mono text-[9px] text-[#E01E37] uppercase font-bold block">
+                    MEMUTAR DEMO · TRACK 0{activeTrackIndex + 1}
+                  </span>
+                  <p className="font-mono text-xs font-bold text-white truncate">
+                    {currentAudioTrack?.title || `${band.bandName} - Master Demo`}
+                  </p>
+                </div>
               </div>
 
-              {/* Progress Bar */}
+              <div className="flex items-center gap-2 shrink-0">
+                {audioTracks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = (activeTrackIndex + 1) % audioTracks.length
+                      setActiveTrackIndex(next)
+                    }}
+                    className="px-2 py-1 bg-[#222] hover:bg-[#333] text-white text-[10px] font-mono uppercase font-bold rounded cursor-pointer"
+                    title="Next Track"
+                  >
+                    Ganti Track
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (audioRef.current) audioRef.current.pause()
+                    setIsPlayingAudio(false)
+                  }}
+                  className="w-7 h-7 rounded-full bg-[#202020] hover:bg-[#333] text-[#A0A0A0] hover:text-white flex items-center justify-center cursor-pointer"
+                  aria-label="Tutup pemutar audio"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Progress Bar & Timer */}
+            <div className="space-y-1">
               <div
                 onClick={handleAudioSeek}
-                className="w-full h-3 bg-[#1A1A1A] border border-[#2E2E2E] rounded-full relative cursor-pointer overflow-hidden group/scrub"
+                className="w-full h-2 bg-[#222222] rounded-full overflow-hidden cursor-pointer relative"
                 role="slider"
                 aria-label="Progress pemutaran audio"
                 aria-valuemin={0}
@@ -932,71 +960,29 @@ export const BandDetailPage: React.FC = () => {
                 aria-valuenow={Math.round(audioProgressPercent)}
               >
                 <div
-                  className="h-full bg-[#E01E37] relative transition-all duration-100"
+                  className="h-full bg-[#E01E37] transition-all duration-100"
                   style={{ width: `${audioProgressPercent}%` }}
                 />
               </div>
-
-              {/* Track Selector */}
-              {audioTracks.length > 1 && (
-                <div className="flex items-center gap-2 pt-1 flex-wrap">
-                  <Music className="w-3.5 h-3.5 text-[#E01E37]" />
-                  <span className="font-mono text-[10px] text-[#777] uppercase font-bold">PILIH TRACK:</span>
-                  {audioTracks.map((tr, idx) => (
-                    <button
-                      key={tr.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveTrackIndex(idx)
-                        setIsPlayingAudio(false)
-                        setAudioCurrentTime(0)
-                      }}
-                      className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] uppercase transition-colors cursor-pointer ${
-                        activeTrackIndex === idx
-                          ? 'bg-[#E01E37] text-white font-bold'
-                          : 'bg-[#181818] text-[#888] hover:text-white border border-white/10'
-                      }`}
-                    >
-                      TRACK 0{idx + 1}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Owner helper bar below track selector */}
-          {canManage && (
-            <div className="mt-4 pt-3.5 border-t border-[#222222] flex flex-wrap items-center justify-between gap-2.5 text-xs relative z-10">
-              <div className="flex items-center gap-2 text-[#A0A0A0]">
-                <Sliders className="w-3.5 h-3.5 text-[#E01E37]" />
-                <span className="font-sans">
-                  Mode Pemilik: Anda dapat mengunggah file MP3/WAV potongan lagu baru atau mengubah judul.
-                </span>
+              <div className="flex items-center justify-between font-mono text-[10px] text-[#707070]">
+                <span>{formatAudioTime(audioCurrentTime)}</span>
+                <span>{formatAudioTime(audioDuration || 38)}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsAudioManageModalOpen(true)}
-                className="px-3.5 py-1.5 rounded-lg bg-[#181818] hover:bg-[#222222] text-white border border-[#E01E37]/50 font-mono text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 text-[#E01E37]" />
-                <span>Kelola Potongan Lagu ({audioTracks.length})</span>
-              </button>
             </div>
-          )}
+          </aside>
+        )}
 
-          {/* Hidden Audio Tag */}
-          <audio
-            ref={audioRef}
-            src={currentAudioTrack?.file_url || '/sample-audio.wav'}
-            onPlay={() => setIsPlayingAudio(true)}
-            onPause={() => setIsPlayingAudio(false)}
-            onTimeUpdate={handleAudioTimeUpdate}
-            onLoadedMetadata={handleAudioLoadedMetadata}
-            onEnded={handleAudioEnded}
-            preload="auto"
-          />
-        </div>
+        {/* Hidden Audio Element */}
+        <audio
+          ref={audioRef}
+          src={currentAudioTrack?.file_url || '/sample-audio.wav'}
+          onPlay={() => setIsPlayingAudio(true)}
+          onPause={() => setIsPlayingAudio(false)}
+          onTimeUpdate={handleAudioTimeUpdate}
+          onLoadedMetadata={handleAudioLoadedMetadata}
+          onEnded={handleAudioEnded}
+          preload="auto"
+        />
 
         {/* 4. DUAL COLUMN: TECHNICAL RIDER (LEFT) & 8-SLIDE STAGE VISUAL (RIGHT) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mb-12">

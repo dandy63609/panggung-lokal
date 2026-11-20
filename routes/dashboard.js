@@ -33,16 +33,23 @@ router.get('/band', requireBand, async (req, res) => {
     // Incoming open gig broadcasts from Event Organizers
     const jobBroadcasts = await JobBroadcast.listRecent(50);
 
+    const profileViews = Number(bandProfile.profileViews) || 0;
+    const postViews = Number(performance.totalViews) || 0;
+    const totalWaClicks = Math.max(Number(connectionStats.total || 0), Number(performance.totalWaClicks || 0));
+    // Total tayangan adalah gabungan tayangan profil publik band + tayangan postingan karya
+    const totalViews = Math.max(profileViews + postViews, totalWaClicks);
+
     return res.json({
       success: true,
       data: {
         profile: bandProfile,
         stats: {
-          profileViews: bandProfile.profileViews,
+          profileViews,
+          postViews,
           totalConnections: connectionStats.total || performance.totalWaClicks,
           totalPosts: performance.totalPosts,
-          totalViews: performance.totalViews,
-          totalWaClicks: Math.max(connectionStats.total || 0, performance.totalWaClicks || 0)
+          totalViews,
+          totalWaClicks
         },
         posts: performance.posts,
         mediaFiles,

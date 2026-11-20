@@ -514,7 +514,9 @@ export const BandDashboardPage: React.FC = () => {
 
   const conversionRate =
     stats && stats.totalViews > 0
-      ? ((stats.totalWaClicks / stats.totalViews) * 100).toFixed(1)
+      ? Math.min(100, (stats.totalWaClicks / stats.totalViews) * 100).toFixed(1)
+      : stats && stats.totalWaClicks > 0
+      ? '100.0'
       : '0.0'
 
   const displayRiderItems = useMemo<RiderItem[]>(
@@ -1257,28 +1259,37 @@ export const BandDashboardPage: React.FC = () => {
 
             {/* Performance Telemetry Strip */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 bg-[#121212] border border-[#242424]">
+              <div className="p-4 bg-[#121212] border border-[#242424] rounded-xl">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mb-1">
                   TOTAL TAYANGAN
                 </span>
-                <span className="font-display text-2xl text-white">
+                <span className="font-display text-2xl text-white block">
                   {stats?.totalViews?.toLocaleString('id-ID') || '0'}
                 </span>
+                <span className="text-[10px] font-mono text-[#666] block mt-1">
+                  Kunjungan profil &amp; karya band
+                </span>
               </div>
-              <div className="p-4 bg-[#121212] border border-[#242424]">
+              <div className="p-4 bg-[#121212] border border-[#242424] rounded-xl">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mb-1">
                   LEAD WHATSAPP MASUK
                 </span>
-                <span className="font-display text-2xl text-[#E01E37]">
+                <span className="font-display text-2xl text-[#E01E37] block">
                   {stats?.totalWaClicks?.toLocaleString('id-ID') || '0'}
                 </span>
+                <span className="text-[10px] font-mono text-[#666] block mt-1">
+                  Inquiry booking langsung dari EO
+                </span>
               </div>
-              <div className="p-4 bg-[#121212] border border-[#242424]">
+              <div className="p-4 bg-[#121212] border border-[#242424] rounded-xl">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mb-1">
                   RASIO KONVERSI INQUIRY
                 </span>
-                <span className="font-display text-2xl text-white">
+                <span className="font-display text-2xl text-white block">
                   {conversionRate}%
+                </span>
+                <span className="text-[10px] font-mono text-[#666] block mt-1">
+                  Persentase kontak per tayangan
                 </span>
               </div>
             </div>
