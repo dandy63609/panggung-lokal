@@ -585,11 +585,11 @@ export const BandDashboardPage: React.FC = () => {
             )}
             {/* Direct Cover Upload Trigger Button */}
             <label
-              className="absolute bottom-4 right-4 sm:bottom-5 sm:right-6 px-3.5 py-1.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white font-mono text-xs flex items-center gap-1.5 cursor-pointer z-10 transition-all shadow-md min-h-[36px]"
+              style={{ display: 'none' }}
               title="Ganti Foto Sampul / Banner"
             >
-              <Camera className="w-3.5 h-3.5 text-[#00D9FF]" />
-              <span>Ganti Sampul</span>
+
+
               <input
                 type="file"
                 accept="image/*"

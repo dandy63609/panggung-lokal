@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
+import { InstagramIcon } from './ui/SocialIcons'
 import { authClient } from '../lib/auth'
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -34,31 +35,14 @@ export const Footer: React.FC = () => {
             </p>
             <div className="flex items-center gap-3 pt-2">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/reffband.official/"
                 target="_blank"
-                rel="noreferrer"
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-[#141414] hover:bg-[#1E1E1E] text-white border border-[#2A2A2A] transition-colors text-xs font-mono font-bold"
-                aria-label="Instagram reffband"
+                rel="noopener noreferrer"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-[#141414] hover:bg-[#1E1E1E] hover:border-[#E01E37] text-white border border-[#2A2A2A] transition-all rounded-sm shadow-sm group"
+                aria-label="Instagram @reffband.official"
+                title="Instagram @reffband.official"
               >
-                IG
-              </a>
-              <a
-                href="https://youtube.com"
-                target="_blank"
-                rel="noreferrer"
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-[#141414] hover:bg-[#1E1E1E] text-white border border-[#2A2A2A] transition-colors text-xs font-mono font-bold"
-                aria-label="YouTube reffband"
-              >
-                YT
-              </a>
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noreferrer"
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-[#141414] hover:bg-[#1E1E1E] text-white border border-[#2A2A2A] transition-colors text-xs font-mono font-bold"
-                aria-label="GitHub Repository"
-              >
-                GH
+                <InstagramIcon className="w-5 h-5 text-white transition-transform group-hover:scale-110" />
               </a>
             </div>
           </div>

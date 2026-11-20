@@ -1,5 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react'
-import { Play, Pause } from 'lucide-react'
+import React, { useRef } from 'react'
 
 interface HeroVideoProps {
   posterUrl?: string
@@ -11,29 +10,6 @@ export const HeroVideo: React.FC<HeroVideoProps> = ({
   videoSrc = '/nirvana-heart-shaped-box.mp4',
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [isPlaying, setIsPlaying] = useState(
-    () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  )
-
-  useEffect(() => {
-    if (!isPlaying && videoRef.current) {
-      videoRef.current.pause()
-    }
-  }, [isPlaying])
-
-  const togglePlay = () => {
-    if (isPlaying) {
-      if (videoRef.current) {
-        videoRef.current.pause()
-      }
-      setIsPlaying(false)
-    } else {
-      if (videoRef.current) {
-        videoRef.current.play().catch(() => {})
-      }
-      setIsPlaying(true)
-    }
-  }
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
@@ -62,28 +38,6 @@ export const HeroVideo: React.FC<HeroVideoProps> = ({
           backgroundSize: '40px 40px'
         }}
       />
-
-      {/* Pause/Play Button (Docked bottom-left for Antislop R-39) */}
-      <div className="absolute bottom-6 left-6 z-20 pointer-events-auto">
-        <button
-          type="button"
-          onClick={togglePlay}
-          className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-mono uppercase tracking-wider text-[#A0A0A0] hover:text-white bg-[#141414]/90 backdrop-blur-md border border-[#2C2C2C] hover:border-[#E01E37] transition-all min-h-[44px] rounded-sm"
-          aria-label={isPlaying ? 'Pause background concert video' : 'Play background concert video'}
-        >
-          {isPlaying ? (
-            <>
-              <Pause className="w-3.5 h-3.5 text-[#E01E37]" />
-              <span>Jeda Video [NIRVANA : HEART-SHAPED BOX]</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-3.5 h-3.5 text-[#25D366]" />
-              <span>Putar Video [NIRVANA : HEART-SHAPED BOX]</span>
-            </>
-          )}
-        </button>
-      </div>
     </div>
   )
 }
