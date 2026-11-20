@@ -38,7 +38,7 @@ import {
   TikTokIcon,
 } from '../components/ui/SocialIcons'
 import { JobBroadcastsTab } from '../components/dashboard/JobBroadcastsTab'
-import { AudioTracksTab } from '../components/dashboard/AudioTracksTab'
+import { ManageAudioModal } from '../components/band/ManageAudioModal'
 import {
   UploadMediaModal,
   PostDetailModal,
@@ -56,16 +56,20 @@ export const BandDashboardPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<BandDashboardData | null>(null)
-  const [activeTab, setActiveTab] = useState<'feed' | 'audio' | 'rider' | 'analytics' | 'broadcasts'>(() => {
+  const [activeTab, setActiveTab] = useState<'feed' | 'rider' | 'analytics' | 'broadcasts'>(() => {
     const params = new URLSearchParams(window.location.search)
     const tabParam = params.get('tab')
-    if (tabParam === 'audio' || tabParam === 'rider' || tabParam === 'analytics' || tabParam === 'broadcasts') {
+    if (tabParam === 'rider' || tabParam === 'analytics' || tabParam === 'broadcasts') {
       return tabParam
     }
     return 'feed'
   })
 
   // Modals state
+  const [isAudioManageModalOpen, setIsAudioManageModalOpen] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('tab') === 'audio' || params.get('manageAudio') === 'true' || params.get('edit') === 'audio'
+  })
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false)
   const [isEditRiderModalOpen, setIsEditRiderModalOpen] = useState(false)
@@ -837,6 +841,21 @@ export const BandDashboardPage: React.FC = () => {
 
                 <button
                   type="button"
+                  onClick={() => setIsAudioManageModalOpen(true)}
+                  className="px-5 py-2.5 rounded-full bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333] font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer"
+                  title="Kelola Sampel Lagu"
+                >
+                  <Music className="w-3.5 h-3.5 text-[#E01E37]" />
+                  <span>Sampel Audio</span>
+                  {dashboardData?.mediaFiles?.filter((m) => m.file_type === 'audio').length ? (
+                    <span className="px-1.5 py-0.5 rounded-full bg-[#E01E37]/20 text-[#E01E37] text-[10px] font-mono font-bold">
+                      {dashboardData.mediaFiles.filter((m) => m.file_type === 'audio').length}
+                    </span>
+                  ) : null}
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => handleOpenUploadModal()}
                   className="px-6 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.35)] cursor-pointer"
                 >
@@ -876,21 +895,6 @@ export const BandDashboardPage: React.FC = () => {
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('audio')}
-            className={`px-3.5 sm:px-4 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'audio'
-                ? 'border-[#E01E37] text-white bg-[#141414]'
-                : 'border-transparent text-[#808080] hover:text-white hover:bg-[#111111]'
-            }`}
-          >
-            <Music className="w-3.5 h-3.5 text-[#E01E37] shrink-0" />
-            <span>Sampel Audio</span>
-            <span className="px-1.5 py-0.2 bg-[#222222] text-[#A0A0A0] text-[10px] shrink-0">
-              {(dashboardData?.mediaFiles || []).filter((m) => m.file_type === 'audio').length}
-            </span>
-          </button>
 
           <button
             type="button"
@@ -957,14 +961,31 @@ export const BandDashboardPage: React.FC = () => {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleOpenUploadModal()}
-                className="px-4 py-2 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs font-bold uppercase tracking-wider min-h-[44px] flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(224,30,55,0.25)]"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Unggah Materi</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAudioManageModalOpen(true)}
+                  className="px-4 py-2 bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333] font-mono text-xs font-bold uppercase tracking-wider min-h-[44px] flex items-center gap-2 cursor-pointer transition-colors"
+                  title="Kelola Sampel Lagu"
+                >
+                  <Music className="w-4 h-4 text-[#E01E37]" />
+                  <span>Sampel Audio</span>
+                  {dashboardData?.mediaFiles?.filter((m) => m.file_type === 'audio').length ? (
+                    <span className="px-1.5 py-0.5 rounded-full bg-[#E01E37]/20 text-[#E01E37] text-[10px] font-mono font-bold">
+                      {dashboardData.mediaFiles.filter((m) => m.file_type === 'audio').length}
+                    </span>
+                  ) : null}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenUploadModal()}
+                  className="px-4 py-2 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs font-bold uppercase tracking-wider min-h-[44px] flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(224,30,55,0.25)]"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Unggah Materi</span>
+                </button>
+              </div>
             </div>
 
             {posts.length > 0 && (
@@ -1170,15 +1191,6 @@ export const BandDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Tab 1.5: Sampel Audio Resmi (Demo Master) */}
-        {activeTab === 'audio' && (
-          <AudioTracksTab
-            mediaFiles={dashboardData?.mediaFiles || []}
-            bandName={profile?.bandName}
-            onRefresh={fetchDashboard}
-            showToast={showToast}
-          />
-        )}
 
         {/* Tab 2: Technical Rider */}
         {activeTab === 'rider' && (
@@ -1406,6 +1418,14 @@ export const BandDashboardPage: React.FC = () => {
         onRemoveItem={handleRemoveRiderItem}
         onClose={() => setIsEditRiderModalOpen(false)}
         onSubmit={handleRiderSubmit}
+      />
+
+      <ManageAudioModal
+        isOpen={isAudioManageModalOpen}
+        onClose={() => setIsAudioManageModalOpen(false)}
+        mediaFiles={dashboardData?.mediaFiles || []}
+        bandName={profile?.bandName}
+        onUpdated={fetchDashboard}
       />
     </div>
   )

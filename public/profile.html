@@ -204,10 +204,15 @@
           </div>
         </div>
 
-        <div>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button id="btn-play-hero-audio" type="button" class="btn btn--outline" style="min-height: 44px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border-color: rgba(255,255,255,0.2);">
+            <span id="hero-audio-icon">▶</span>
+            <span id="hero-audio-label">Dengar Sampel Lagu</span>
+          </button>
           <a id="btn-open-contact" href="#" class="btn btn--primary btn--lg" style="min-height: 44px; display: inline-flex; align-items: center; justify-content: center;">
             <span>💬 Hubungi Band Langsung</span>
           </a>
+          <audio id="hero-audio-player" preload="none" style="display: none;"></audio>
         </div>
       </div>
     </div>
@@ -233,16 +238,6 @@
             <div id="social-links-container" class="social-links-grid">
               <!-- Rendered dynamically -->
             </div>
-          </div>
-        </div>
-
-        <!-- Audio Samples Card -->
-        <div class="detail-card">
-          <h2 class="detail-card__title">
-            <span>🎵</span> SAMPEL AUDIO
-          </h2>
-          <div id="media-list">
-            <div style="color: var(--graphite);">Memuat daftar media...</div>
           </div>
         </div>
 
@@ -484,35 +479,48 @@
         }
       }
 
-      // 3. Audio Tracks (Sample Audio)
-      const mediaEl = document.getElementById('media-list');
+      // 3. Audio Tracks (Hero Single-Button Audio Sample)
+      const audioBtn = document.getElementById('btn-play-hero-audio');
+      const audioIcon = document.getElementById('hero-audio-icon');
+      const audioLabel = document.getElementById('hero-audio-label');
+      const audioPlayer = document.getElementById('hero-audio-player');
       const audioFiles = (band.mediaFiles || []).filter(m => m.file_type === 'audio');
-      if (audioFiles.length > 0) {
-        mediaEl.innerHTML = audioFiles.map((media, idx) => `
-          <div class="media-item" style="animation-delay: ${(idx * 0.02).toFixed(3)}s;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="font-size: 1.2rem;">🎶</span>
-              <div>
-                <div style="font-weight: 600; font-size: 0.95rem; color: var(--chalk-white);">${media.title || 'Demo Track'}</div>
-                <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--graphite);">${media.file_type.toUpperCase()}</div>
-              </div>
-            </div>
-            <audio controls src="${media.file_url}" style="height: 36px; max-width: 200px;"></audio>
-          </div>
-        `).join('');
-      } else {
-        mediaEl.innerHTML = `
-          <div class="media-item">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="font-size: 1.2rem;">🎶</span>
-              <div>
-                <div style="font-weight: 600; font-size: 0.95rem; color: var(--chalk-white);">Single Demo (Live Session)</div>
-                <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--graphite);">AUDIO PREVIEW</div>
-              </div>
-            </div>
-            <audio controls src="https://actions.google.com/sounds/v1/sports/skateboard_half_pipe.ogg" style="height: 36px; max-width: 200px;"></audio>
-          </div>
-        `;
+      const sampleTrack = audioFiles.length > 0
+        ? audioFiles[0]
+        : { file_url: '/sample-audio.wav', title: 'Single Demo (Live Session)' };
+
+      if (audioPlayer && audioBtn) {
+        audioPlayer.src = sampleTrack.file_url;
+        audioBtn.title = sampleTrack.title || 'Dengar Sampel Lagu';
+
+        audioPlayer.addEventListener('play', () => {
+          if (audioIcon) audioIcon.textContent = '⏸';
+          if (audioLabel) audioLabel.textContent = 'Memutar: ' + (sampleTrack.title || 'Sampel Lagu');
+          audioBtn.style.borderColor = 'var(--crimson)';
+          audioBtn.style.color = 'var(--crimson)';
+        });
+
+        audioPlayer.addEventListener('pause', () => {
+          if (audioIcon) audioIcon.textContent = '▶';
+          if (audioLabel) audioLabel.textContent = 'Dengar Sampel Lagu';
+          audioBtn.style.borderColor = 'rgba(255,255,255,0.2)';
+          audioBtn.style.color = '';
+        });
+
+        audioPlayer.addEventListener('ended', () => {
+          if (audioIcon) audioIcon.textContent = '▶';
+          if (audioLabel) audioLabel.textContent = 'Dengar Sampel Lagu';
+          audioBtn.style.borderColor = 'rgba(255,255,255,0.2)';
+          audioBtn.style.color = '';
+        });
+
+        audioBtn.onclick = () => {
+          if (audioPlayer.paused) {
+            audioPlayer.play().catch(e => console.warn('Audio play failed:', e));
+          } else {
+            audioPlayer.pause();
+          }
+        };
       }
 
       // 4. POSTINGAN & GALERI KARYA (Instagram 3-Column Grid)
