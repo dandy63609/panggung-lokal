@@ -74,7 +74,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
             <button
               type="button"
               onClick={onReset}
-              className="font-mono text-xs uppercase tracking-wider text-[#8A8A8A] hover:text-white transition-colors"
+              className="font-mono text-xs uppercase tracking-wider text-[#8A8A8A] hover:text-white transition-colors cursor-pointer"
             >
               Reset Semua
             </button>
@@ -82,14 +82,14 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Tutup panel filter"
-              className="p-1 text-[#8A8A8A] hover:text-white md:hidden"
+              className="p-1 text-[#8A8A8A] hover:text-white md:hidden cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Filter Section 1: Kota Asal */}
+        {/* Filter Section 1: Kota Domisili (Semarang & Jogja) */}
         <div className="space-y-3">
           <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#A0A0A0] block">
             Kota Domisili
@@ -102,9 +102,9 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
                   key={city}
                   type="button"
                   onClick={() => onFilterChange({ ...filters, city })}
-                  className={`min-h-[36px] px-3 py-1 font-mono text-xs uppercase tracking-wider transition-colors border ${
+                  className={`min-h-[36px] px-4 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors border cursor-pointer ${
                     active
-                      ? 'bg-[#E01E37] text-white border-[#E01E37] font-bold'
+                      ? 'bg-[#E01E37] text-white border-[#E01E37] font-bold shadow-[0_0_12px_rgba(224,30,55,0.4)]'
                       : 'bg-[#1C1C1C] text-[#A0A0A0] border-[#2A2A2A] hover:text-white hover:border-[#404040]'
                   }`}
                 >
@@ -115,10 +115,10 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
           </div>
         </div>
 
-        {/* Filter Section 2: Range Rate / Budget */}
+        {/* Filter Section 2: Rekomendasi Kami (Budget / Honor Range) */}
         <div className="space-y-3">
           <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#A0A0A0] block">
-            Estimasi Honor Panggung
+            Rekomendasi Kami
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {BUDGET_OPTIONS.map((opt) => {
@@ -128,9 +128,9 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
                   key={opt.id}
                   type="button"
                   onClick={() => onFilterChange({ ...filters, budgetRange: opt.id })}
-                  className={`min-h-[38px] px-2.5 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors border text-center ${
+                  className={`min-h-[38px] px-2.5 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors border text-center cursor-pointer ${
                     active
-                      ? 'bg-[#E01E37] text-white border-[#E01E37] font-bold'
+                      ? 'bg-[#E01E37] text-white border-[#E01E37] font-bold shadow-[0_0_12px_rgba(224,30,55,0.4)]'
                       : 'bg-[#1C1C1C] text-[#A0A0A0] border-[#2A2A2A] hover:text-white hover:border-[#404040]'
                   }`}
                 >
@@ -146,7 +146,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-full h-[52px] bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+            className="w-full h-[52px] bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_20px_rgba(224,30,55,0.3)]"
           >
             <span>TERAPKAN FILTER ({matchCount} BAND)</span>
             <Check className="w-4 h-4" />

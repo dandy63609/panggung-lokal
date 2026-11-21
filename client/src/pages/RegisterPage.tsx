@@ -72,7 +72,7 @@ export const RegisterPage: React.FC = () => {
         accountType,
         bandName: accountType === 'band' ? bandName.trim() || undefined : undefined,
         genre: accountType === 'band' ? genre : undefined,
-        locationCity: locationCity.trim() || 'Bandung',
+        locationCity: locationCity.trim() || 'Kota Semarang',
       })
 
       if (res.success && res.user) {
@@ -122,7 +122,7 @@ export const RegisterPage: React.FC = () => {
       accountType,
       bandName: accountType === 'band' ? bandName.trim() : undefined,
       genre: accountType === 'band' ? genre : undefined,
-      locationCity: locationCity.trim() || 'Bandung',
+      locationCity: locationCity.trim() || 'Kota Semarang',
     }
 
     try {
@@ -364,7 +364,7 @@ export const RegisterPage: React.FC = () => {
                     type="text"
                     value={bandName}
                     onChange={(e) => setBandName(e.target.value)}
-                    placeholder="Contoh: Kelana Ombak"
+                    placeholder="Contoh: Nada Semarang / Jogja Harmoni"
                     required
                     className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white placeholder-[#606060] text-sm pl-10 pr-4 py-3 min-h-[44px] transition-colors outline-none font-sans"
                   />

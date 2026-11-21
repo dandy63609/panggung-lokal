@@ -18,8 +18,29 @@ import {
   Trash2,
   X,
   Lock,
+  GraduationCap,
+  Plus,
+  Building2,
 } from 'lucide-react'
 import { authClient, type AuthUser } from '../lib/auth'
+
+interface AdminCampus {
+  id: number
+  name: string
+  short_name: string
+  city: string
+  created_at?: string
+}
+
+interface AdminBandAffiliation {
+  id: number
+  band_name: string
+  location_city: string
+  genre: string
+  campus?: string | null
+  profile_views?: number
+  email?: string
+}
 
 interface AdminSummary {
   totalUsers: number
@@ -56,13 +77,22 @@ export const AdminDashboardPage: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authClient.getUser())
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState<'users' | 'reports' | 'system'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'reports' | 'system' | 'campuses'>('users')
   const [userFilter, setUserFilter] = useState<'all' | 'band' | 'organizer'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<number | string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+
+  // Campuses & Band Affiliation State (Hanya Admin yang berwenang mengelola)
+  const [campuses, setCampuses] = useState<AdminCampus[]>([])
+  const [bandAffiliations, setBandAffiliations] = useState<AdminBandAffiliation[]>([])
+  const [newCampusName, setNewCampusName] = useState('')
+  const [newCampusShort, setNewCampusShort] = useState('')
+  const [newCampusCity, setNewCampusCity] = useState<'Kota Semarang' | 'Kota Jogja'>('Kota Semarang')
+  const [isSubmittingCampus, setIsSubmittingCampus] = useState(false)
+  const [updatingBandCampusId, setUpdatingBandCampusId] = useState<number | null>(null)
 
   const [summary, setSummary] = useState<AdminSummary>({
     totalUsers: 0,
@@ -76,13 +106,108 @@ export const AdminDashboardPage: React.FC = () => {
   })
 
   const [users, setUsers] = useState<AdminUser[]>([])
-
   const [reports, setReports] = useState<AdminReport[]>([])
 
   const showToast = useCallback((text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type })
     setTimeout(() => setToastMessage(null), 3500)
   }, [])
+
+  const loadCampuses = useCallback(async () => {
+    try {
+      const headers = authClient.getAuthHeaders()
+      const res = await fetch('/api/admin/campuses', { headers })
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && json.data) {
+          setCampuses(json.data.campuses || [])
+          setBandAffiliations(json.data.bands || [])
+        }
+      }
+    } catch {
+      // keep fallback
+    }
+  }, [])
+
+  const handleAddCampus = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newCampusName.trim() || !newCampusShort.trim()) {
+      showToast('Nama kampus dan kode singkatan wajib diisi', 'error')
+      return
+    }
+
+    try {
+      setIsSubmittingCampus(true)
+      const headers = { ...authClient.getAuthHeaders(), 'Content-Type': 'application/json' }
+      const res = await fetch('/api/admin/campuses', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: newCampusName.trim(),
+          shortName: newCampusShort.trim().toUpperCase(),
+          city: newCampusCity,
+        }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        showToast(json.message || 'Kampus berhasil ditambahkan', 'success')
+        setNewCampusName('')
+        setNewCampusShort('')
+        loadCampuses()
+      } else {
+        showToast(json.message || 'Gagal menambahkan kampus', 'error')
+      }
+    } catch {
+      showToast('Kendala jaringan saat menambahkan kampus', 'error')
+    } finally {
+      setIsSubmittingCampus(false)
+    }
+  }
+
+  const handleDeleteCampus = async (campusId: number) => {
+    if (!window.confirm('Yakin ingin menghapus label kampus ini?')) return
+    try {
+      const headers = authClient.getAuthHeaders()
+      const res = await fetch(`/api/admin/campuses/${campusId}`, {
+        method: 'DELETE',
+        headers,
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        showToast(json.message || 'Kampus berhasil dihapus', 'success')
+        loadCampuses()
+      } else {
+        showToast(json.message || 'Gagal menghapus kampus', 'error')
+      }
+    } catch {
+      showToast('Kendala koneksi saat menghapus kampus', 'error')
+    }
+  }
+
+  const handleAssignBandCampus = async (bandId: number, campusName: string | null) => {
+    try {
+      setUpdatingBandCampusId(bandId)
+      const headers = { ...authClient.getAuthHeaders(), 'Content-Type': 'application/json' }
+      const res = await fetch(`/api/admin/bands/${bandId}/campus`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ campus: campusName }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        showToast(json.message || 'Afiliasi kampus musisi berhasil diperbarui', 'success')
+        setBandAffiliations((prev) =>
+          prev.map((b) => (b.id === bandId ? { ...b, campus: campusName } : b))
+        )
+      } else {
+        showToast(json.message || 'Gagal memperbarui afiliasi kampus', 'error')
+      }
+    } catch {
+      showToast('Kendala koneksi saat menetapkan kampus', 'error')
+    } finally {
+      setUpdatingBandCampusId(null)
+    }
+  }
 
   const loadAdminMetrics = useCallback(
     async (notifySuccess: boolean) => {
@@ -104,6 +229,7 @@ export const AdminDashboardPage: React.FC = () => {
             }
           }
         }
+        await loadCampuses()
       } catch {
         // Keep solid fallback data
       } finally {
@@ -111,7 +237,7 @@ export const AdminDashboardPage: React.FC = () => {
         setLoading(false)
       }
     },
-    [showToast]
+    [showToast, loadCampuses]
   )
 
   // Manual refresh button handler
@@ -702,7 +828,7 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         {/* 5. INTERACTIVE WORKSPACE TABS */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-b border-[#242424] pb-3 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 border-b border-[#242424] pb-3 mb-6">
           <button
             type="button"
             onClick={() => setActiveTab('users')}
@@ -740,6 +866,22 @@ export const AdminDashboardPage: React.FC = () => {
           >
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>03 // Status Infrastruktur</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('campuses')
+              loadCampuses()
+            }}
+            className={`px-4 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-2 rounded-xl cursor-pointer ${
+              activeTab === 'campuses'
+                ? 'bg-[#E01E37] text-white shadow-[0_0_15px_rgba(224,30,55,0.3)]'
+                : 'bg-[#121212] border border-[#242424] text-[#808080] hover:text-white'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5 text-[#FFD166]" />
+            <span>04 // Afiliasi Kampus ({campuses.length})</span>
           </button>
         </div>
 
@@ -1041,6 +1183,248 @@ export const AdminDashboardPage: React.FC = () => {
                 <p className="text-xs text-[#888] font-sans">
                   Standarisasi katalog band lokal Indonesia dengan protokol kurasi soundcheck resmi.
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: CAMPUS MANAGEMENT & BAND AFFILIATION ACCESS (ADMIN EXCLUSIVE) */}
+        {activeTab === 'campuses' && (
+          <div className="bg-[#121212] border border-[#242424] rounded-2xl p-6 shadow-xl space-y-8">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#202020]">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 bg-[#FFD166] rounded-full animate-pulse" />
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#FFD166] font-bold">
+                    OTORISASI ADMINISTRATOR
+                  </span>
+                </div>
+                <h2 className="font-mono text-base font-bold text-white uppercase">
+                  MANAJEMEN LABEL KAMPUS &amp; HAK AKSES AFILIASI MUSISI
+                </h2>
+                <p className="text-xs text-[#808080] font-sans">
+                  Fokus regional: Kota Semarang &amp; Kota Jogja. Hanya Admin yang dapat menambahkan master kampus dan memberikan hak akses afiliasi kepada musisi.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-[#FFD166]/10 border border-[#FFD166]/30 text-[#FFD166] font-mono text-xs font-bold uppercase rounded-md flex items-center gap-1.5">
+                  <GraduationCap className="w-4 h-4" />
+                  <span>{campuses.length} Kampus Aktif</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Top Grid: Form Tambah Kampus Baru + Daftar Ringkas Kampus */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Form Tambah Kampus */}
+              <div className="bg-[#0C0C0C] border border-[#262626] rounded-xl p-5 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-[#202020]">
+                  <Plus className="w-4 h-4 text-[#E01E37]" />
+                  <h3 className="font-mono text-xs font-bold text-white uppercase tracking-wider">
+                    Tambah Label Kampus Baru
+                  </h3>
+                </div>
+
+                <form onSubmit={handleAddCampus} className="space-y-3.5">
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A0A0A0] mb-1">
+                      Nama Lengkap Kampus *
+                    </label>
+                    <input
+                      type="text"
+                      value={newCampusName}
+                      onChange={(e) => setNewCampusName(e.target.value)}
+                      placeholder="Contoh: Universitas Negeri Semarang"
+                      required
+                      className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs px-3.5 py-2.5 min-h-[40px] outline-none font-sans rounded-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A0A0A0] mb-1">
+                        Kode / Singkatan *
+                      </label>
+                      <input
+                        type="text"
+                        value={newCampusShort}
+                        onChange={(e) => setNewCampusShort(e.target.value)}
+                        placeholder="Contoh: UNNES"
+                        required
+                        className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs px-3 py-2.5 min-h-[40px] outline-none font-mono uppercase rounded-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A0A0A0] mb-1">
+                        Kota *
+                      </label>
+                      <select
+                        value={newCampusCity}
+                        onChange={(e) => setNewCampusCity(e.target.value as 'Kota Semarang' | 'Kota Jogja')}
+                        className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs px-2.5 py-2.5 min-h-[40px] outline-none font-sans cursor-pointer rounded-none"
+                      >
+                        <option value="Kota Semarang" className="bg-[#181818] text-white">Kota Semarang</option>
+                        <option value="Kota Jogja" className="bg-[#181818] text-white">Kota Jogja</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingCampus}
+                    className="w-full py-2.5 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 min-h-[42px] cursor-pointer disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{isSubmittingCampus ? 'Menyimpan...' : 'Tambahkan Kampus'}</span>
+                  </button>
+                </form>
+              </div>
+
+              {/* Daftar Master Kampus */}
+              <div className="lg:col-span-2 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-[#202020]">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-[#FFD166]" />
+                    <h3 className="font-mono text-xs font-bold text-white uppercase tracking-wider">
+                      Daftar Master Label Kampus ({campuses.length})
+                    </h3>
+                  </div>
+                  <span className="text-[11px] font-mono text-[#808080]">
+                    Semarang &amp; Jogja
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1">
+                  {campuses.map((c) => {
+                    const affiliatedCount = bandAffiliations.filter(
+                      (b) => (b.campus || '').toUpperCase() === c.short_name.toUpperCase()
+                    ).length
+
+                    return (
+                      <div
+                        key={c.id}
+                        className="bg-[#0E0E0E] border border-[#262626] hover:border-[#383838] p-3.5 rounded-xl flex items-start justify-between gap-3 transition-colors"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm font-bold text-white bg-[#FFD166]/15 border border-[#FFD166]/40 text-[#FFD166] px-2 py-0.5 rounded">
+                              {c.short_name}
+                            </span>
+                            <span className="font-mono text-[10px] text-[#A0A0A0] uppercase bg-[#181818] px-2 py-0.5 border border-[#2A2A2A]">
+                              {c.city}
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#E0E0E0] font-sans truncate max-w-[220px]">
+                            {c.name}
+                          </div>
+                          <div className="text-[11px] font-mono text-[#777777]">
+                            {affiliatedCount} Musisi Terafiliasi
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCampus(c.id)}
+                          title={`Hapus label ${c.short_name}`}
+                          className="text-[#666] hover:text-[#E01E37] p-1.5 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Table: Penugasan Hak Akses Kampus ke Musisi */}
+            <div className="space-y-4 pt-4 border-t border-[#202020]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
+                    Penugasan Hak Akses Kampus ke Musisi ({bandAffiliations.length} Band)
+                  </h3>
+                  <p className="text-xs text-[#808080] font-sans">
+                    Admin dapat menetapkan atau mencabut label kampus yang akan tampil sebagai badge resmi di profil musisi.
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto border border-[#242424] rounded-xl">
+                <table className="w-full text-left font-sans text-xs">
+                  <thead className="bg-[#0D0D0D] text-[#808080] font-mono text-[10px] uppercase tracking-wider border-b border-[#242424]">
+                    <tr>
+                      <th className="py-3 px-4">Nama Band</th>
+                      <th className="py-3 px-4">Kota</th>
+                      <th className="py-3 px-4">Genre</th>
+                      <th className="py-3 px-4">Label Kampus Terpasang</th>
+                      <th className="py-3 px-4 text-right">Otorisasi Hak Akses (Admin)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1F1F1F]">
+                    {bandAffiliations.map((b) => (
+                      <tr key={b.id} className="hover:bg-[#161616]/60 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-white font-mono text-xs">{b.band_name}</div>
+                          <div className="text-[11px] text-[#777] font-mono">{b.email || `ID #${b.id}`}</div>
+                        </td>
+                        <td className="py-3 px-4 text-[#C0C0C0] font-mono text-[11px]">
+                          {b.location_city || 'Semarang'}
+                        </td>
+                        <td className="py-3 px-4 text-[#A0A0A0]">
+                          {b.genre}
+                        </td>
+                        <td className="py-3 px-4">
+                          {b.campus ? (
+                            <span className="font-mono text-xs text-[#FFD166] font-bold bg-[#FFD166]/15 border border-[#FFD166]/40 px-2.5 py-1 rounded-md inline-flex items-center gap-1 shadow-sm">
+                              <span>🎓</span>
+                              <span>{b.campus}</span>
+                            </span>
+                          ) : (
+                            <span className="font-mono text-[11px] text-[#666666] italic">
+                              Belum Terafiliasi
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <select
+                              value={b.campus || ''}
+                              disabled={updatingBandCampusId === b.id}
+                              onChange={(e) => {
+                                const val = e.target.value.trim()
+                                handleAssignBandCampus(b.id, val ? val : null)
+                              }}
+                              className="bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs px-2.5 py-1.5 outline-none font-mono cursor-pointer rounded"
+                            >
+                              <option value="">-- Tanpa Kampus --</option>
+                              {campuses.map((c) => (
+                                <option key={c.id} value={c.short_name}>
+                                  {c.short_name} ({c.city})
+                                </option>
+                              ))}
+                            </select>
+
+                            {b.campus && (
+                              <button
+                                type="button"
+                                disabled={updatingBandCampusId === b.id}
+                                onClick={() => handleAssignBandCampus(b.id, null)}
+                                className="px-2 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#E01E37] border border-[#333333] hover:border-[#E01E37] text-[10px] font-mono uppercase tracking-wider rounded transition-colors cursor-pointer"
+                                title="Cabut label kampus dari band ini"
+                              >
+                                Cabut
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

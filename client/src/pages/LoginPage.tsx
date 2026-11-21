@@ -124,7 +124,7 @@ export const LoginPage: React.FC = () => {
           email: res.googleProfile.email,
           name: res.googleProfile.name,
         })
-        setGoogleBandName(res.googleProfile.name || '')
+        setGoogleBandName('')
         setLoading(false)
         return
       }
@@ -147,14 +147,19 @@ export const LoginPage: React.FC = () => {
 
   const handleCompleteGoogleOnboarding = async (chosenType: 'band' | 'general') => {
     if (!pendingGoogle) return
+    if (chosenType === 'band' && !googleBandName.trim()) {
+      setErrorMessage('Nama band wajib diisi. Masukkan nama panggung / band Anda.')
+      return
+    }
+
     setErrorMessage(null)
     setLoading(true)
 
     const res = await authClient.loginWithGoogle({
       credential: pendingGoogle.credential,
       accountType: chosenType,
-      bandName: chosenType === 'band' ? (googleBandName.trim() || pendingGoogle.name) : undefined,
-      locationCity: googleCity.trim() || 'Bandung',
+      bandName: chosenType === 'band' ? googleBandName.trim() : undefined,
+      locationCity: googleCity.trim() || 'Kota Semarang',
     })
 
     if (res.success && res.user) {
@@ -255,13 +260,13 @@ export const LoginPage: React.FC = () => {
             <div className="space-y-3">
               <div>
                 <label className="block text-[11px] font-mono uppercase tracking-wider text-[#B0B0B0] mb-1">
-                  Nama Band / Nama Tampilan (jika Musisi)
+                  Nama Band / Nama Panggung * (Wajib untuk Musisi)
                 </label>
                 <input
                   type="text"
                   value={googleBandName}
                   onChange={(e) => setGoogleBandName(e.target.value)}
-                  placeholder="Contoh: Kelana Ombak"
+                  placeholder="Contoh: Nada Kota / The Semarang Waves"
                   className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-sm px-3.5 py-2.5 min-h-[44px] outline-none font-sans"
                 />
               </div>

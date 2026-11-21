@@ -76,7 +76,7 @@ router.post('/register', authLimiter, async (req, res) => {
         userId: newUser.id,
         bandName: bandName || email.split('@')[0],
         genre: genre || 'Indie / Pop',
-        locationCity: locationCity || 'Bandung',
+        locationCity: locationCity || 'Kota Semarang',
         bio: 'Profil band baru di Reffband'
       });
     }
@@ -372,7 +372,7 @@ router.post('/google', authLimiter, async (req, res) => {
         userId: newUser.id,
         bandName: (bandName && bandName.trim()) || payload.name || normalizedEmail.split('@')[0],
         genre: genre || 'Indie / Alternative',
-        locationCity: (locationCity && locationCity.trim()) || 'Bandung',
+        locationCity: (locationCity && locationCity.trim()) || 'Kota Semarang',
         profilePhotoUrl: payload.picture || null,
         bio: 'Profil band baru di Reffband'
       });

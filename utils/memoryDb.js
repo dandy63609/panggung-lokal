@@ -18,13 +18,14 @@ const CLOUD_SYNC_TABLES = [
   'media_files',
   'connections',
   'reports',
-  'job_broadcasts'
+  'job_broadcasts',
+  'campuses'
 ];
 
 const TABLE_COLUMNS = {
   users: ['id', 'email', 'password_hash', 'account_type', 'google_id', 'auth_provider', 'created_at', 'last_login', 'is_active'],
   band_profiles: [
-    'id', 'user_id', 'band_name', 'genre', 'location_city', 'location_region', 'bio',
+    'id', 'user_id', 'band_name', 'genre', 'location_city', 'location_region', 'campus', 'bio',
     'budget_min', 'budget_max', 'profile_photo_url', 'cover_photo_url', 'phone',
     'instagram_handle', 'facebook_url', 'youtube_url', 'profile_views',
     'rider_channel_inputs', 'rider_sound_system', 'rider_instruments', 'rider_hospitality',
@@ -49,7 +50,8 @@ const TABLE_COLUMNS = {
     'organizer_email', 'organizer_phone', 'event_date', 'perform_start_time',
     'perform_end_time', 'venue_location', 'event_scale', 'event_details',
     'attachments', 'recipient_band_count', 'created_at'
-  ]
+  ],
+  campuses: ['id', 'name', 'short_name', 'city', 'created_at']
 };
 
 let memDbInstance = null;
@@ -85,6 +87,7 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   genre VARCHAR(100) NOT NULL,
   location_city VARCHAR(100) NOT NULL,
   location_region VARCHAR(100),
+  campus VARCHAR(100),
   bio TEXT,
   budget_min INTEGER,
   budget_max INTEGER,
@@ -176,6 +179,14 @@ CREATE TABLE IF NOT EXISTS job_broadcasts (
   event_details TEXT NOT NULL,
   attachments TEXT DEFAULT '[]',
   recipient_band_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS campuses (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  short_name VARCHAR(50) NOT NULL,
+  city VARCHAR(100) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 `;
@@ -372,7 +383,7 @@ async function syncAllToCloud(options = {}) {
 }
 
 async function syncSerialSequences(db, pool) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses'];
   for (const tableName of tables) {
     try {
       const res = await pool.query(`SELECT COALESCE(MAX(id), 0) AS max_id FROM ${tableName}`);
@@ -391,7 +402,7 @@ async function syncSerialSequences(db, pool) {
 }
 
 async function restoreData(pool, data) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses'];
   for (const table of tables) {
     if (Array.isArray(data[table])) {
       const allowedCols = new Set(TABLE_COLUMNS[table] || []);
@@ -405,10 +416,26 @@ async function restoreData(pool, data) {
       }
     }
   }
+
+  // Ensure default campuses exist if campuses table is empty
+  try {
+    const campusCountRes = await pool.query('SELECT COUNT(*) as count FROM campuses');
+    if (parseInt(campusCountRes.rows[0].count, 10) === 0) {
+      await pool.query(`
+        INSERT INTO campuses (id, name, short_name, city) VALUES 
+        (1, 'Universitas Negeri Semarang', 'UNNES', 'Kota Semarang'),
+        (2, 'Universitas Diponegoro', 'UNDIP', 'Kota Semarang'),
+        (3, 'Universitas Gadjah Mada', 'UGM', 'Kota Jogja'),
+        (4, 'Universitas Negeri Yogyakarta', 'UNY', 'Kota Jogja')
+      `);
+    }
+  } catch {
+    // ignore
+  }
 }
 
 function dumpData(db) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses'];
   const dump = {};
   for (const table of tables) {
     try {

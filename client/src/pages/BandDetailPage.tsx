@@ -722,6 +722,15 @@ export const BandDetailPage: React.FC = () => {
                     <MapPin className="w-3.5 h-3.5 text-[#E01E37]" />
                     <span>{band.locationCity}{band.locationRegion ? ` • ${band.locationRegion}` : ''}</span>
                   </div>
+                  {band.campus && (
+                    <>
+                      <span className="text-[#333]">•</span>
+                      <div className="flex items-center gap-1.5 text-[#FFD166] font-bold bg-[#FFD166]/10 px-2 py-0.5 border border-[#FFD166]/30">
+                        <span>🎓</span>
+                        <span>AFILIASI: {band.campus}</span>
+                      </div>
+                    </>
+                  )}
                   <span className="text-[#333]">•</span>
                   <div className="flex items-center gap-1.5 text-[#E01E37] font-bold">
                     <Radio className="w-3.5 h-3.5" />

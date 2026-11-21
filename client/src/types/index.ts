@@ -46,6 +46,7 @@ export interface Band {
   genre: string
   locationCity: string
   locationRegion?: string
+  campus?: string | null
   bio?: string
   budgetMin?: number
   budgetMax?: number
@@ -137,3 +138,12 @@ export interface BandDashboardData {
   recentConnections: RecentConnection[]
   jobBroadcasts?: JobBroadcast[]
 }
+
+export interface CampusRecord {
+  id: number
+  name: string
+  short_name: string
+  city: string
+  created_at?: string
+}
+

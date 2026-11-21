@@ -655,9 +655,24 @@ export const BandDashboardPage: React.FC = () => {
                   <h1 className="font-display text-2xl sm:text-4xl text-white tracking-wide">
                     {profile?.bandName || 'NAMA BAND'}
                   </h1>
+                  <button
+                    type="button"
+                    onClick={handleOpenEditProfileModal}
+                    className="px-2.5 py-1 bg-[#1C1C1C] hover:bg-[#282828] border border-[#333333] hover:border-[#E01E37] text-white text-[11px] font-mono tracking-wider rounded transition-all flex items-center gap-1 cursor-pointer"
+                    title="Ubah nama band dan profil"
+                  >
+                    <Settings className="w-3 h-3 text-[#E01E37]" />
+                    <span>Ubah Profil</span>
+                  </button>
                   <span className="px-2.5 py-0.5 bg-[#E01E37]/15 border border-[#E01E37]/50 text-[#E01E37] text-[11px] font-mono font-bold uppercase tracking-wider rounded-md">
                     {profile?.genre || 'Rock Alternatif'}
                   </span>
+                  {profile?.campus && (
+                    <span className="px-2.5 py-0.5 bg-[#FFD166]/15 border border-[#FFD166]/50 text-[#FFD166] text-[11px] font-mono font-bold uppercase tracking-wider rounded-md flex items-center gap-1">
+                      <span>🎓</span>
+                      <span>Kampus: {profile.campus}</span>
+                    </span>
+                  )}
                   <span className="px-2 py-0.5 bg-white/10 border border-white/20 text-white text-[10px] font-mono tracking-wider rounded-md flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3 text-[#E01E37]" />
                     TERVERIFIKASI
@@ -666,13 +681,13 @@ export const BandDashboardPage: React.FC = () => {
 
                 <p className="text-xs sm:text-sm text-[#A0A0A0] font-sans max-w-2xl line-clamp-2 leading-relaxed">
                   {profile?.bio ||
-                    'Band rock alternatif independen dengan repertoar panggung dinamis dan soundcheck profesional.'}
+                    'Band independen siap tampil untuk panggung live festival, gig intim, dan pementasan kampus.'}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#808080] pt-1">
                   <span className="flex items-center gap-1.5 text-[#D4D4D4]">
                     <MapPin className="w-3.5 h-3.5 text-[#E01E37]" />
-                    {profile?.locationCity || 'Bandung'}
+                    {profile?.locationCity || 'Kota Semarang'}
                     {profile?.locationRegion ? `, ${profile.locationRegion}` : ''}
                   </span>
                   <span>•</span>

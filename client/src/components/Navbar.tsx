@@ -173,7 +173,7 @@ export const Navbar: React.FC = () => {
           {/* Cari Band - shifts naturally to the right as the sub-menu expands */}
           <Link
             to="/cari-band"
-            className={`text-xs font-mono uppercase tracking-wider transition-colors py-2 whitespace-nowrap ${
+            className={`text-xs font-mono uppercase tracking-wider transition-colors py-2 whitespace-nowrap ml-1 ${
               isCariBand
                 ? 'font-bold text-white border-b-2 border-[#E01E37]'
                 : 'font-medium text-[#A0A0A0] hover:text-white'
@@ -183,27 +183,27 @@ export const Navbar: React.FC = () => {
           </Link>
         </nav>
 
-        {/* Right Auth & Actions */}
-        <div className="hidden lg:flex items-center gap-3">
+        {/* Right Auth & Actions (dengan margin kiri ekstra agar tidak mepet dengan Cari Band) */}
+        <div className="hidden lg:flex items-center gap-3 pl-4 lg:pl-6 shrink-0">
           {currentUser ? (
             <div className="flex items-center gap-2.5">
-              {/* Quick Search Input with custom keyword (Hanya saat user sudah login) */}
+              {/* Quick Search Input with compact size */}
               <form onSubmit={handleSearchSubmit} className="relative flex items-center">
                 <input
                   type="text"
                   value={navSearchQuery}
                   onChange={(e) => setNavSearchQuery(e.target.value)}
-                  placeholder="Cari nama band..."
-                  className="w-36 md:w-44 lg:w-48 xl:w-56 bg-[#161616] hover:bg-[#1D1D1D] focus:bg-[#202020] text-white text-xs font-mono placeholder-[#777777] pl-8 pr-7 py-2 border border-[#2E2E2E] focus:border-[#E01E37] focus:outline-none transition-all rounded-sm min-h-[44px]"
+                  placeholder="Cari band..."
+                  className="w-28 sm:w-32 lg:w-36 xl:w-44 bg-[#161616] hover:bg-[#1D1D1D] focus:bg-[#202020] text-white text-[11px] font-mono placeholder-[#777777] pl-7 pr-6 py-1.5 border border-[#2E2E2E] focus:border-[#E01E37] focus:outline-none transition-all rounded-sm h-9 min-h-[36px]"
                   aria-label="Cari nama band"
                 />
                 <button
                   type="submit"
-                  className="absolute left-2.5 text-[#A0A0A0] hover:text-[#E01E37] transition-colors cursor-pointer"
+                  className="absolute left-2 text-[#A0A0A0] hover:text-[#E01E37] transition-colors cursor-pointer"
                   title="Tekan Enter atau klik untuk mencari band"
                   aria-label="Tombol cari"
                 >
-                  <Search className="w-3.5 h-3.5" />
+                  <Search className="w-3 h-3" />
                 </button>
                 {navSearchQuery && (
                   <button
@@ -214,10 +214,10 @@ export const Navbar: React.FC = () => {
                         navigate('/cari-band')
                       }
                     }}
-                    className="absolute right-2 text-[#777777] hover:text-white p-0.5 cursor-pointer"
+                    className="absolute right-1.5 text-[#777777] hover:text-white p-0.5 cursor-pointer"
                     title="Hapus kata kunci"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-2.5 h-2.5" />
                   </button>
                 )}
               </form>

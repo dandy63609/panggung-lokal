@@ -24,6 +24,7 @@ class BandProfile {
     this.genre = data.genre;
     this.locationCity = data.location_city;
     this.locationRegion = data.location_region;
+    this.campus = data.campus || data.campus_name || null;
     this.bio = data.bio;
     this.budgetMin = data.budget_min;
     this.budgetMax = data.budget_max;
@@ -222,6 +223,7 @@ class BandProfile {
       ['genre', data.genre],
       ['location_city', data.locationCity],
       ['location_region', data.locationRegion],
+      ['campus', data.campus],
       ['bio', data.bio],
       ['budget_min', data.budgetMin],
       ['budget_max', data.budgetMax],
@@ -387,6 +389,7 @@ class BandProfile {
         bp.band_name ILIKE $${paramIndex} OR 
         bp.genre ILIKE $${paramIndex} OR 
         bp.location_city ILIKE $${paramIndex} OR 
+        bp.campus ILIKE $${paramIndex} OR 
         bp.bio ILIKE $${paramIndex}
       )`);
       params.push(`%${search.trim()}%`);

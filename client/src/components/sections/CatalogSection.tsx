@@ -142,14 +142,15 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
   // Filter bands by search keyword, category, and drawer filters
   const filteredBands = useMemo(() => {
     return bands.filter((band) => {
-      // 0. Keyword search filter (band name, genre, bio, or city)
+      // 0. Keyword search filter (band name, genre, bio, city, or campus label)
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
-        const nameMatch = (band.name || '').toLowerCase().includes(q)
+        const nameMatch = (band.bandName || (band as unknown as { name?: string }).name || '').toLowerCase().includes(q)
         const genreMatch = (band.genre || '').toLowerCase().includes(q)
         const bioMatch = (band.bio || '').toLowerCase().includes(q)
         const cityMatch = (band.locationCity || '').toLowerCase().includes(q)
-        if (!nameMatch && !genreMatch && !bioMatch && !cityMatch) return false
+        const campusMatch = (band.campus || '').toLowerCase().includes(q)
+        if (!nameMatch && !genreMatch && !bioMatch && !cityMatch && !campusMatch) return false
       }
 
       // 1. Category Tab
@@ -157,10 +158,17 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
         return false
       }
 
-      // 2. City filter
+      // 2. City filter (Semarang & Jogja focus)
       if (filters.city !== 'Semua') {
         const bandCity = (band.locationCity || '').toLowerCase()
-        if (!bandCity.includes(filters.city.toLowerCase())) return false
+        const targetCity = filters.city.toLowerCase()
+        if (targetCity.includes('semarang')) {
+          if (!bandCity.includes('semarang')) return false
+        } else if (targetCity.includes('jogja') || targetCity.includes('yogyakarta')) {
+          if (!bandCity.includes('jogja') && !bandCity.includes('yogyakarta')) return false
+        } else {
+          if (!bandCity.includes(targetCity)) return false
+        }
       }
 
       // 4. Budget range

@@ -107,14 +107,20 @@ export const BandCard: React.FC<BandCardProps> = ({
         {/* Subtle Vignette Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-black/50 pointer-events-none" />
 
-        {/* Floating Top Badges (Genre & City) */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10 pointer-events-none">
+        {/* Floating Top Badges (Genre, City, and Campus Label) */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10 pointer-events-none flex-wrap max-w-[80%]">
           <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-white bg-[#E01E37] px-2.5 py-1 font-bold select-none shadow-md">
             {resolvedAccentTag}
           </span>
           <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E0E0E0] bg-black/80 backdrop-blur-sm border border-white/10 px-2 py-1 select-none">
             {resolvedGlassTag}
           </span>
+          {band.campus && (
+            <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-[#FFD166] bg-black/90 backdrop-blur-sm border border-[#FFD166]/40 px-2 py-1 font-bold select-none flex items-center gap-1 shadow-sm">
+              <span>🎓</span>
+              <span>{band.campus}</span>
+            </span>
+          )}
         </div>
 
         {/* Top-Right Compare Button (Opposing arrows, 44x44px touch target) */}

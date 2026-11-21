@@ -276,4 +276,181 @@ router.delete('/users/:id', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/campuses
+ * List master campus labels and bands with their campus affiliations
+ */
+router.get('/campuses', async (req, res) => {
+  try {
+    // Ensure table exists and has default campuses if empty
+    try {
+      const checkCount = await db.query('SELECT COUNT(*) as count FROM campuses');
+      if (parseInt(checkCount.rows[0].count, 10) === 0) {
+        await db.query(`
+          INSERT INTO campuses (name, short_name, city) VALUES 
+          ('Universitas Negeri Semarang', 'UNNES', 'Kota Semarang'),
+          ('Universitas Diponegoro', 'UNDIP', 'Kota Semarang'),
+          ('Universitas Gadjah Mada', 'UGM', 'Kota Jogja'),
+          ('Universitas Negeri Yogyakarta', 'UNY', 'Kota Jogja')
+        `);
+      }
+    } catch {
+      // Create table if missing
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS campuses (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          short_name VARCHAR(50) NOT NULL,
+          city VARCHAR(100) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      await db.query(`
+        INSERT INTO campuses (name, short_name, city) VALUES 
+        ('Universitas Negeri Semarang', 'UNNES', 'Kota Semarang'),
+        ('Universitas Diponegoro', 'UNDIP', 'Kota Semarang'),
+        ('Universitas Gadjah Mada', 'UGM', 'Kota Jogja'),
+        ('Universitas Negeri Yogyakarta', 'UNY', 'Kota Jogja')
+      `);
+    }
+
+    const campusesRes = await db.query('SELECT * FROM campuses ORDER BY id ASC');
+    const bandsRes = await db.query(`
+      SELECT bp.id, bp.band_name, bp.location_city, bp.genre, bp.campus, bp.profile_views, u.email
+      FROM band_profiles bp
+      LEFT JOIN users u ON u.id = bp.user_id
+      ORDER BY bp.id ASC
+    `);
+
+    return res.json({
+      success: true,
+      data: {
+        campuses: campusesRes.rows,
+        bands: bandsRes.rows
+      }
+    });
+  } catch (error) {
+    console.error('Admin get campuses error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil data kampus dan musisi'
+    });
+  }
+});
+
+/**
+ * POST /api/admin/campuses
+ * Add a new campus label (Admin only)
+ */
+router.post('/campuses', async (req, res) => {
+  try {
+    const { name, shortName, city } = req.body;
+    if (!name || !shortName || !city) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nama kampus, singkatan/kode, dan kota wajib diisi'
+      });
+    }
+
+    const result = await db.query(
+      'INSERT INTO campuses (name, short_name, city) VALUES ($1, $2, $3) RETURNING *',
+      [name.trim(), shortName.trim().toUpperCase(), city.trim()]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: `Kampus ${shortName.trim().toUpperCase()} berhasil ditambahkan`,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Admin add campus error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal menambahkan label kampus'
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/campuses/:id
+ * Delete a campus label (Admin only)
+ */
+router.delete('/campuses/:id', async (req, res) => {
+  try {
+    const campusId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(campusId) || campusId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID kampus tidak valid'
+      });
+    }
+
+    const delRes = await db.query('DELETE FROM campuses WHERE id = $1 RETURNING id, short_name', [campusId]);
+    if (delRes.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Kampus tidak ditemukan'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Kampus ${delRes.rows[0].short_name} berhasil dihapus`
+    });
+  } catch (error) {
+    console.error('Admin delete campus error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal menghapus label kampus'
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/bands/:id/campus
+ * Assign or revoke a campus label for a band profile (Admin only)
+ */
+router.put('/bands/:id/campus', async (req, res) => {
+  try {
+    const bandId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(bandId) || bandId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID band tidak valid'
+      });
+    }
+
+    const campusValue = req.body.campus ? String(req.body.campus).trim().toUpperCase() : null;
+
+    const result = await db.query(
+      'UPDATE band_profiles SET campus = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, band_name, campus',
+      [campusValue, bandId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil band tidak ditemukan'
+      });
+    }
+
+    const updatedBand = result.rows[0];
+    const message = campusValue
+      ? `Label kampus ${campusValue} berhasil diberikan kepada band ${updatedBand.band_name}`
+      : `Label kampus untuk band ${updatedBand.band_name} berhasil dicabut`;
+
+    return res.json({
+      success: true,
+      message,
+      data: updatedBand
+    });
+  } catch (error) {
+    console.error('Admin assign campus error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal memperbarui label kampus band'
+    });
+  }
+});
+
 module.exports = router;
