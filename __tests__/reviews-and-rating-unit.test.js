@@ -83,4 +83,28 @@ describe('Band Rating, Reviews, and Super Admin Authority Unit Tests', () => {
     expect(pending.rows.length).toBeGreaterThan(0);
     expect(pending.rows[0].band_name).toBeDefined();
   });
+
+  test('Platform settings hide campus affiliation by default and allow Admin to toggle', async () => {
+    // Check initial setting is 'false' (hidden by default)
+    const initialRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'show_campus_affiliation'");
+    expect(initialRes.rows.length).toBe(1);
+    expect(initialRes.rows[0].value).toBe('false');
+
+    // Admin updates setting to 'true' (tampilkan ke publik)
+    await pool.query(`
+      INSERT INTO platform_settings (key, value, updated_at)
+      VALUES ('show_campus_affiliation', 'true', CURRENT_TIMESTAMP)
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+    `);
+
+    const updatedRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'show_campus_affiliation'");
+    expect(updatedRes.rows[0].value).toBe('true');
+
+    // Reset back to 'false' as requested by user
+    await pool.query(`
+      UPDATE platform_settings SET value = 'false' WHERE key = 'show_campus_affiliation'
+    `);
+    const finalRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'show_campus_affiliation'");
+    expect(finalRes.rows[0].value).toBe('false');
+  });
 });

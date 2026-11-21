@@ -808,23 +808,19 @@ export const BandDashboardPage: React.FC = () => {
             <div className="border-t border-[#222222] mt-6 pt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
               {/* Left: 3 Metrics separated by vertical line dividers */}
               <div className="flex items-center gap-5 sm:gap-8 flex-wrap">
-                {/* Metric 1: Rating */}
+                {/* Metric 1: Status Performa Kurasi EO */}
                 {(() => {
                   const currentRating = Number(profile?.rating || profile?.ratingAverage || 4.8)
                   const tierInfo = getRatingTierBadge(currentRating)
                   return (
                     <div>
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
-                          <Star className="w-4 h-4 fill-[#FFD166] text-[#FFD166]" />
-                          <span>{currentRating.toFixed(1)}</span>
-                        </div>
-                        <span className={`font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${tierInfo.bgClass}`}>
+                        <span className={`font-mono text-xs sm:text-sm font-bold uppercase tracking-wider px-3 py-1 rounded border ${tierInfo.bgClass}`}>
                           {tierInfo.label}
                         </span>
                       </div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
-                        rating panggung (EO)
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-1">
+                        status performa (kurasi eo)
                       </span>
                     </div>
                   )

@@ -211,11 +211,14 @@ export const ReviewGatingModal: React.FC<ReviewGatingModalProps> = ({ onSuccess 
 
             {/* Live Tier Representation Display */}
             <div className="pt-2 flex flex-col items-center gap-1">
-              <span className={`inline-block font-mono text-xs sm:text-sm font-bold px-4 py-1 rounded-full border uppercase tracking-wider ${tierInfo.bgClass}`}>
-                {tierInfo.badgeText}
+              <span className={`inline-block font-mono text-xs sm:text-sm font-bold px-4 py-1.5 rounded-full border uppercase tracking-wider ${tierInfo.bgClass}`}>
+                Status Profil: {tierInfo.label}
               </span>
               <span className="text-[11px] text-[#A0A0A0] font-sans">
                 {tierInfo.description}
+              </span>
+              <span className="text-[10px] text-[#777] font-sans mt-0.5">
+                Representasi kata status di atas yang akan tampil di profil publik musisi. Bintang tersimpan aman untuk evaluasi internal.
               </span>
             </div>
           </div>

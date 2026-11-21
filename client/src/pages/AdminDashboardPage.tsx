@@ -27,6 +27,7 @@ import {
 import { authClient, type AuthUser } from '../lib/auth'
 import { getRatingTierBadge, getRatingTier } from '../lib/ratingHelpers'
 import { formatRupiah } from '../lib/utils'
+import { setLocalShowCampus } from '../lib/platformSettings'
 
 interface AdminCampus {
   id: number
@@ -118,6 +119,12 @@ export const AdminDashboardPage: React.FC = () => {
   const [bandSearch, setBandSearch] = useState('')
   const [editingBand, setEditingBand] = useState<AdminBandRecord | null>(null)
   const [isSavingBand, setIsSavingBand] = useState(false)
+  const [inspectingBandReviews, setInspectingBandReviews] = useState<{ bandName: string; reviews: any[] } | null>(null)
+  const [loadingReviewsForBand, setLoadingReviewsForBand] = useState<number | null>(null)
+
+  // Platform Settings State (Campus Affiliation Visibility Control)
+  const [showCampusAffiliation, setShowCampusAffiliation] = useState(false)
+  const [isTogglingCampusSetting, setIsTogglingCampusSetting] = useState(false)
 
   // Campuses & Band Affiliation State (Hanya Admin yang berwenang mengelola)
   const [campuses, setCampuses] = useState<AdminCampus[]>([])
@@ -243,6 +250,67 @@ export const AdminDashboardPage: React.FC = () => {
     }
   }
 
+  const loadAdminSettings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/settings', {
+        headers: authClient.getAuthHeaders(),
+      })
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && json.data) {
+          setShowCampusAffiliation(Boolean(json.data.showCampusAffiliation))
+          setLocalShowCampus(Boolean(json.data.showCampusAffiliation))
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const handleToggleCampusAffiliation = async () => {
+    try {
+      setIsTogglingCampusSetting(true)
+      const targetState = !showCampusAffiliation
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { ...authClient.getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ showCampusAffiliation: targetState }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setShowCampusAffiliation(targetState)
+        setLocalShowCampus(targetState)
+        showToast(json.message || `Visibilitas afiliasi kampus sekarang ${targetState ? 'DITAMPILKAN' : 'DISEMBUNYIKAN'}`, 'success')
+      } else {
+        showToast(json.message || 'Gagal mengubah pengaturan visibilitas kampus', 'error')
+      }
+    } catch {
+      showToast('Kendala koneksi saat mengubah pengaturan visibilitas kampus', 'error')
+    } finally {
+      setIsTogglingCampusSetting(false)
+    }
+  }
+
+  const handleViewBandReviews = async (band: AdminBandRecord) => {
+    try {
+      setLoadingReviewsForBand(band.id)
+      const res = await fetch(`/api/reviews/band/${band.id}`)
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setInspectingBandReviews({
+          bandName: band.bandName,
+          reviews: json.data || [],
+        })
+      } else {
+        showToast('Gagal memuat daftar ulasan musisi', 'error')
+      }
+    } catch {
+      showToast('Kendala koneksi saat memuat ulasan musisi', 'error')
+    } finally {
+      setLoadingReviewsForBand(null)
+    }
+  }
+
   const loadAdminBands = useCallback(async () => {
     try {
       setLoadingBands(true)
@@ -321,6 +389,7 @@ export const AdminDashboardPage: React.FC = () => {
           }
         }
         await loadCampuses()
+        await loadAdminSettings()
       } catch {
         // Keep solid fallback data
       } finally {
@@ -328,7 +397,7 @@ export const AdminDashboardPage: React.FC = () => {
         setLoading(false)
       }
     },
-    [showToast, loadCampuses]
+    [showToast, loadCampuses, loadAdminSettings]
   )
 
   // Manual refresh button handler
@@ -360,6 +429,7 @@ export const AdminDashboardPage: React.FC = () => {
             if (json.data.pendingReports) {
               setReports(json.data.pendingReports)
             }
+            await loadAdminSettings()
           }
         }
       } catch {
@@ -1345,6 +1415,41 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Master Switch: Kontrol Visibilitas Afiliasi Kampus ke Publik */}
+            <div className="bg-[#181310] border border-[#FFD166]/40 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`w-2.5 h-2.5 rounded-full ${showCampusAffiliation ? 'bg-[#00D9FF] animate-pulse' : 'bg-[#FFD166]'}`} />
+                  <span className="font-mono text-xs font-bold text-white uppercase tracking-wider">
+                    MASTER KONTROL: VISIBILITAS AFILIASI KAMPUS (PUBLIK)
+                  </span>
+                  <span className={`font-mono text-[10px] font-bold px-2.5 py-0.5 rounded border uppercase ${
+                    showCampusAffiliation ? 'bg-[#00D9FF]/20 text-[#00D9FF] border-[#00D9FF]/40' : 'bg-[#FFD166]/20 text-[#FFD166] border-[#FFD166]/40'
+                  }`}>
+                    {showCampusAffiliation ? 'STATUS: DITAMPILKAN KE PUBLIK' : 'STATUS: DISEMBUNYIKAN (DEFAULT)'}
+                  </span>
+                </div>
+                <p className="text-xs text-[#AAA] font-sans max-w-2xl leading-relaxed">
+                  {showCampusAffiliation
+                    ? 'Afiliasi kampus saat ini AKTIF dan TAMPIL di kartu musisi dan halaman detail. Seluruh pengunjung dan EO dapat melihat lencana kampus band secara langsung.'
+                    : 'Afiliasi kampus saat ini DISEMBUNYIKAN dari pengunjung umum dan kartu band. Data afiliasi tetap tersimpan aman di database admin dan dapat diaktifkan kembali secara instan.'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleToggleCampusAffiliation}
+                disabled={isTogglingCampusSetting}
+                className={`px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap min-h-[44px] flex items-center justify-center gap-2 ${
+                  showCampusAffiliation
+                    ? 'bg-[#1C1C1C] hover:bg-[#252525] text-[#FFD166] border border-[#FFD166]/40 shadow-sm'
+                    : 'bg-[#E01E37] hover:bg-[#C71B30] text-white shadow-lg shadow-[#E01E37]/30'
+                }`}
+              >
+                <span>{isTogglingCampusSetting ? 'Memproses...' : showCampusAffiliation ? 'Sembunyikan dari Publik' : 'Tampilkan ke Publik Sekarang'}</span>
+              </button>
+            </div>
+
             {/* Top Grid: Form Tambah Kampus Baru + Daftar Ringkas Kampus */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Form Tambah Kampus */}
@@ -1704,14 +1809,26 @@ export const AdminDashboardPage: React.FC = () => {
                             </span>
                           </td>
                           <td className="py-3.5 px-4 text-right">
-                            <button
-                              type="button"
-                              onClick={() => setEditingBand({ ...b })}
-                              className="px-3.5 py-2 rounded-xl bg-[#E01E37]/15 hover:bg-[#E01E37] text-white border border-[#E01E37]/50 hover:border-[#E01E37] font-mono text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              <span>Edit Super Admin</span>
-                            </button>
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleViewBandReviews(b)}
+                                disabled={loadingReviewsForBand === b.id}
+                                className="px-2.5 py-1.5 rounded-xl bg-[#FFD166]/10 hover:bg-[#FFD166] text-[#FFD166] hover:text-black border border-[#FFD166]/40 font-mono text-[11px] font-bold uppercase transition-all inline-flex items-center gap-1 cursor-pointer"
+                                title="Super Admin: Lihat ulasan dan bintang riil yang diberikan EO"
+                              >
+                                <Star className="w-3 h-3 fill-current" />
+                                <span>{loadingReviewsForBand === b.id ? 'Memuat...' : 'Ulasan EO (Stars)'}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingBand({ ...b })}
+                                className="px-3 py-1.5 rounded-xl bg-[#E01E37]/15 hover:bg-[#E01E37] text-white border border-[#E01E37]/50 hover:border-[#E01E37] font-mono text-[11px] font-bold uppercase tracking-wider transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>Edit Super Admin</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       )
@@ -2107,6 +2224,108 @@ export const AdminDashboardPage: React.FC = () => {
               >
                 <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>{deletingUserId !== null ? 'Menghapus...' : 'Hapus Permanen'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* SUPER ADMIN REVIEW INSPECTOR MODAL (Stars & EO feedback visible to Admin) */}
+      {inspectingBandReviews && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Inspeksi Ulasan & Bintang EO"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+        >
+          <div className="bg-[#121212] border border-[#2E2E2E] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="shrink-0 p-5 border-b border-[#242424] flex items-center justify-between gap-3 bg-[#161616]">
+              <div>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-[#FFD166] font-bold block">
+                  INSPEKSI ULASAN &amp; BINTANG // KHUSUS ADMIN
+                </span>
+                <h3 className="font-mono text-base font-bold text-white uppercase mt-0.5">
+                  Ulasan Event Organizer: {inspectingBandReviews.bandName}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectingBandReviews(null)}
+                aria-label="Tutup dialog ulasan"
+                className="w-10 h-10 flex items-center justify-center rounded-full text-[#A0A0A0] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-4">
+              <p className="text-xs text-[#AAA] font-sans leading-relaxed">
+                Di bawah ini adalah data riil bintang (1.0 - 5.0) dan ulasan yang dikirimkan oleh akun Event Organizer (EO) yang telah memesan band ini. Pengunjung umum hanya melihat kata status performa, sedangkan data bintang riil ini hanya dapat dilihat oleh Administrator.
+              </p>
+
+              {inspectingBandReviews.reviews.length > 0 ? (
+                <div className="space-y-3">
+                  {inspectingBandReviews.reviews.map((rev) => {
+                    const tier = getRatingTierBadge(rev.rating)
+                    return (
+                      <div
+                        key={rev.id}
+                        className="bg-[#0A0A0A] border border-[#262626] p-4 rounded-xl space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-1.5 bg-[#181818] border border-[#FFD166]/40 px-2.5 py-1 rounded-lg">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                className={`w-3.5 h-3.5 ${
+                                  s <= Math.round(rev.rating)
+                                    ? 'fill-[#FFD166] text-[#FFD166]'
+                                    : 'text-[#444]'
+                                }`}
+                              />
+                            ))}
+                            <span className="font-mono font-bold text-white text-xs ml-1">
+                              {Number(rev.rating).toFixed(1)} / 5.0
+                            </span>
+                          </div>
+
+                          <span className={`font-mono text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${tier.bgClass}`}>
+                            {tier.label}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-[#DDD] font-sans leading-relaxed bg-[#141414] p-3 rounded-lg border border-white/5">
+                          "{rev.reviewText}"
+                        </p>
+
+                        <div className="flex items-center justify-between text-[11px] font-mono text-[#777] pt-1">
+                          <span>EO: <strong className="text-[#BBB]">{rev.organizerEmail || 'EO Penyelenggara'}</strong></span>
+                          <span>Tgl Acara: <strong className="text-[#BBB]">{rev.eventDate || '-'}</strong></span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="bg-[#0A0A0A] border border-[#222] p-8 text-center rounded-xl space-y-2">
+                  <span className="text-2xl">⚡</span>
+                  <h4 className="font-mono text-sm font-bold text-white uppercase">Belum Ada Ulasan Pasca-Tampil</h4>
+                  <p className="text-xs text-[#888]">
+                    Belum ada Event Organizer yang menyelesaikan ulasan booking untuk musisi ini.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="shrink-0 p-4 border-t border-[#242424] flex justify-end bg-[#161616]">
+              <button
+                type="button"
+                onClick={() => setInspectingBandReviews(null)}
+                className="px-5 py-2 rounded-xl bg-[#222] hover:bg-[#333] text-white font-mono text-xs uppercase font-bold transition-colors cursor-pointer"
+              >
+                Tutup
               </button>
             </div>
           </div>

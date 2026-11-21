@@ -646,4 +646,58 @@ router.put('/bands/:id', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/settings
+ * Super Admin: Get platform feature settings
+ */
+router.get('/settings', async (req, res) => {
+  try {
+    const result = await db.query("SELECT value FROM platform_settings WHERE key = 'show_campus_affiliation'");
+    const showCampusAffiliation = result.rows.length > 0 ? result.rows[0].value === 'true' : false;
+    return res.json({
+      success: true,
+      data: {
+        showCampusAffiliation
+      }
+    });
+  } catch (error) {
+    console.error('Admin get settings error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil pengaturan platform'
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/settings
+ * Super Admin: Update platform feature settings (e.g. toggle campus visibility)
+ */
+router.put('/settings', async (req, res) => {
+  try {
+    const { showCampusAffiliation } = req.body;
+    const strVal = showCampusAffiliation ? 'true' : 'false';
+
+    await db.query(`
+      INSERT INTO platform_settings (key, value, updated_at)
+      VALUES ('show_campus_affiliation', $1, CURRENT_TIMESTAMP)
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+    `, [strVal]);
+
+    return res.json({
+      success: true,
+      message: `Pengaturan berhasil diperbarui: Afiliasi kampus sekarang ${showCampusAffiliation ? 'DITAMPILKAN KE PUBLIK' : 'DISEMBUNYIKAN DARI PUBLIK'}.`,
+      data: {
+        showCampusAffiliation: Boolean(showCampusAffiliation)
+      }
+    });
+  } catch (error) {
+    console.error('Admin update settings error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal memperbarui pengaturan platform'
+    });
+  }
+});
+
 module.exports = router;

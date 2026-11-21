@@ -21,7 +21,8 @@ const CLOUD_SYNC_TABLES = [
   'reports',
   'job_broadcasts',
   'campuses',
-  'reviews'
+  'reviews',
+  'platform_settings'
 ];
 
 const TABLE_COLUMNS = {
@@ -60,7 +61,8 @@ const TABLE_COLUMNS = {
     'attachments', 'recipient_band_count', 'created_at'
   ],
   campuses: ['id', 'name', 'short_name', 'city', 'created_at'],
-  reviews: ['id', 'band_profile_id', 'organizer_user_id', 'connection_id', 'rating', 'review_text', 'event_date', 'created_at']
+  reviews: ['id', 'band_profile_id', 'organizer_user_id', 'connection_id', 'rating', 'review_text', 'event_date', 'created_at'],
+  platform_settings: ['key', 'value', 'updated_at']
 };
 
 let memDbInstance = null;
@@ -215,6 +217,12 @@ CREATE TABLE IF NOT EXISTS reviews (
   review_text TEXT,
   event_date VARCHAR(50),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS platform_settings (
+  key VARCHAR(100) PRIMARY KEY,
+  value VARCHAR(255) NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 `;
 
@@ -429,7 +437,7 @@ async function syncSerialSequences(db, pool) {
 }
 
 async function restoreData(pool, data) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'reviews'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'reviews', 'platform_settings'];
   for (const table of tables) {
     if (Array.isArray(data[table])) {
       const allowedCols = new Set(TABLE_COLUMNS[table] || []);
@@ -512,10 +520,20 @@ async function restoreData(pool, data) {
   } catch {
     // ignore
   }
+
+  // Ensure default platform settings exist (campus affiliation hidden by default)
+  try {
+    const settingsRes = await pool.query("SELECT * FROM platform_settings WHERE key = 'show_campus_affiliation'");
+    if (settingsRes.rows.length === 0) {
+      await pool.query("INSERT INTO platform_settings (key, value) VALUES ('show_campus_affiliation', 'false')");
+    }
+  } catch {
+    // ignore
+  }
 }
 
 function dumpData(db) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'reviews'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'reviews', 'platform_settings'];
   const dump = {};
   for (const table of tables) {
     try {

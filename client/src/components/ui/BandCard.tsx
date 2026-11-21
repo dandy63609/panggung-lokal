@@ -5,6 +5,8 @@ import type { Band } from '../../types'
 import { formatRupiah } from '../../lib/utils'
 import { getBandProfileUrl } from '../../lib/bandHelpers'
 import { getRatingTierBadge } from '../../lib/ratingHelpers'
+import { usePlatformSettings } from '../../lib/platformSettings'
+import { authClient } from '../../lib/auth'
 
 interface BandCardProps {
   band: Band
@@ -25,6 +27,8 @@ export const BandCard: React.FC<BandCardProps> = ({
   accentTag,
   glassTag,
 }) => {
+  const { showCampusAffiliation } = usePlatformSettings()
+  const currentUser = authClient.getUser()
   const [prevBandName, setPrevBandName] = useState(band.bandName)
   const [displayText, setDisplayText] = useState(band.bandName)
   const intervalRef = useRef<number | null>(null)
@@ -169,22 +173,21 @@ export const BandCard: React.FC<BandCardProps> = ({
         className="flex-1 flex flex-col justify-between p-5 text-inherit no-underline space-y-4"
       >
         <div className="space-y-2">
-          {/* Rating Stars & Tier Representation Badge */}
+          {/* Tier Representation Badge (Stars & numbers removed for public, only status words shown) */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1 bg-black/60 px-2 py-0.5 rounded border border-white/10 font-mono text-xs">
-              <Star className="w-3.5 h-3.5 fill-[#FFD166] text-[#FFD166]" />
-              <span className="font-bold text-white">{currentRating.toFixed(1)}</span>
-            </div>
             <span
-              className={`font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 font-bold border rounded ${ratingTierInfo.bgClass}`}
+              className={`font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 font-bold border rounded ${ratingTierInfo.bgClass}`}
               title={ratingTierInfo.description}
             >
               {ratingTierInfo.label}
             </span>
-            {band.campus && (
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[#FFD166] bg-black/70 border border-[#FFD166]/40 px-1.5 py-0.5 font-bold rounded flex items-center gap-0.5">
+            {band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin') && (
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#FFD166] bg-black/70 border border-[#FFD166]/40 px-2 py-0.5 font-bold rounded flex items-center gap-1">
                 <span>🎓</span>
                 <span>{band.campus}</span>
+                {!showCampusAffiliation && currentUser?.accountType === 'admin' && (
+                  <span className="text-[9px] text-[#888] font-mono">(Admin Only)</span>
+                )}
               </span>
             )}
           </div>

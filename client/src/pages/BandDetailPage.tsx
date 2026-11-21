@@ -47,6 +47,7 @@ import {
 import { formatRupiah } from '../lib/utils'
 import { authClient, type AuthUser } from '../lib/auth'
 import { getRatingTierBadge, getRatingTier } from '../lib/ratingHelpers'
+import { usePlatformSettings } from '../lib/platformSettings'
 import type { Band, BandPost, MediaFile, RiderItem, BandReview } from '../types'
 
 function formatAudioTime(seconds: number): string {
@@ -124,6 +125,7 @@ export const BandDetailPage: React.FC = () => {
   const [notFoundError, setNotFoundError] = useState<boolean>(!isValidIdentifier)
   const [liveRelatedBands, setLiveRelatedBands] = useState<Band[] | null>(null)
   const [reviews, setReviews] = useState<BandReview[]>([])
+  const { showCampusAffiliation } = usePlatformSettings()
 
   if (rawIdentifier !== prevIdentifier) {
     setPrevIdentifier(rawIdentifier)
@@ -728,8 +730,13 @@ export const BandDetailPage: React.FC = () => {
                   const tierInfo = getRatingTierBadge(currentRating)
                   return (
                     <div className={`font-mono text-[11px] uppercase tracking-wider px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full border ${tierInfo.bgClass}`}>
-                      <Star className="w-3.5 h-3.5 fill-current" />
-                      <span>{currentRating.toFixed(1)} · {tierInfo.label}</span>
+                      {currentUser?.accountType === 'admin' && (
+                        <span className="text-[#FFD166] flex items-center gap-1 mr-0.5">
+                          <Star className="w-3 h-3 fill-current" />
+                          <span>{currentRating.toFixed(1)} ·</span>
+                        </span>
+                      )}
+                      <span>{tierInfo.label}</span>
                     </div>
                   )
                 })()}
@@ -743,29 +750,36 @@ export const BandDetailPage: React.FC = () => {
                   {band.bandName}
                 </h1>
 
-                {/* Rating & Review Counter Line */}
+                {/* Rating & Review Counter Line (Stars visible only to Admin; public only sees status words) */}
                 {(() => {
                   const currentRating = Number(band.rating || band.ratingAverage || 4.8)
                   const tierInfo = getRatingTierBadge(currentRating)
                   return (
                     <div className="flex items-center gap-3 flex-wrap pt-0.5">
-                      <div className="flex items-center gap-1 bg-[#181818] border border-white/10 px-2.5 py-1 rounded-lg">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star
-                            key={s}
-                            className={`w-3.5 h-3.5 ${
-                              s <= Math.round(currentRating)
-                                ? 'fill-[#FFD166] text-[#FFD166]'
-                                : 'text-[#444]'
-                            }`}
-                          />
-                        ))}
-                        <span className="font-mono font-bold text-white text-xs sm:text-sm ml-1.5">
-                          {currentRating.toFixed(1)} / 5.0
-                        </span>
-                      </div>
-                      <span className="text-[#555]">•</span>
-                      <span className={`font-mono text-xs font-bold px-2.5 py-1 rounded border uppercase tracking-wider ${tierInfo.bgClass}`}>
+                      {currentUser?.accountType === 'admin' && (
+                        <>
+                          <div className="flex items-center gap-1 bg-[#181818] border border-[#FFD166]/40 px-2.5 py-1 rounded-lg">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                className={`w-3.5 h-3.5 ${
+                                  s <= Math.round(currentRating)
+                                    ? 'fill-[#FFD166] text-[#FFD166]'
+                                    : 'text-[#444]'
+                                }`}
+                              />
+                            ))}
+                            <span className="font-mono font-bold text-white text-xs sm:text-sm ml-1.5">
+                              {currentRating.toFixed(1)} / 5.0
+                            </span>
+                            <span className="text-[10px] text-[#00D9FF] ml-1 bg-[#00D9FF]/10 px-1.5 py-0.5 rounded border border-[#00D9FF]/20 font-bold">
+                              Admin View
+                            </span>
+                          </div>
+                          <span className="text-[#555]">•</span>
+                        </>
+                      )}
+                      <span className={`font-mono text-xs font-bold px-3 py-1 rounded border uppercase tracking-wider ${tierInfo.bgClass}`}>
                         {tierInfo.label}
                       </span>
                       <span className="text-[#555]">•</span>
@@ -785,12 +799,15 @@ export const BandDetailPage: React.FC = () => {
                     <MapPin className="w-3.5 h-3.5 text-[#E01E37]" />
                     <span>{band.locationCity}{band.locationRegion ? ` • ${band.locationRegion}` : ''}</span>
                   </div>
-                  {band.campus && (
+                  {band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin') && (
                     <>
                       <span className="text-[#333]">•</span>
                       <div className="flex items-center gap-1.5 text-[#FFD166] font-bold bg-[#FFD166]/10 px-2 py-0.5 border border-[#FFD166]/30">
                         <span>🎓</span>
                         <span>AFILIASI: {band.campus}</span>
+                        {!showCampusAffiliation && currentUser?.accountType === 'admin' && (
+                          <span className="text-[9px] text-[#888] font-mono ml-0.5">(Admin Only)</span>
+                        )}
                       </div>
                     </>
                   )}
@@ -1570,9 +1587,9 @@ export const BandDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Rating Summary Card & Scale Representation */}
+          {/* Rating Summary Card & Scale Representation (Stars visible ONLY to Admin) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Big Rating Box */}
+            {/* Status Box */}
             {(() => {
               const currentRating = Number(band.rating || band.ratingAverage || 4.8)
               const tierInfo = getRatingTierBadge(currentRating)
@@ -1580,38 +1597,41 @@ export const BandDetailPage: React.FC = () => {
                 <div className="bg-[#121212] border border-[#222222] p-6 rounded-2xl flex flex-col justify-between">
                   <div>
                     <span className="text-[10px] font-mono uppercase tracking-widest text-[#737373] block mb-2 font-bold">
-                      SKOR RATING BAND
+                      STATUS KURASI &amp; PERFORMA BAND
                     </span>
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-5xl font-mono font-bold text-white tracking-tight">
-                        {currentRating.toFixed(1)}
-                      </span>
-                      <span className="text-sm font-mono text-[#888]">/ 5.0</span>
-                    </div>
-
-                    <div className="flex items-center gap-1 my-3">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star
-                          key={s}
-                          className={`w-5 h-5 ${
-                            s <= Math.round(currentRating)
-                              ? 'fill-[#FFD166] text-[#FFD166]'
-                              : 'text-[#333]'
-                          }`}
-                        />
-                      ))}
-                    </div>
-
-                    <div className="mt-2">
-                      <span className={`inline-block font-mono text-xs font-bold px-3 py-1 rounded-full border uppercase tracking-wider ${tierInfo.bgClass}`}>
-                        {tierInfo.badgeText}
+                    <div className="my-3">
+                      <span className={`inline-block font-mono text-xl sm:text-2xl font-black px-4 py-2.5 rounded-xl border uppercase tracking-wider ${tierInfo.bgClass}`}>
+                        {tierInfo.label}
                       </span>
                     </div>
+
+                    <p className="text-xs text-[#A0A0A0] mt-3 font-sans leading-relaxed">
+                      {tierInfo.description}
+                    </p>
+
+                    {/* Admin Only Star Inspection */}
+                    {currentUser?.accountType === 'admin' && (
+                      <div className="mt-4 pt-3 border-t border-white/10 bg-black/60 p-3 rounded-xl border border-[#FFD166]/30">
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span className="text-[#FFD166] font-bold">KHUSUS ADMIN // SKOR BINTANG</span>
+                          <span className="text-white font-bold">{currentRating.toFixed(1)} / 5.0</span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1.5 text-[#FFD166]">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`w-3.5 h-3.5 ${
+                                s <= Math.round(currentRating) ? 'fill-[#FFD166] text-[#FFD166]' : 'text-[#444]'
+                              }`}
+                            />
+                          ))}
+                          <span className="text-[9px] font-mono text-[#00D9FF] ml-1 bg-[#00D9FF]/10 px-1 py-0.2 rounded border border-[#00D9FF]/20">
+                            Admin View
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  <p className="text-xs text-[#A0A0A0] mt-4 font-sans leading-relaxed">
-                    {tierInfo.description}
-                  </p>
                 </div>
               )
             })()}
@@ -1619,14 +1639,16 @@ export const BandDetailPage: React.FC = () => {
             {/* Rating Scale Legend (1-2 Baik, 3-4 Sangat Baik, 4.5-5 Rekomendasi Favorit) */}
             <div className="lg:col-span-2 bg-[#121212] border border-[#222222] p-6 rounded-2xl space-y-4">
               <span className="text-[10px] font-mono uppercase tracking-widest text-[#737373] block font-bold">
-                STANDAR REPRESENTASI BINTANG REFFBAND
+                STANDAR TIER STATUS REFFBAND
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-[#0A0A0A] border border-[#FFD166]/30 p-3.5 rounded-xl space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-[#FFD166]">⭐ 1.0 - 2.9</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#FFD166]/10 text-[#FFD166] font-bold">BAIK</span>
+                    <span className="font-mono text-xs font-bold text-[#FFD166]">BAIK</span>
+                    {currentUser?.accountType === 'admin' && (
+                      <span className="text-[9px] font-mono text-[#FFD166]/70">1.0 - 2.9 ★</span>
+                    )}
                   </div>
                   <p className="text-[11px] text-[#A0A0A0] leading-relaxed">
                     Performa standar, musisi siap tampil di gig kecil dan panggung santai.
@@ -1635,8 +1657,10 @@ export const BandDetailPage: React.FC = () => {
 
                 <div className="bg-[#0A0A0A] border border-[#00D9FF]/30 p-3.5 rounded-xl space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-[#00D9FF]">⭐ 3.0 - 4.4</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00D9FF]/10 text-[#00D9FF] font-bold">SANGAT BAIK</span>
+                    <span className="font-mono text-xs font-bold text-[#00D9FF]">SANGAT BAIK</span>
+                    {currentUser?.accountType === 'admin' && (
+                      <span className="text-[9px] font-mono text-[#00D9FF]/70">3.0 - 4.4 ★</span>
+                    )}
                   </div>
                   <p className="text-[11px] text-[#A0A0A0] leading-relaxed">
                     Aksi panggung energik, crowd engagement kuat, dan kedisiplinan rundown tinggi.
@@ -1645,11 +1669,13 @@ export const BandDetailPage: React.FC = () => {
 
                 <div className="bg-[#0A0A0A] border border-[#E01E37]/50 p-3.5 rounded-xl space-y-1.5 shadow-[0_0_15px_rgba(224,30,55,0.1)]">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-[#FF4D6D]">⭐ 4.5 - 5.0</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#E01E37]/20 text-[#FF4D6D] font-bold">REKOMENDASI FAVORIT</span>
+                    <span className="font-mono text-xs font-bold text-[#FF4D6D]">REKOMENDASI FAVORIT</span>
+                    {currentUser?.accountType === 'admin' && (
+                      <span className="text-[9px] font-mono text-[#FF4D6D]/70">4.5 - 5.0 ★</span>
+                    )}
                   </div>
                   <p className="text-[11px] text-[#A0A0A0] leading-relaxed">
-                    Pilihan utama kurator & EO. Live show spektakuler, audio rider prima, kepuasan 100%.
+                    Pilihan utama kurator &amp; EO. Live show spektakuler, audio rider prima, kepuasan 100%.
                   </p>
                 </div>
               </div>
@@ -1660,8 +1686,8 @@ export const BandDetailPage: React.FC = () => {
                   ✓
                 </div>
                 <div className="text-xs text-[#CCCCCC] space-y-0.5 leading-relaxed">
-                  <span className="font-bold text-white block">Sistem Rating Tertutup Otomatis Reffband</span>
-                  <span>Rating hanya dapat diberikan oleh akun Event Organizer (EO) yang telah membooking band. Setelah tanggal acara selesai (tepat pukul 00.00 WIB), EO menerima email otomatis dan wajib memberikan ulasan sebelum dapat mengakses menu utama.</span>
+                  <span className="font-bold text-white block">Sistem Kurasi Status Otomatis Reffband</span>
+                  <span>Penilaian hanya dapat diberikan oleh akun Event Organizer (EO) yang telah membooking band. Setelah tanggal acara selesai (tepat pukul 00.00 WIB), EO menerima email otomatis dan wajib memberikan ulasan sebelum dapat mengakses menu utama.</span>
                 </div>
               </div>
             </div>
@@ -1676,18 +1702,23 @@ export const BandDetailPage: React.FC = () => {
                   <div key={rev.id} className="bg-[#101010] border border-[#222222] p-5 rounded-2xl flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <div className="flex items-center gap-1 text-[#FFD166]">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              className={`w-3.5 h-3.5 ${
-                                s <= Math.round(rev.rating) ? 'fill-[#FFD166] text-[#FFD166]' : 'text-[#333]'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="font-mono text-xs font-bold text-white">{Number(rev.rating).toFixed(1)}</span>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded border font-bold uppercase ${tierInfo.bgClass}`}>
+                        {currentUser?.accountType === 'admin' ? (
+                          <div className="flex items-center gap-1 text-[#FFD166] bg-black/60 px-2 py-0.5 rounded border border-[#FFD166]/30">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                className={`w-3.5 h-3.5 ${
+                                  s <= Math.round(rev.rating) ? 'fill-[#FFD166] text-[#FFD166]' : 'text-[#333]'
+                                }`}
+                              />
+                            ))}
+                            <span className="font-mono text-xs font-bold text-white ml-1">{Number(rev.rating).toFixed(1)}</span>
+                            <span className="text-[9px] font-mono text-[#00D9FF] bg-[#00D9FF]/10 px-1 py-0.2 rounded border border-[#00D9FF]/20 font-bold ml-1">
+                              Admin View
+                            </span>
+                          </div>
+                        ) : null}
+                        <span className={`text-[10px] font-mono px-2.5 py-1 rounded border font-bold uppercase ${tierInfo.bgClass}`}>
                           {tierInfo.label}
                         </span>
                         <span className="text-[11px] font-mono text-[#00D9FF] bg-[#00D9FF]/10 px-2 py-0.5 rounded border border-[#00D9FF]/20">
@@ -1709,10 +1740,10 @@ export const BandDetailPage: React.FC = () => {
             </div>
           ) : (
             <div className="bg-[#101010] border border-[#222222] p-8 text-center rounded-2xl space-y-2">
-              <span className="text-2xl">⭐</span>
+              <span className="text-2xl">⚡</span>
               <h3 className="font-mono text-sm font-bold uppercase text-white">Belum Ada Ulasan Pasca-Tampil</h3>
               <p className="text-xs text-[#888] max-w-md mx-auto">
-                Band ini memiliki skor kurasi awal {band.rating || band.ratingAverage || 4.8}. Penilaian langsung akan bertambah setelah EO menyelesaikan booking tanggal penampilan berikutnya.
+                Band ini berstatus kurasi Rekomendasi Favorit. Penilaian langsung akan bertambah setelah EO menyelesaikan booking tanggal penampilan berikutnya.
               </p>
             </div>
           )}
