@@ -71,15 +71,13 @@ describe('Admin User Deletion (Band & EO) & New Band Profile Routing API', () =>
     expect(foundInCatalog).toBeDefined();
     expect(foundInCatalog.bandName).toBe(`Nada Harmoni ${suffix}`);
 
-    // Unauthenticated search also lists newly created band (>2 bands) while masking phone numbers
+    // Unauthenticated search locks catalog behind login gate
     const guestSearchRes = await request(app)
       .get('/api/bands/search?limit=50')
       .expect(200);
 
     expect(guestSearchRes.body.isSneakPeek).toBe(true);
-    const guestFound = guestSearchRes.body.data.find((b) => b.id === newProfileId);
-    expect(guestFound).toBeDefined();
-    expect(guestFound.phone).toMatch(/xxxx$/);
+    expect(guestSearchRes.body.data).toEqual([]);
 
     // Fetching /api/bands/profile/:newId as EO returns that exact band with unmasked phone
     const detailRes = await request(app)
@@ -182,7 +180,12 @@ describe('Admin User Deletion (Band & EO) & New Band Profile Routing API', () =>
     expect(metricsBandUser.band_profile_id).toBe(bandProfileId);
     expect(metricsEoUser).toBeDefined();
 
-    // Admin deletes the Band user
+    // Admin deletes the Band user (even when reviews exist referencing the band)
+    await db.query(
+      "INSERT INTO reviews (band_profile_id, organizer_user_id, rating, review_text, event_date) VALUES ($1, $2, 5.0, 'Great set', '2026-12-01')",
+      [bandProfileId, eoUserId]
+    );
+
     const delBandRes = await request(app)
       .delete(`/api/admin/users/${bandUserId}`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -191,12 +194,18 @@ describe('Admin User Deletion (Band & EO) & New Band Profile Routing API', () =>
     expect(delBandRes.body.success).toBe(true);
     expect(delBandRes.body.data.id).toBe(bandUserId);
 
-    // Band profile now returns 404, token is rejected with 401, and search excludes it
+    // Band profile now returns 404, token is rejected with 401, and authenticated catalog excludes it
     await request(app).get(`/api/bands/profile/${bandProfileId}`).expect(404);
     await request(app)
       .get('/api/auth/me')
       .set('Authorization', `Bearer ${bandToken}`)
       .expect(401);
+
+    const catalogAfterDelete = await request(app)
+      .get('/api/bands/search?limit=50')
+      .set('Authorization', `Bearer ${eoToken}`)
+      .expect(200);
+    expect(catalogAfterDelete.body.data.some((b) => b.id === bandProfileId)).toBe(false);
 
     // Admin deletes the EO user
     const delEoRes = await request(app)
@@ -242,5 +251,62 @@ describe('Admin User Deletion (Band & EO) & New Band Profile Routing API', () =>
       .expect(403);
 
     expect(res.body.success).toBe(false);
+  });
+
+  it('hides suspended bands from catalog and deletes all dummy accounts via DELETE /api/admin/dummy-users', async () => {
+    const suffix = Date.now() + 2;
+    const bandRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: `suspended.${suffix}@test.id`,
+        password: 'Password123!',
+        accountType: 'band',
+        bandName: `Band Ditangguhkan ${suffix}`,
+        genre: 'Indie Pop',
+        locationCity: 'Semarang',
+      })
+      .expect(201);
+
+    const bandUserId = bandRes.body.user.id;
+    const bandProfileId = bandRes.body.bandProfile.id;
+    createdUserIds.push(bandUserId);
+
+    const eoRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: `viewer.${suffix}@test.id`,
+        password: 'Password123!',
+        accountType: 'general',
+      })
+      .expect(201);
+    createdUserIds.push(eoRes.body.user.id);
+    const eoToken = eoRes.body.token;
+
+    await request(app)
+      .put(`/api/admin/users/${bandUserId}/suspend`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isActive: false })
+      .expect(200);
+
+    const searchSuspended = await request(app)
+      .get('/api/bands/search?limit=50')
+      .set('Authorization', `Bearer ${eoToken}`)
+      .expect(200);
+    expect(searchSuspended.body.data.some((b) => b.id === bandProfileId)).toBe(false);
+    await request(app).get(`/api/bands/profile/${bandProfileId}`).expect(404);
+
+    // Delete all seeded dummy accounts
+    const wipeRes = await request(app)
+      .delete('/api/admin/dummy-users')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(wipeRes.body.success).toBe(true);
+    expect(wipeRes.body.data.deletedUsers.length).toBeGreaterThanOrEqual(1);
+
+    const afterWipeSearch = await request(app)
+      .get('/api/bands/search?limit=50')
+      .set('Authorization', `Bearer ${eoToken}`)
+      .expect(200);
+    expect(afterWipeSearch.body.data.some((b) => b.bandName === 'Kelana Ombak')).toBe(false);
   });
 });

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Filter, ChevronRight, SlidersHorizontal, Lock, Search, X } from 'lucide-react'
 import type { Band } from '../../types'
-import { fallbackBands } from '../../data/bandsData'
 import { BandCard } from '../ui/BandCard'
 import { FilterDrawer } from '../ui/FilterDrawer'
 import type { FilterState } from '../ui/FilterDrawer'
@@ -82,17 +81,17 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
             ? json.data
             : json.data?.bands || []
 
-          if (json.success && apiBands.length > 0) {
+          if (json.success) {
             setBands([...apiBands].sort((a, b) => a.id - b.id))
             return
           }
         }
         if (!cancelled) {
-          setBands(authClient.getUser() ? fallbackBands : [])
+          setBands([])
         }
       } catch {
         if (!cancelled) {
-          setBands(authClient.getUser() ? fallbackBands : [])
+          setBands([])
         }
       } finally {
         if (!cancelled) {

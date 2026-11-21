@@ -177,6 +177,111 @@ router.put('/users/:id/suspend', async (req, res) => {
   }
 });
 
+const DUMMY_ACCOUNT_EMAILS = [
+  'kelana@panggunglokal.id',
+  'senjabersuara@panggunglokal.id',
+  'goyangpantura@panggunglokal.id',
+  'distorsi@panggunglokal.id',
+  'lembayung@panggunglokal.id',
+  'suarahutan@panggunglokal.id',
+  'rhythmofsumatra@panggunglokal.id',
+  'midnightgroovers@panggunglokal.id',
+  'kafe.selatan@gmail.com',
+  'jogja.creatives@gmail.com',
+  'surabaya.nightmarket@gmail.com',
+  'admin@panggunglokal.id',
+];
+
+async function deleteBandProfileRecords(client, bandProfileId) {
+  await client.query('DELETE FROM reviews WHERE band_profile_id = $1', [bandProfileId]);
+  await client.query('DELETE FROM connections WHERE band_profile_id = $1', [bandProfileId]);
+  await client.query('DELETE FROM media_files WHERE band_profile_id = $1', [bandProfileId]);
+  await client.query('DELETE FROM band_posts WHERE band_profile_id = $1', [bandProfileId]);
+  await client.query(
+    'UPDATE job_broadcasts SET source_band_profile_id = NULL WHERE source_band_profile_id = $1',
+    [bandProfileId]
+  );
+  await client.query(
+    "DELETE FROM reports WHERE LOWER(reported_entity_type) IN ('band', 'band_profile') AND reported_entity_id = $1",
+    [bandProfileId]
+  );
+  await client.query('DELETE FROM band_profiles WHERE id = $1', [bandProfileId]);
+}
+
+async function deleteUserCascade(client, userId) {
+  const profileRes = await client.query(
+    'SELECT id FROM band_profiles WHERE user_id = $1',
+    [userId]
+  );
+  const bandProfileId = profileRes.rows[0]?.id || null;
+
+  if (bandProfileId) {
+    await deleteBandProfileRecords(client, bandProfileId);
+  }
+
+  await client.query('DELETE FROM reviews WHERE organizer_user_id = $1', [userId]);
+  await client.query('DELETE FROM connections WHERE organizer_user_id = $1', [userId]);
+  await client.query('DELETE FROM job_broadcasts WHERE organizer_user_id = $1', [userId]);
+  await client.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [userId]);
+  await client.query('UPDATE reports SET reporter_user_id = NULL WHERE reporter_user_id = $1', [userId]);
+
+  const delRes = await client.query(
+    'DELETE FROM users WHERE id = $1 RETURNING id, email, account_type',
+    [userId]
+  );
+  return delRes.rows[0] || null;
+}
+
+/**
+ * DELETE /api/admin/dummy-users
+ * Remove all seeded dummy accounts and any orphaned band profiles in one transaction
+ */
+router.delete('/dummy-users', async (req, res) => {
+  try {
+    const result = await db.transaction(async (client) => {
+      const dummyUsersRes = await client.query(
+        'SELECT id, email, account_type FROM users WHERE LOWER(email) = ANY($1)',
+        [DUMMY_ACCOUNT_EMAILS]
+      );
+
+      const deletedUsers = [];
+      for (const userRow of dummyUsersRes.rows) {
+        if (String(userRow.id) === String(req.user.id) || userRow.account_type === 'admin') {
+          continue;
+        }
+        const deleted = await deleteUserCascade(client, userRow.id);
+        if (deleted) {
+          deletedUsers.push(deleted);
+        }
+      }
+
+      const orphanRes = await client.query(
+        'SELECT id FROM band_profiles WHERE user_id NOT IN (SELECT id FROM users)'
+      );
+      for (const orphan of orphanRes.rows) {
+        await deleteBandProfileRecords(client, orphan.id);
+      }
+
+      return {
+        deletedUsers,
+        deletedOrphanProfiles: orphanRes.rows.length,
+      };
+    });
+
+    return res.json({
+      success: true,
+      message: `${result.deletedUsers.length} akun dummy dan ${result.deletedOrphanProfiles} profil yatim berhasil dihapus permanen`,
+      data: result,
+    });
+  } catch (error) {
+    console.error('Delete dummy users error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal menghapus akun dummy',
+    });
+  }
+});
+
 /**
  * DELETE /api/admin/users/:id
  * Permanently delete a band or organizer/general user account and its owned records
@@ -217,39 +322,7 @@ router.delete('/users/:id', async (req, res) => {
       });
     }
 
-    const deletedUser = await db.transaction(async (client) => {
-      const profileRes = await client.query(
-        'SELECT id FROM band_profiles WHERE user_id = $1',
-        [userId]
-      );
-      const bandProfileId = profileRes.rows[0]?.id || null;
-
-      if (bandProfileId) {
-        await client.query('DELETE FROM connections WHERE band_profile_id = $1', [bandProfileId]);
-        await client.query('DELETE FROM media_files WHERE band_profile_id = $1', [bandProfileId]);
-        await client.query('DELETE FROM band_posts WHERE band_profile_id = $1', [bandProfileId]);
-        await client.query(
-          'UPDATE job_broadcasts SET source_band_profile_id = NULL WHERE source_band_profile_id = $1',
-          [bandProfileId]
-        );
-        await client.query(
-          "DELETE FROM reports WHERE LOWER(reported_entity_type) IN ('band', 'band_profile') AND reported_entity_id = $1",
-          [bandProfileId]
-        );
-        await client.query('DELETE FROM band_profiles WHERE id = $1', [bandProfileId]);
-      }
-
-      await client.query('DELETE FROM connections WHERE organizer_user_id = $1', [userId]);
-      await client.query('DELETE FROM job_broadcasts WHERE organizer_user_id = $1', [userId]);
-      await client.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [userId]);
-      await client.query('UPDATE reports SET reporter_user_id = NULL WHERE reporter_user_id = $1', [userId]);
-
-      const delRes = await client.query(
-        'DELETE FROM users WHERE id = $1 RETURNING id, email, account_type',
-        [userId]
-      );
-      return delRes.rows[0] || null;
-    });
+    const deletedUser = await db.transaction((client) => deleteUserCascade(client, userId));
 
     if (!deletedUser) {
       return res.status(404).json({

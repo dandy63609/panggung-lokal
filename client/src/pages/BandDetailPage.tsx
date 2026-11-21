@@ -441,9 +441,9 @@ export const BandDetailPage: React.FC = () => {
   const safeActiveSlide = gallerySlides.length > 0 ? activeSlide % gallerySlides.length : 0
   const currentStageSlide = gallerySlides[safeActiveSlide] || gallerySlides[0]
 
-  // Related bands (3 live bands from other genres/cities, falling back cleanly offline)
+  // Related bands (3 live bands from other genres/cities, avoiding dummy fallback when live data is loaded)
   const relatedBands = useMemo(() => {
-    const pool = liveRelatedBands && liveRelatedBands.length > 0 ? liveRelatedBands : fallbackBands
+    const pool = liveRelatedBands !== null ? liveRelatedBands : []
     return pool.filter((b) => b.id !== band?.id).slice(0, 3)
   }, [band?.id, liveRelatedBands])
 

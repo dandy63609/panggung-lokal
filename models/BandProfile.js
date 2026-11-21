@@ -103,7 +103,9 @@ class BandProfile {
    */
   static async findById(id) {
     const result = await db.query(
-      'SELECT * FROM band_profiles WHERE id = $1',
+      `SELECT bp.* FROM band_profiles bp
+       INNER JOIN users u ON u.id = bp.user_id
+       WHERE bp.id = $1 AND u.is_active = TRUE`,
       [id]
     );
     return result.rows[0] ? new BandProfile(result.rows[0]) : null;
@@ -124,15 +126,22 @@ class BandProfile {
 
     // Try finding by exact match or normalized name
     const nameMatch = await db.query(
-      'SELECT * FROM band_profiles WHERE LOWER(band_name) = LOWER($1) LIMIT 1',
+      `SELECT bp.* FROM band_profiles bp
+       INNER JOIN users u ON u.id = bp.user_id
+       WHERE LOWER(bp.band_name) = LOWER($1) AND u.is_active = TRUE
+       LIMIT 1`,
       [clean.replace(/-/g, ' ')]
     );
     if (nameMatch.rows[0]) {
       return new BandProfile(nameMatch.rows[0]);
     }
 
-    // Scan all bands for generated slug match
-    const allResult = await db.query('SELECT * FROM band_profiles');
+    // Scan all active bands for generated slug match
+    const allResult = await db.query(
+      `SELECT bp.* FROM band_profiles bp
+       INNER JOIN users u ON u.id = bp.user_id
+       WHERE u.is_active = TRUE`
+    );
     for (const row of allResult.rows) {
       const band = new BandProfile(row);
       if (band.slug === clean || slugify(band.bandName) === clean) {
@@ -296,17 +305,27 @@ class BandProfile {
    */
   static async getPlatformStats() {
     try {
-      const bandResult = await db.query('SELECT COUNT(*) as total FROM band_profiles');
-      const genreResult = await db.query('SELECT COUNT(DISTINCT genre) as total FROM band_profiles');
+      const bandResult = await db.query(
+        `SELECT COUNT(*) as total FROM band_profiles bp
+         INNER JOIN users u ON u.id = bp.user_id
+         WHERE u.is_active = TRUE`
+      );
+      const genreResult = await db.query(
+        `SELECT COUNT(DISTINCT bp.genre) as total FROM band_profiles bp
+         INNER JOIN users u ON u.id = bp.user_id
+         WHERE u.is_active = TRUE`
+      );
+      const totalBands = parseInt(bandResult?.rows?.[0]?.total, 10);
+      const totalGenres = parseInt(genreResult?.rows?.[0]?.total, 10);
       return {
-        totalBands: parseInt(bandResult?.rows?.[0]?.total, 10) || 8,
-        totalGenres: parseInt(genreResult?.rows?.[0]?.total, 10) || 6,
+        totalBands: Number.isFinite(totalBands) ? totalBands : 0,
+        totalGenres: Number.isFinite(totalGenres) ? totalGenres : 0,
         curatedBadge: '100% Terkurasi'
       };
     } catch {
       return {
-        totalBands: 8,
-        totalGenres: 6,
+        totalBands: 0,
+        totalGenres: 0,
         curatedBadge: '100% Terkurasi'
       };
     }
@@ -374,8 +393,9 @@ class BandProfile {
 
     let baseQuery = `
       FROM band_profiles bp
+      INNER JOIN users u ON u.id = bp.user_id
     `;
-    const conditions = [];
+    const conditions = ['u.is_active = TRUE'];
     const params = [];
     let paramIndex = 1;
 
@@ -450,7 +470,11 @@ class BandProfile {
    */
   static async getRecent(limit = 6) {
     const result = await db.query(
-      `SELECT * FROM band_profiles ORDER BY profile_views DESC, created_at DESC LIMIT $1`,
+      `SELECT bp.* FROM band_profiles bp
+       INNER JOIN users u ON u.id = bp.user_id
+       WHERE u.is_active = TRUE
+       ORDER BY bp.profile_views DESC, bp.created_at DESC
+       LIMIT $1`,
       [limit]
     );
     return result.rows.map(row => new BandProfile(row));

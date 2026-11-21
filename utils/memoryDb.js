@@ -25,6 +25,13 @@ const CLOUD_SYNC_TABLES = [
   'platform_settings'
 ];
 
+const OPTIONAL_CLOUD_TABLES = new Set([
+  'password_reset_tokens',
+  'campuses',
+  'reviews',
+  'platform_settings'
+]);
+
 const TABLE_COLUMNS = {
   users: ['id', 'email', 'password_hash', 'account_type', 'google_id', 'auth_provider', 'created_at', 'last_login', 'is_active'],
   band_profiles: [
@@ -255,10 +262,13 @@ function getMemoryDb() {
         cloudData = await fetchFromCloud();
       }
 
-      if (cloudData && Array.isArray(cloudData.users) && cloudData.users.length > 0) {
+      if (cloudData && Array.isArray(cloudData.users) && (cloudData.users.length > 0 || process.env.VERCEL)) {
         await restoreData(pool, cloudData);
         lastCloudFetchAt = Date.now();
         console.log('☁️ Restored database from Supabase Cloud');
+      } else if (SHOULD_USE_CLOUD_SYNC && process.env.VERCEL) {
+        // Avoid overwriting Supabase Cloud with local dummy seed data when cloud fetch fails transiently
+        console.warn('⚠️ Cloud restore unavailable on Vercel; starting with empty schema');
       } else if (fs.existsSync(DATA_FILE)) {
         try {
           const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
@@ -276,7 +286,9 @@ function getMemoryDb() {
       }
     } catch (err) {
       console.error('⚠️ Error during memory DB initialization:', err.message);
-      await seedInitialData(pool);
+      if (!(SHOULD_USE_CLOUD_SYNC && process.env.VERCEL)) {
+        await seedInitialData(pool);
+      }
     }
     await syncSerialSequences(db, pool);
   })();
@@ -296,7 +308,12 @@ async function fetchFromCloud() {
             Authorization: `Bearer ${SUPABASE_KEY}`
           }
         });
-        if (!res.ok) return { table, rows: null };
+        if (!res.ok) {
+          if (OPTIONAL_CLOUD_TABLES.has(table) && (res.status === 404 || res.status === 400)) {
+            return { table, rows: [], missing: true };
+          }
+          return { table, rows: null };
+        }
         const rows = await res.json();
         return { table, rows: Array.isArray(rows) ? rows : [] };
       })
@@ -329,7 +346,7 @@ async function ensureFreshCloudData(force = false) {
     let client = null;
     try {
       const cloudData = await fetchFromCloud();
-      if (!cloudData || !Array.isArray(cloudData.users) || cloudData.users.length === 0) {
+      if (!cloudData || !Array.isArray(cloudData.users)) {
         return false;
       }
       client = await poolInstance.connect();
@@ -368,8 +385,9 @@ async function syncAllToCloud(options = {}) {
   for (const table of CLOUD_SYNC_TABLES) {
     const rows = data[table] || [];
     if (rows.length === 0) continue;
+    const pkCol = table === 'platform_settings' ? 'key' : 'id';
     try {
-      const upsertRes = await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=id`, {
+      const upsertRes = await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${pkCol}`, {
         method: 'POST',
         headers: {
           apikey: SUPABASE_KEY,
@@ -393,10 +411,13 @@ async function syncAllToCloud(options = {}) {
     const deleteOrder = [...CLOUD_SYNC_TABLES].reverse();
     for (const table of deleteOrder) {
       const rows = data[table] || [];
+      const pkCol = table === 'platform_settings' ? 'key' : 'id';
       try {
         const deleteFilter = rows.length > 0
-          ? `id=not.in.(${rows.map((r) => r.id).join(',')})`
-          : 'id=gt.0';
+          ? `${pkCol}=not.in.(${rows.map((r) => r[pkCol]).join(',')})`
+          : table === 'platform_settings'
+            ? 'key=neq.__none__'
+            : 'id=gt.0';
         const deleteRes = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${deleteFilter}`, {
           method: 'DELETE',
           headers: {
@@ -468,57 +489,65 @@ async function restoreData(pool, data) {
     // ignore
   }
 
-  // Ensure default ratings, prices, and reviews exist
-  try {
-    const reviewCountRes = await pool.query('SELECT COUNT(*) as count FROM reviews');
-    if (parseInt(reviewCountRes.rows[0].count, 10) === 0) {
-      await pool.query(`
-        INSERT INTO reviews (id, band_profile_id, organizer_user_id, rating, review_text, event_date) VALUES
-        (1, 1, 9, 5.0, 'Penampilan Kelana Ombak di Pensi Kampus luar biasa! Sound vintage surf rock mereka bikin seluruh penonton bergoyang.', '2026-11-10'),
-        (2, 1, 10, 4.8, 'Komunikasi technical rider audio sangat kooperatif, tepat waktu saat soundcheck dan aksi panggung profesional.', '2026-11-15'),
-        (3, 2, 9, 4.8, 'Suasana kafe sangat hidup dengan harmoni vokal dan cello Senja Bersuara. Sangat direkomendasikan untuk event intim!', '2026-11-08'),
-        (4, 4, 10, 3.8, 'Energi rock alternatif mereka mantap untuk crowd muda kampus, riff distorsi solid.', '2026-11-05'),
-        (5, 8, 9, 2.8, 'Kualitas aransemen funk sangat bagus, namun waktu mulai perform sedikit terlambat dari rundown.', '2026-11-02')
-      `);
+  // Ensure sample ratings/reviews and booking only auto-seed in non-cloud test/local fixture data
+  if (!SHOULD_USE_CLOUD_SYNC && !process.env.VERCEL) {
+    try {
+      const seededDummyCheck = await pool.query(
+        'SELECT COUNT(*) as count FROM band_profiles WHERE id IN (1, 2, 4, 8)'
+      );
+      const seededOrganizerCheck = await pool.query(
+        'SELECT COUNT(*) as count FROM users WHERE id IN (9, 10)'
+      );
+      const hasDummyFixtures =
+        parseInt(seededDummyCheck.rows[0].count, 10) === 4 &&
+        parseInt(seededOrganizerCheck.rows[0].count, 10) === 2;
 
-      // Update ratings on bands
-      const initialRatings = [
-        { id: 1, avg: 4.9, count: 14, min: 3500000, max: 7000000 },
-        { id: 2, avg: 4.8, count: 10, min: 2000000, max: 4500000 },
-        { id: 3, avg: 4.6, count: 9, min: 5000000, max: 12000000 },
-        { id: 4, avg: 3.8, count: 6, min: 3000000, max: 6000000 },
-        { id: 5, avg: 4.2, count: 7, min: 2500000, max: 5000000 },
-        { id: 6, avg: 3.5, count: 5, min: 2500000, max: 5500000 },
-        { id: 7, avg: 4.7, count: 8, min: 4000000, max: 9000000 },
-        { id: 8, avg: 2.8, count: 4, min: 4500000, max: 10000000 }
-      ];
+      if (hasDummyFixtures) {
+        const reviewCountRes = await pool.query('SELECT COUNT(*) as count FROM reviews');
+        if (parseInt(reviewCountRes.rows[0].count, 10) === 0) {
+          await pool.query(`
+            INSERT INTO reviews (id, band_profile_id, organizer_user_id, rating, review_text, event_date) VALUES
+            (1, 1, 9, 5.0, 'Penampilan Kelana Ombak di Pensi Kampus luar biasa! Sound vintage surf rock mereka bikin seluruh penonton bergoyang.', '2026-11-10'),
+            (2, 1, 10, 4.8, 'Komunikasi technical rider audio sangat kooperatif, tepat waktu saat soundcheck dan aksi panggung profesional.', '2026-11-15'),
+            (3, 2, 9, 4.8, 'Suasana kafe sangat hidup dengan harmoni vokal dan cello Senja Bersuara. Sangat direkomendasikan untuk event intim!', '2026-11-08'),
+            (4, 4, 10, 3.8, 'Energi rock alternatif mereka mantap untuk crowd muda kampus, riff distorsi solid.', '2026-11-05'),
+            (5, 8, 9, 2.8, 'Kualitas aransemen funk sangat bagus, namun waktu mulai perform sedikit terlambat dari rundown.', '2026-11-02')
+          `);
 
-      for (const ir of initialRatings) {
-        await pool.query(
-          `UPDATE band_profiles 
-           SET rating_average = $1, rating_count = $2, budget_min = $3, budget_max = $4 
-           WHERE id = $5`,
-          [ir.avg, ir.count, ir.min, ir.max, ir.id]
+          const initialRatings = [
+            { id: 1, avg: 4.9, count: 14, min: 3500000, max: 7000000 },
+            { id: 2, avg: 4.8, count: 10, min: 2000000, max: 4500000 },
+            { id: 3, avg: 4.6, count: 9, min: 5000000, max: 12000000 },
+            { id: 4, avg: 3.8, count: 6, min: 3000000, max: 6000000 },
+            { id: 5, avg: 4.2, count: 7, min: 2500000, max: 5000000 },
+            { id: 6, avg: 3.5, count: 5, min: 2500000, max: 5500000 },
+            { id: 7, avg: 4.7, count: 8, min: 4000000, max: 9000000 },
+            { id: 8, avg: 2.8, count: 4, min: 4500000, max: 10000000 }
+          ];
+
+          for (const ir of initialRatings) {
+            await pool.query(
+              `UPDATE band_profiles 
+               SET rating_average = $1, rating_count = $2, budget_min = $3, budget_max = $4 
+               WHERE id = $5`,
+              [ir.avg, ir.count, ir.min, ir.max, ir.id]
+            );
+          }
+        }
+
+        const pastBookingRes = await pool.query(
+          "SELECT COUNT(*) as count FROM connections WHERE event_date IS NOT NULL AND is_reviewed = FALSE"
         );
+        if (parseInt(pastBookingRes.rows[0].count, 10) === 0) {
+          await pool.query(`
+            INSERT INTO connections (organizer_user_id, band_profile_id, connection_type, event_date, event_name, status, is_reviewed, notes)
+            VALUES (9, 1, 'direct_booking', '2026-11-19', 'Pensi Akbar Mahasiswa Kampus', 'confirmed', FALSE, '2 Set Performa Live')
+          `);
+        }
       }
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
-  }
-
-  // Ensure sample past booking exists for EO review gating simulation
-  try {
-    const pastBookingRes = await pool.query(
-      "SELECT COUNT(*) as count FROM connections WHERE event_date IS NOT NULL AND is_reviewed = FALSE"
-    );
-    if (parseInt(pastBookingRes.rows[0].count, 10) === 0) {
-      await pool.query(`
-        INSERT INTO connections (organizer_user_id, band_profile_id, connection_type, event_date, event_name, status, is_reviewed, notes)
-        VALUES (9, 1, 'direct_booking', '2026-11-19', 'Pensi Akbar Mahasiswa Kampus', 'confirmed', FALSE, '2 Set Performa Live')
-      `);
-    }
-  } catch {
-    // ignore
   }
 
   // Ensure default platform settings exist (campus affiliation hidden by default)
@@ -549,10 +578,12 @@ async function saveMemoryDb(options = {}) {
   if (!memDbInstance) return;
   try {
     const data = dumpData(memDbInstance);
-    try {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-    } catch {
-      // Ignore read-only filesystem on serverless platforms (Vercel)
+    if (process.env.NODE_ENV !== 'test') {
+      try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+      } catch {
+        // Ignore read-only filesystem on serverless platforms (Vercel)
+      }
     }
     if (SHOULD_USE_CLOUD_SYNC) {
       await syncAllToCloud(options);
