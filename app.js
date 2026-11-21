@@ -140,6 +140,7 @@ app.use('/api/broadcasts', require('./routes/broadcasts'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/reviews', require('./routes/reviews'));
 
 // Root route
 app.get('/', (req, res) => {

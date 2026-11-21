@@ -1,83 +1,6 @@
 {
   "users": [
     {
-      "email": "dandydeswara@gmail.com",
-      "password_hash": "$2b$12$uvalOoUB3RmOB9dO5mvk2exL6nlmI04LfklkVHNVCgQAiVtTB98eu",
-      "account_type": "general",
-      "id": 14,
-      "google_id": "117325666643656693502",
-      "auth_provider": "google",
-      "created_at": "2026-11-18T09:59:02.361Z",
-      "last_login": null,
-      "is_active": true
-    },
-    {
-      "id": 9,
-      "email": "kafe.selatan@gmail.com",
-      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
-      "account_type": "general",
-      "is_active": true,
-      "created_at": "2026-10-16T13:36:20.032Z",
-      "last_login": "2026-11-18T16:31:50.002Z",
-      "google_id": null,
-      "auth_provider": "local"
-    },
-    {
-      "id": 10,
-      "email": "jogja.creatives@gmail.com",
-      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
-      "account_type": "general",
-      "is_active": true,
-      "created_at": "2026-10-16T13:36:20.032Z",
-      "last_login": null,
-      "google_id": null,
-      "auth_provider": "local"
-    },
-    {
-      "id": 11,
-      "email": "surabaya.nightmarket@gmail.com",
-      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
-      "account_type": "general",
-      "is_active": true,
-      "created_at": "2026-10-16T13:36:20.032Z",
-      "last_login": null,
-      "google_id": null,
-      "auth_provider": "local"
-    },
-    {
-      "id": 12,
-      "email": "admin@panggunglokal.id",
-      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
-      "account_type": "general",
-      "is_active": true,
-      "created_at": "2026-10-16T13:36:20.032Z",
-      "last_login": "2026-10-16T14:05:43.364Z",
-      "google_id": null,
-      "auth_provider": "local"
-    },
-    {
-      "id": 1,
-      "email": "kelana@panggunglokal.id",
-      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
-      "account_type": "band",
-      "is_active": true,
-      "created_at": "2026-10-16T13:36:20.032Z",
-      "last_login": "2026-11-18T11:04:51.709Z",
-      "google_id": null,
-      "auth_provider": "local"
-    },
-    {
-      "id": 3,
-      "email": "goyangpantura@panggunglokal.id",
-      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
-      "account_type": "band",
-      "is_active": true,
-      "created_at": "2026-10-16T13:36:20.032Z",
-      "last_login": null,
-      "google_id": null,
-      "auth_provider": "local"
-    },
-    {
       "id": 2,
       "email": "senjabersuara@panggunglokal.id",
       "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
@@ -144,8 +67,85 @@
       "auth_provider": "local"
     },
     {
+      "email": "dandydeswara@gmail.com",
+      "password_hash": "$2b$12$uvalOoUB3RmOB9dO5mvk2exL6nlmI04LfklkVHNVCgQAiVtTB98eu",
+      "account_type": "general",
+      "id": 14,
+      "google_id": "117325666643656693502",
+      "auth_provider": "google",
+      "created_at": "2026-11-18T09:59:02.361Z",
+      "last_login": null,
+      "is_active": true
+    },
+    {
       "id": 8,
       "email": "midnightgroovers@panggunglokal.id",
+      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
+      "account_type": "band",
+      "is_active": true,
+      "created_at": "2026-10-16T13:36:20.032Z",
+      "last_login": null,
+      "google_id": null,
+      "auth_provider": "local"
+    },
+    {
+      "id": 9,
+      "email": "kafe.selatan@gmail.com",
+      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
+      "account_type": "general",
+      "is_active": true,
+      "created_at": "2026-10-16T13:36:20.032Z",
+      "last_login": "2026-11-18T16:31:50.002Z",
+      "google_id": null,
+      "auth_provider": "local"
+    },
+    {
+      "id": 10,
+      "email": "jogja.creatives@gmail.com",
+      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
+      "account_type": "general",
+      "is_active": true,
+      "created_at": "2026-10-16T13:36:20.032Z",
+      "last_login": null,
+      "google_id": null,
+      "auth_provider": "local"
+    },
+    {
+      "id": 11,
+      "email": "surabaya.nightmarket@gmail.com",
+      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
+      "account_type": "general",
+      "is_active": true,
+      "created_at": "2026-10-16T13:36:20.032Z",
+      "last_login": null,
+      "google_id": null,
+      "auth_provider": "local"
+    },
+    {
+      "id": 12,
+      "email": "admin@panggunglokal.id",
+      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
+      "account_type": "general",
+      "is_active": true,
+      "created_at": "2026-10-16T13:36:20.032Z",
+      "last_login": "2026-10-16T14:05:43.364Z",
+      "google_id": null,
+      "auth_provider": "local"
+    },
+    {
+      "id": 1,
+      "email": "kelana@panggunglokal.id",
+      "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
+      "account_type": "band",
+      "is_active": true,
+      "created_at": "2026-10-16T13:36:20.032Z",
+      "last_login": "2026-11-18T11:04:51.709Z",
+      "google_id": null,
+      "auth_provider": "local"
+    },
+    {
+      "id": 3,
+      "email": "goyangpantura@panggunglokal.id",
       "password_hash": "$2b$10$c7Zp2Z3EUSAHnr87pP7x9OtE10vKeHD98NmpaUNn.9d/xxeTZ419.",
       "account_type": "band",
       "is_active": true,
@@ -182,7 +182,11 @@
       "rider_hospitality": null,
       "spotify_url": null,
       "tiktok_url": null,
-      "rider_items": null
+      "rider_items": null,
+      "stage_visual_post_id": null,
+      "rating_average": 4.6,
+      "rating_count": 9,
+      "rating_override": null
     },
     {
       "id": 1,
@@ -193,8 +197,8 @@
       "location_region": "Jawa Tengah",
       "campus": "UNNES",
       "bio": "Band surf rock independen asal Bandung yang memadukan distorsi gitar vintage dengan ritme pantai tropis khas pesisir selatan Jawa. Telah merilis 1 EP dan aktif manggung di berbagai showcase kampus & gigs lokal.",
-      "budget_min": 4000000,
-      "budget_max": 8000000,
+      "budget_min": 3500000,
+      "budget_max": 7000000,
       "profile_photo_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80",
       "cover_photo_url": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80",
       "phone": "+6281234567890",
@@ -209,8 +213,12 @@
       "profile_views": 196,
       "facebook_url": null,
       "created_at": "2026-10-16T13:36:20.034Z",
-      "updated_at": "2026-11-18T09:56:48.640Z",
-      "rider_items": "[{\"title\":\"Input Audio Channel\",\"description\":\"Dapat dinegosiasikan (Standar 8-16 Channel)\"},{\"title\":\"Kebutuhan Sound System\",\"description\":\"FOH PA System & Active Stage Monitor standar venue\"},{\"title\":\"Peralatan & Backline\",\"description\":\"Musisi membawa instrumen utama. Venue menyediakan drum kit dan amplifier.\"},{\"title\":\"Hospitality & Konsumsi\",\"description\":\"Ruang tunggu bersih, air mineral botol, konsumsi tim/kru.\"}]"
+      "updated_at": "2026-11-21T12:07:09.738Z",
+      "rider_items": null,
+      "stage_visual_post_id": null,
+      "rating_average": 4.9,
+      "rating_count": 14,
+      "rating_override": null
     },
     {
       "id": 4,
@@ -238,7 +246,11 @@
       "rider_hospitality": null,
       "spotify_url": null,
       "tiktok_url": null,
-      "rider_items": null
+      "rider_items": null,
+      "stage_visual_post_id": null,
+      "rating_average": 3.8,
+      "rating_count": 6,
+      "rating_override": null
     },
     {
       "id": 8,
@@ -266,7 +278,11 @@
       "rider_hospitality": null,
       "spotify_url": null,
       "tiktok_url": null,
-      "rider_items": null
+      "rider_items": null,
+      "stage_visual_post_id": null,
+      "rating_average": 2.8,
+      "rating_count": 4,
+      "rating_override": null
     },
     {
       "id": 6,
@@ -294,7 +310,11 @@
       "rider_hospitality": null,
       "spotify_url": null,
       "tiktok_url": null,
-      "rider_items": null
+      "rider_items": null,
+      "stage_visual_post_id": null,
+      "rating_average": 3.5,
+      "rating_count": 5,
+      "rating_override": null
     },
     {
       "id": 5,
@@ -305,8 +325,8 @@
       "location_region": "DI Yogyakarta",
       "campus": "UGM",
       "bio": "Harmoni jazz kontemporer dengan sentuhan nada gamelan Bali dan groove neo-soul. Langganan tampil di beach club, lounge hotel bintang lima, dan festival jazz tahunan.",
-      "budget_min": 6000000,
-      "budget_max": 15000000,
+      "budget_min": 2500000,
+      "budget_max": 5000000,
       "profile_photo_url": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&auto=format&fit=crop&q=80",
       "cover_photo_url": "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=1200&auto=format&fit=crop&q=80",
       "phone": "+6281987654321",
@@ -322,7 +342,11 @@
       "rider_hospitality": null,
       "spotify_url": null,
       "tiktok_url": null,
-      "rider_items": null
+      "rider_items": null,
+      "stage_visual_post_id": null,
+      "rating_average": 4.2,
+      "rating_count": 7,
+      "rating_override": null
     },
     {
       "id": 7,
@@ -350,7 +374,11 @@
       "rider_hospitality": null,
       "spotify_url": null,
       "tiktok_url": null,
-      "rider_items": null
+      "rider_items": null,
+      "stage_visual_post_id": null,
+      "rating_average": 4.7,
+      "rating_count": 8,
+      "rating_override": null
     },
     {
       "id": 2,
@@ -378,7 +406,11 @@
       "facebook_url": null,
       "created_at": "2026-10-16T13:36:20.034Z",
       "updated_at": "2026-11-18T01:16:51.304Z",
-      "rider_items": "[{\"title\":\"Sound System & PA FOH\",\"description\":\"6 Channel Input (2 Voc, 2 DI Box Akustik, 1 Cello, 1 Cajon)\"},{\"title\":\"Kebutuhan Sound System\",\"description\":\"PA System min 2.500 Watt, 2 Active Monitor, 2 Mic Vokal Berkualitas\"},{\"title\":\"Hospitality & Konsumsi\",\"description\":\"Ruang rias/tunggu tenang, teh hangat, air mineral, konsumsi 4 pax\"},{\"title\":\"Tata Cahaya & Lighting\",\"description\":\"Minimal 8 unit PAR LED RGBW terkalibrasi dan 4 moving head beam.\"}]"
+      "rider_items": "[{\"title\":\"Sound System & PA FOH\",\"description\":\"6 Channel Input (2 Voc, 2 DI Box Akustik, 1 Cello, 1 Cajon)\"},{\"title\":\"Kebutuhan Sound System\",\"description\":\"PA System min 2.500 Watt, 2 Active Monitor, 2 Mic Vokal Berkualitas\"},{\"title\":\"Hospitality & Konsumsi\",\"description\":\"Ruang rias/tunggu tenang, teh hangat, air mineral, konsumsi 4 pax\"},{\"title\":\"Tata Cahaya & Lighting\",\"description\":\"Minimal 8 unit PAR LED RGBW terkalibrasi dan 4 moving head beam.\"}]",
+      "stage_visual_post_id": null,
+      "rating_average": 4.8,
+      "rating_count": 10,
+      "rating_override": null
     },
     {
       "user_id": 13,
@@ -406,10 +438,62 @@
       "id": 9,
       "profile_views": 0,
       "created_at": "2026-11-18T09:44:08.043Z",
-      "updated_at": "2026-11-18T09:44:08.043Z"
+      "updated_at": "2026-11-18T09:44:08.043Z",
+      "stage_visual_post_id": null,
+      "rating_average": 4.8,
+      "rating_count": 1,
+      "rating_override": null
     }
   ],
   "band_posts": [
+    {
+      "id": 2,
+      "band_profile_id": 1,
+      "media_type": "photo",
+      "media_url": "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=800&auto=format&fit=crop&q=80",
+      "thumbnail_url": "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=400&auto=format&fit=crop&q=80",
+      "caption": "Soundcheck showcase acoustic session. Reverb analog siap mengalun di venue akhir pekan ini. Hubungi kami via WA untuk tanggal kosong berikutnya!",
+      "views_count": 289,
+      "wa_clicks_count": 12,
+      "created_at": "2026-10-28T09:15:00.000Z",
+      "slides": null
+    },
+    {
+      "id": 8,
+      "band_profile_id": 4,
+      "media_type": "photo",
+      "media_url": "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=800&auto=format&fit=crop&q=80",
+      "thumbnail_url": "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&auto=format&fit=crop&q=80",
+      "caption": "Moshpit bergemuruh di showcase underground Jakarta! Musik cepat, lirik lugas, energi murni hardcore punk.",
+      "views_count": 276,
+      "wa_clicks_count": 11,
+      "created_at": "2026-11-05T19:30:00.000Z",
+      "slides": null
+    },
+    {
+      "id": 4,
+      "band_profile_id": 1,
+      "media_type": "photo",
+      "media_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80",
+      "thumbnail_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80",
+      "caption": "Backstage vibes sebelum naik panggung. Rider aman, energi maksimal. Sampai jumpa di panggung berikutnya!",
+      "views_count": 199,
+      "wa_clicks_count": 9,
+      "created_at": "2026-11-08T18:00:00.000Z",
+      "slides": null
+    },
+    {
+      "id": 10,
+      "band_profile_id": 1,
+      "media_type": "photo",
+      "media_url": "/uploads/1794949324198-611750093.png",
+      "thumbnail_url": "/uploads/1794949324198-611750093.png",
+      "caption": "tes",
+      "slides": "[{\"type\":\"photo\",\"url\":\"/uploads/1794949324198-611750093.png\"},{\"type\":\"video\",\"url\":\"/uploads/1794949417385-209307098.mp4\"}]",
+      "views_count": 0,
+      "wa_clicks_count": 0,
+      "created_at": "2026-11-17T20:59:56.983Z"
+    },
     {
       "id": 5,
       "band_profile_id": 2,
@@ -481,54 +565,6 @@
       "wa_clicks_count": 18,
       "created_at": "2026-10-20T14:20:00.000Z",
       "slides": null
-    },
-    {
-      "id": 2,
-      "band_profile_id": 1,
-      "media_type": "photo",
-      "media_url": "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=800&auto=format&fit=crop&q=80",
-      "thumbnail_url": "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=400&auto=format&fit=crop&q=80",
-      "caption": "Soundcheck showcase acoustic session. Reverb analog siap mengalun di venue akhir pekan ini. Hubungi kami via WA untuk tanggal kosong berikutnya!",
-      "views_count": 289,
-      "wa_clicks_count": 12,
-      "created_at": "2026-10-28T09:15:00.000Z",
-      "slides": null
-    },
-    {
-      "id": 8,
-      "band_profile_id": 4,
-      "media_type": "photo",
-      "media_url": "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=800&auto=format&fit=crop&q=80",
-      "thumbnail_url": "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&auto=format&fit=crop&q=80",
-      "caption": "Moshpit bergemuruh di showcase underground Jakarta! Musik cepat, lirik lugas, energi murni hardcore punk.",
-      "views_count": 276,
-      "wa_clicks_count": 11,
-      "created_at": "2026-11-05T19:30:00.000Z",
-      "slides": null
-    },
-    {
-      "id": 4,
-      "band_profile_id": 1,
-      "media_type": "photo",
-      "media_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80",
-      "thumbnail_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80",
-      "caption": "Backstage vibes sebelum naik panggung. Rider aman, energi maksimal. Sampai jumpa di panggung berikutnya!",
-      "views_count": 199,
-      "wa_clicks_count": 9,
-      "created_at": "2026-11-08T18:00:00.000Z",
-      "slides": null
-    },
-    {
-      "id": 10,
-      "band_profile_id": 1,
-      "media_type": "photo",
-      "media_url": "/uploads/1794949324198-611750093.png",
-      "thumbnail_url": "/uploads/1794949324198-611750093.png",
-      "caption": "tes",
-      "slides": "[{\"type\":\"photo\",\"url\":\"/uploads/1794949324198-611750093.png\"},{\"type\":\"video\",\"url\":\"/uploads/1794949417385-209307098.mp4\"}]",
-      "views_count": 0,
-      "wa_clicks_count": 0,
-      "created_at": "2026-11-17T20:59:56.983Z"
     }
   ],
   "media_files": [
@@ -620,7 +656,11 @@
       "band_profile_id": 1,
       "connection_type": "contact_view",
       "notes": "Tanya jadwal untuk live music Jumat malam di Kafe Selatan",
-      "created_at": "2026-10-16T13:36:20.035Z"
+      "created_at": "2026-10-16T13:36:20.035Z",
+      "event_date": null,
+      "event_name": null,
+      "status": "confirmed",
+      "is_reviewed": false
     },
     {
       "id": 2,
@@ -628,7 +668,11 @@
       "band_profile_id": 2,
       "connection_type": "contact_view",
       "notes": "Undangan pentas seni Jogja Creative Festival 2026",
-      "created_at": "2026-10-16T13:36:20.035Z"
+      "created_at": "2026-10-16T13:36:20.035Z",
+      "event_date": null,
+      "event_name": null,
+      "status": "confirmed",
+      "is_reviewed": false
     },
     {
       "id": 3,
@@ -636,7 +680,11 @@
       "band_profile_id": 3,
       "connection_type": "contact_view",
       "notes": "Rencana panggung utama Pasar Malam Digital Surabaya",
-      "created_at": "2026-10-16T13:36:20.035Z"
+      "created_at": "2026-10-16T13:36:20.035Z",
+      "event_date": null,
+      "event_name": null,
+      "status": "confirmed",
+      "is_reviewed": false
     },
     {
       "id": 4,
@@ -644,7 +692,11 @@
       "band_profile_id": 4,
       "connection_type": "contact_view",
       "notes": "Showcase musik alternatif Jakarta",
-      "created_at": "2026-10-16T13:36:20.035Z"
+      "created_at": "2026-10-16T13:36:20.035Z",
+      "event_date": null,
+      "event_name": null,
+      "status": "confirmed",
+      "is_reviewed": false
     }
   ],
   "password_reset_tokens": [],
@@ -713,6 +765,65 @@
       "short_name": "UNY",
       "city": "Kota Jogja",
       "created_at": "2026-11-21T18:00:00.000Z"
+    },
+    {
+      "name": "Universitas Dian Nuswantoro",
+      "short_name": "UDINUS",
+      "city": "Kota Semarang",
+      "id": 5,
+      "created_at": "2026-11-21T12:07:09.293Z"
+    }
+  ],
+  "reviews": [
+    {
+      "id": 1,
+      "band_profile_id": 1,
+      "organizer_user_id": 9,
+      "rating": 5,
+      "review_text": "Penampilan Kelana Ombak di Pensi Kampus luar biasa! Sound vintage surf rock mereka bikin seluruh penonton bergoyang.",
+      "event_date": "2026-11-10",
+      "connection_id": null,
+      "created_at": "2026-11-21T12:07:09.294Z"
+    },
+    {
+      "id": 2,
+      "band_profile_id": 1,
+      "organizer_user_id": 10,
+      "rating": 4.8,
+      "review_text": "Komunikasi technical rider audio sangat kooperatif, tepat waktu saat soundcheck dan aksi panggung profesional.",
+      "event_date": "2026-11-15",
+      "connection_id": null,
+      "created_at": "2026-11-21T12:07:09.294Z"
+    },
+    {
+      "id": 3,
+      "band_profile_id": 2,
+      "organizer_user_id": 9,
+      "rating": 4.8,
+      "review_text": "Suasana kafe sangat hidup dengan harmoni vokal dan cello Senja Bersuara. Sangat direkomendasikan untuk event intim!",
+      "event_date": "2026-11-08",
+      "connection_id": null,
+      "created_at": "2026-11-21T12:07:09.294Z"
+    },
+    {
+      "id": 4,
+      "band_profile_id": 4,
+      "organizer_user_id": 10,
+      "rating": 3.8,
+      "review_text": "Energi rock alternatif mereka mantap untuk crowd muda kampus, riff distorsi solid.",
+      "event_date": "2026-11-05",
+      "connection_id": null,
+      "created_at": "2026-11-21T12:07:09.294Z"
+    },
+    {
+      "id": 5,
+      "band_profile_id": 8,
+      "organizer_user_id": 9,
+      "rating": 2.8,
+      "review_text": "Kualitas aransemen funk sangat bagus, namun waktu mulai perform sedikit terlambat dari rundown.",
+      "event_date": "2026-11-02",
+      "connection_id": null,
+      "created_at": "2026-11-21T12:07:09.294Z"
     }
   ]
 }

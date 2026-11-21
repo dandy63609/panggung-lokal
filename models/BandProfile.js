@@ -11,6 +11,13 @@ function slugify(text) {
     .replace(/^-+|-+$/g, '');
 }
 
+function getRatingTier(rating) {
+  const r = Number(rating) || 0;
+  if (r >= 4.5) return 'Rekomendasi Favorit';
+  if (r >= 3.0) return 'Sangat Baik';
+  return 'Baik';
+}
+
 /**
  * BandProfile Model
  * Handles database operations for band profiles
@@ -78,6 +85,15 @@ class BandProfile {
 
     this.profileViews = data.profile_views || 0;
     this.stageVisualPostId = data.stage_visual_post_id ? Number(data.stage_visual_post_id) : null;
+    
+    // Rating & Review system
+    this.ratingAverage = data.rating_average !== undefined && data.rating_average !== null ? Number(data.rating_average) : 4.8;
+    this.ratingCount = data.rating_count !== undefined && data.rating_count !== null ? Number(data.rating_count) : 1;
+    this.ratingOverride = data.rating_override !== undefined && data.rating_override !== null ? Number(data.rating_override) : null;
+    const effectiveRating = this.ratingOverride !== null ? this.ratingOverride : this.ratingAverage;
+    this.rating = Number(Number(effectiveRating).toFixed(1));
+    this.ratingTier = getRatingTier(this.rating);
+
     this.createdAt = data.created_at;
     this.updatedAt = data.updated_at;
   }
@@ -241,6 +257,9 @@ class BandProfile {
       ['rider_hospitality', riderHosp],
       ['rider_items', riderItemsJson],
       ['stage_visual_post_id', data.stageVisualPostId !== undefined ? (data.stageVisualPostId ? Number(data.stageVisualPostId) : null) : undefined],
+      ['rating_override', data.ratingOverride !== undefined ? (data.ratingOverride !== null && data.ratingOverride !== '' ? Number(data.ratingOverride) : null) : undefined],
+      ['rating_average', data.ratingAverage !== undefined ? (data.ratingAverage !== null && data.ratingAverage !== '' ? Number(data.ratingAverage) : null) : undefined],
+      ['rating_count', data.ratingCount !== undefined ? Number(data.ratingCount) : undefined],
     ];
 
     for (const [col, val] of map) {
@@ -437,5 +456,7 @@ class BandProfile {
     return result.rows.map(row => new BandProfile(row));
   }
 }
+
+BandProfile.getRatingTier = getRatingTier;
 
 module.exports = BandProfile;

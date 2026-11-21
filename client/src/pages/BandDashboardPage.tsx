@@ -37,6 +37,7 @@ import {
   YouTubeIcon,
   TikTokIcon,
 } from '../components/ui/SocialIcons'
+import { getRatingTierBadge } from '../lib/ratingHelpers'
 import { JobBroadcastsTab } from '../components/dashboard/JobBroadcastsTab'
 import { ManageAudioModal } from '../components/band/ManageAudioModal'
 import {
@@ -806,19 +807,30 @@ export const BandDashboardPage: React.FC = () => {
             {/* Bottom Bar: 3 Metrics Columns & Pill Buttons */}
             <div className="border-t border-[#222222] mt-6 pt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
               {/* Left: 3 Metrics separated by vertical line dividers */}
-              <div className="flex items-center gap-5 sm:gap-8">
+              <div className="flex items-center gap-5 sm:gap-8 flex-wrap">
                 {/* Metric 1: Rating */}
-                <div>
-                  <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
-                    <Star className="w-4 h-4 fill-[#E01E37] text-[#E01E37]" />
-                    <span>4.9</span>
-                  </div>
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
-                    rating panggung
-                  </span>
-                </div>
+                {(() => {
+                  const currentRating = Number(profile?.rating || profile?.ratingAverage || 4.8)
+                  const tierInfo = getRatingTierBadge(currentRating)
+                  return (
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
+                          <Star className="w-4 h-4 fill-[#FFD166] text-[#FFD166]" />
+                          <span>{currentRating.toFixed(1)}</span>
+                        </div>
+                        <span className={`font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${tierInfo.bgClass}`}>
+                          {tierInfo.label}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
+                        rating panggung (EO)
+                      </span>
+                    </div>
+                  )
+                })()}
 
-                <div className="w-px h-8 bg-[#2A2A2A]" />
+                <div className="w-px h-8 bg-[#2A2A2A] hidden sm:block" />
 
                 {/* Metric 2: Profil Views */}
                 <div>
@@ -830,15 +842,19 @@ export const BandDashboardPage: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="w-px h-8 bg-[#2A2A2A]" />
+                <div className="w-px h-8 bg-[#2A2A2A] hidden sm:block" />
 
                 {/* Metric 3: Starting Rate */}
                 <div>
                   <div className="text-white font-display text-xl sm:text-2xl tracking-wide">
-                    {profile?.budgetMin ? formatRupiah(profile.budgetMin) : 'Rp 3.5jt'}
+                    {profile?.budgetMin && profile?.budgetMax && profile.budgetMin !== profile.budgetMax
+                      ? `${formatRupiah(profile.budgetMin)} - ${formatRupiah(profile.budgetMax)}`
+                      : profile?.budgetMin
+                        ? formatRupiah(profile.budgetMin)
+                        : 'Rp 3.500.000'}
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
-                    tarif mulai
+                    tarif manggung
                   </span>
                 </div>
               </div>

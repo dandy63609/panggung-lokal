@@ -46,7 +46,8 @@ import {
 } from '../lib/bandHelpers'
 import { formatRupiah } from '../lib/utils'
 import { authClient, type AuthUser } from '../lib/auth'
-import type { Band, BandPost, MediaFile, RiderItem } from '../types'
+import { getRatingTierBadge, getRatingTier } from '../lib/ratingHelpers'
+import type { Band, BandPost, MediaFile, RiderItem, BandReview } from '../types'
 
 function formatAudioTime(seconds: number): string {
   if (isNaN(seconds) || seconds <= 0) return '0:00'
@@ -122,6 +123,7 @@ export const BandDetailPage: React.FC = () => {
   const [loadingBand, setLoadingBand] = useState<boolean>(isValidIdentifier && !fallbackMatch)
   const [notFoundError, setNotFoundError] = useState<boolean>(!isValidIdentifier)
   const [liveRelatedBands, setLiveRelatedBands] = useState<Band[] | null>(null)
+  const [reviews, setReviews] = useState<BandReview[]>([])
 
   if (rawIdentifier !== prevIdentifier) {
     setPrevIdentifier(rawIdentifier)
@@ -134,6 +136,18 @@ export const BandDetailPage: React.FC = () => {
     setActivePost(null)
     setBrokenCardThumbIds({})
   }
+
+  useEffect(() => {
+    if (!band?.id) return
+    fetch(`/api/reviews/band/${band.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data)) {
+          setReviews(data.data)
+        }
+      })
+      .catch(() => {})
+  }, [band?.id])
 
   // Sync fetched live band details when route target or auth session changes
   useEffect(() => {
@@ -436,7 +450,7 @@ export const BandDetailPage: React.FC = () => {
   const baseRate = hasFixedRate ? (band?.budgetMin || 0) : 0
   const totalPrice = hasFixedRate ? Math.round(baseRate * setQuantity) : 0
 
-  const handleDirectWhatsApp = () => {
+  const handleDirectWhatsApp = (eventDate?: string, eventName?: string) => {
     if (!band?.phone) return
     const cleanPhone = formatWhatsAppPhone(band.phone, '')
     if (!cleanPhone) return
@@ -454,6 +468,8 @@ export const BandDetailPage: React.FC = () => {
             bandProfileId: band.id,
             connectionType: 'whatsapp_direct',
             notes: `Direct WA booking: ${setQuantity} Set Performance`,
+            eventDate: eventDate || null,
+            eventName: eventName || null,
           }),
         }).catch(() => {})
       }
@@ -461,8 +477,12 @@ export const BandDetailPage: React.FC = () => {
       // Non-blocking
     }
     const rateLabel = hasFixedRate ? formatRupiah(totalPrice) : 'Negosiasi'
+    const eventLabel = eventName ? `- Acara: ${eventName}\n` : ''
+    const dateLabel = eventDate ? `- Tanggal Tampil: ${eventDate}\n` : ''
     const message = encodeURIComponent(
       `Halo Management ${band.bandName}, kami dari Event Organizer ingin mengajukan penawaran booking panggung melalui Reffband:\n` +
+      eventLabel +
+      dateLabel +
       `- Durasi: ${setQuantity} Set Performance\n` +
       `- Estimasi Rate: ${rateLabel}\n` +
       `Mohon informasi ketersediaan jadwal tanggal dan konfirmasi spesifikasi technical rider panggung Anda. Terima kasih!`
@@ -703,6 +723,16 @@ export const BandDetailPage: React.FC = () => {
                 <span className="font-mono text-[11px] uppercase tracking-wider text-white bg-white/10 border border-white/20 px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full">
                   SOUNDCHECK VERIFIED
                 </span>
+                {(() => {
+                  const currentRating = Number(band.rating || band.ratingAverage || 4.8)
+                  const tierInfo = getRatingTierBadge(currentRating)
+                  return (
+                    <div className={`font-mono text-[11px] uppercase tracking-wider px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full border ${tierInfo.bgClass}`}>
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                      <span>{currentRating.toFixed(1)} · {tierInfo.label}</span>
+                    </div>
+                  )
+                })()}
               </div>
             </div>
 
@@ -712,6 +742,39 @@ export const BandDetailPage: React.FC = () => {
                 <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl text-white tracking-wider uppercase leading-none">
                   {band.bandName}
                 </h1>
+
+                {/* Rating & Review Counter Line */}
+                {(() => {
+                  const currentRating = Number(band.rating || band.ratingAverage || 4.8)
+                  const tierInfo = getRatingTierBadge(currentRating)
+                  return (
+                    <div className="flex items-center gap-3 flex-wrap pt-0.5">
+                      <div className="flex items-center gap-1 bg-[#181818] border border-white/10 px-2.5 py-1 rounded-lg">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`w-3.5 h-3.5 ${
+                              s <= Math.round(currentRating)
+                                ? 'fill-[#FFD166] text-[#FFD166]'
+                                : 'text-[#444]'
+                            }`}
+                          />
+                        ))}
+                        <span className="font-mono font-bold text-white text-xs sm:text-sm ml-1.5">
+                          {currentRating.toFixed(1)} / 5.0
+                        </span>
+                      </div>
+                      <span className="text-[#555]">•</span>
+                      <span className={`font-mono text-xs font-bold px-2.5 py-1 rounded border uppercase tracking-wider ${tierInfo.bgClass}`}>
+                        {tierInfo.label}
+                      </span>
+                      <span className="text-[#555]">•</span>
+                      <span className="font-mono text-xs text-[#A0A0A0]">
+                        {reviews.length || band.ratingCount || 1} Penilaian EO Terverifikasi
+                      </span>
+                    </div>
+                  )
+                })()}
                 <p className="text-sm text-[#CCCCCC] font-sans leading-relaxed">
                   {band.bio || 'Unit musisi terverifikasi siap tampil untuk panggung live festival, gig intim, dan pementasan kampus.'}
                 </p>
@@ -1485,6 +1548,173 @@ export const BandDetailPage: React.FC = () => {
               )
             })}
           </div>
+          )}
+        </section>
+
+        {/* 6. PENILAIAN & ULASAN EVENT ORGANIZER */}
+        <section className="w-full pb-16">
+          <div className="relative border-b-2 border-[#E01E37] pb-3 mb-8 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+            <div
+              className="bg-[#E01E37] text-white px-6 py-2.5 font-mono font-bold text-sm sm:text-base uppercase tracking-widest inline-flex items-center gap-3 select-none"
+              style={{
+                clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%)',
+              }}
+            >
+              <span>PENILAIAN & ULASAN EVENT ORGANIZER</span>
+            </div>
+
+            <div className="flex items-center gap-4 font-mono text-xs">
+              <span className="text-[#A0A0A0]">
+                Rating Ditentukan Oleh EO Terverifikasi
+              </span>
+            </div>
+          </div>
+
+          {/* Rating Summary Card & Scale Representation */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Big Rating Box */}
+            {(() => {
+              const currentRating = Number(band.rating || band.ratingAverage || 4.8)
+              const tierInfo = getRatingTierBadge(currentRating)
+              return (
+                <div className="bg-[#121212] border border-[#222222] p-6 rounded-2xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#737373] block mb-2 font-bold">
+                      SKOR RATING BAND
+                    </span>
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-5xl font-mono font-bold text-white tracking-tight">
+                        {currentRating.toFixed(1)}
+                      </span>
+                      <span className="text-sm font-mono text-[#888]">/ 5.0</span>
+                    </div>
+
+                    <div className="flex items-center gap-1 my-3">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`w-5 h-5 ${
+                            s <= Math.round(currentRating)
+                              ? 'fill-[#FFD166] text-[#FFD166]'
+                              : 'text-[#333]'
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="mt-2">
+                      <span className={`inline-block font-mono text-xs font-bold px-3 py-1 rounded-full border uppercase tracking-wider ${tierInfo.bgClass}`}>
+                        {tierInfo.badgeText}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#A0A0A0] mt-4 font-sans leading-relaxed">
+                    {tierInfo.description}
+                  </p>
+                </div>
+              )
+            })()}
+
+            {/* Rating Scale Legend (1-2 Baik, 3-4 Sangat Baik, 4.5-5 Rekomendasi Favorit) */}
+            <div className="lg:col-span-2 bg-[#121212] border border-[#222222] p-6 rounded-2xl space-y-4">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#737373] block font-bold">
+                STANDAR REPRESENTASI BINTANG REFFBAND
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-[#0A0A0A] border border-[#FFD166]/30 p-3.5 rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-[#FFD166]">⭐ 1.0 - 2.9</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#FFD166]/10 text-[#FFD166] font-bold">BAIK</span>
+                  </div>
+                  <p className="text-[11px] text-[#A0A0A0] leading-relaxed">
+                    Performa standar, musisi siap tampil di gig kecil dan panggung santai.
+                  </p>
+                </div>
+
+                <div className="bg-[#0A0A0A] border border-[#00D9FF]/30 p-3.5 rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-[#00D9FF]">⭐ 3.0 - 4.4</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00D9FF]/10 text-[#00D9FF] font-bold">SANGAT BAIK</span>
+                  </div>
+                  <p className="text-[11px] text-[#A0A0A0] leading-relaxed">
+                    Aksi panggung energik, crowd engagement kuat, dan kedisiplinan rundown tinggi.
+                  </p>
+                </div>
+
+                <div className="bg-[#0A0A0A] border border-[#E01E37]/50 p-3.5 rounded-xl space-y-1.5 shadow-[0_0_15px_rgba(224,30,55,0.1)]">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-[#FF4D6D]">⭐ 4.5 - 5.0</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#E01E37]/20 text-[#FF4D6D] font-bold">REKOMENDASI FAVORIT</span>
+                  </div>
+                  <p className="text-[11px] text-[#A0A0A0] leading-relaxed">
+                    Pilihan utama kurator & EO. Live show spektakuler, audio rider prima, kepuasan 100%.
+                  </p>
+                </div>
+              </div>
+
+              {/* EO Rating Workflow Info */}
+              <div className="bg-[#181818] p-3 rounded-xl border border-white/5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#E01E37]/20 text-[#E01E37] flex items-center justify-center shrink-0 mt-0.5 font-bold">
+                  ✓
+                </div>
+                <div className="text-xs text-[#CCCCCC] space-y-0.5 leading-relaxed">
+                  <span className="font-bold text-white block">Sistem Rating Tertutup Otomatis Reffband</span>
+                  <span>Rating hanya dapat diberikan oleh akun Event Organizer (EO) yang telah membooking band. Setelah tanggal acara selesai (tepat pukul 00.00 WIB), EO menerima email otomatis dan wajib memberikan ulasan sebelum dapat mengakses menu utama.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Reviews List */}
+          {reviews.length > 0 ? (
+            <div className="space-y-3">
+              {reviews.map((rev) => {
+                const tierInfo = getRatingTierBadge(rev.rating)
+                return (
+                  <div key={rev.id} className="bg-[#101010] border border-[#222222] p-5 rounded-2xl flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <div className="flex items-center gap-1 text-[#FFD166]">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`w-3.5 h-3.5 ${
+                                s <= Math.round(rev.rating) ? 'fill-[#FFD166] text-[#FFD166]' : 'text-[#333]'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="font-mono text-xs font-bold text-white">{Number(rev.rating).toFixed(1)}</span>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded border font-bold uppercase ${tierInfo.bgClass}`}>
+                          {tierInfo.label}
+                        </span>
+                        <span className="text-[11px] font-mono text-[#00D9FF] bg-[#00D9FF]/10 px-2 py-0.5 rounded border border-[#00D9FF]/20">
+                          ✓ Terverifikasi Selesai Tampil
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#CCCCCC] font-sans leading-relaxed">
+                        "{rev.reviewText}"
+                      </p>
+                    </div>
+
+                    <div className="text-right shrink-0 space-y-1 font-mono text-[11px] text-[#777]">
+                      <div className="text-[#AAA] font-bold">{rev.organizerEmail || 'EO Penyelenggara'}</div>
+                      {rev.eventDate && <div>Tgl Tampil: {rev.eventDate}</div>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="bg-[#101010] border border-[#222222] p-8 text-center rounded-2xl space-y-2">
+              <span className="text-2xl">⭐</span>
+              <h3 className="font-mono text-sm font-bold uppercase text-white">Belum Ada Ulasan Pasca-Tampil</h3>
+              <p className="text-xs text-[#888] max-w-md mx-auto">
+                Band ini memiliki skor kurasi awal {band.rating || band.ratingAverage || 4.8}. Penilaian langsung akan bertambah setelah EO menyelesaikan booking tanggal penampilan berikutnya.
+              </p>
+            </div>
           )}
         </section>
 

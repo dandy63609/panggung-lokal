@@ -21,8 +21,12 @@ import {
   GraduationCap,
   Plus,
   Building2,
+  Star,
+  Edit3,
 } from 'lucide-react'
 import { authClient, type AuthUser } from '../lib/auth'
+import { getRatingTierBadge, getRatingTier } from '../lib/ratingHelpers'
+import { formatRupiah } from '../lib/utils'
 
 interface AdminCampus {
   id: number
@@ -30,6 +34,29 @@ interface AdminCampus {
   short_name: string
   city: string
   created_at?: string
+}
+
+interface AdminBandRecord {
+  id: number
+  userId: number
+  bandName: string
+  genre: string
+  locationCity: string
+  locationRegion?: string
+  campus?: string | null
+  bio?: string
+  budgetMin?: number
+  budgetMax?: number
+  phone?: string
+  profileViews?: number
+  ratingAverage?: number
+  ratingCount?: number
+  ratingOverride?: number | null
+  rating: number
+  ratingTier: string
+  userEmail?: string
+  isActive?: boolean
+  createdAt?: string
 }
 
 interface AdminBandAffiliation {
@@ -77,13 +104,20 @@ export const AdminDashboardPage: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authClient.getUser())
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState<'users' | 'reports' | 'system' | 'campuses'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'reports' | 'system' | 'campuses' | 'bands'>('users')
   const [userFilter, setUserFilter] = useState<'all' | 'band' | 'organizer'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<number | string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+
+  // Super Admin Bands & Rating Control State
+  const [adminBands, setAdminBands] = useState<AdminBandRecord[]>([])
+  const [loadingBands, setLoadingBands] = useState(false)
+  const [bandSearch, setBandSearch] = useState('')
+  const [editingBand, setEditingBand] = useState<AdminBandRecord | null>(null)
+  const [isSavingBand, setIsSavingBand] = useState(false)
 
   // Campuses & Band Affiliation State (Hanya Admin yang berwenang mengelola)
   const [campuses, setCampuses] = useState<AdminCampus[]>([])
@@ -206,6 +240,63 @@ export const AdminDashboardPage: React.FC = () => {
       showToast('Kendala koneksi saat menetapkan kampus', 'error')
     } finally {
       setUpdatingBandCampusId(null)
+    }
+  }
+
+  const loadAdminBands = useCallback(async () => {
+    try {
+      setLoadingBands(true)
+      const res = await fetch('/api/admin/bands', {
+        headers: authClient.getAuthHeaders(),
+      })
+      const json = await res.json()
+      if (json.success && Array.isArray(json.data)) {
+        setAdminBands(json.data)
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingBands(false)
+    }
+  }, [])
+
+  const handleSaveBand = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingBand) return
+    setIsSavingBand(true)
+    try {
+      const res = await fetch(`/api/admin/bands/${editingBand.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authClient.getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          bandName: editingBand.bandName,
+          genre: editingBand.genre,
+          locationCity: editingBand.locationCity,
+          campus: editingBand.campus,
+          budgetMin: editingBand.budgetMin,
+          budgetMax: editingBand.budgetMax,
+          ratingOverride: editingBand.ratingOverride,
+          bio: editingBand.bio,
+          phone: editingBand.phone,
+          isActive: editingBand.isActive,
+        }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        showToast(json.message || 'Data musisi berhasil diperbarui oleh Administrator', 'success')
+        setEditingBand(null)
+        await loadAdminBands()
+        await loadCampuses()
+      } else {
+        showToast(json.message || 'Gagal menyimpan perubahan musisi', 'error')
+      }
+    } catch {
+      showToast('Kendala jaringan saat menyimpan perubahan musisi', 'error')
+    } finally {
+      setIsSavingBand(false)
     }
   }
 
@@ -828,44 +919,44 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         {/* 5. INTERACTIVE WORKSPACE TABS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 border-b border-[#242424] pb-3 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 border-b border-[#242424] pb-3 mb-6">
           <button
             type="button"
             onClick={() => setActiveTab('users')}
-            className={`px-4 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-2 rounded-xl cursor-pointer ${
+            className={`px-3 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl cursor-pointer ${
               activeTab === 'users'
                 ? 'bg-[#E01E37] text-white shadow-[0_0_15px_rgba(224,30,55,0.3)]'
                 : 'bg-[#121212] border border-[#242424] text-[#808080] hover:text-white'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>01 // Manajemen Pengguna ({users.length})</span>
+            <span>01 // Pengguna ({users.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('reports')}
-            className={`px-4 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-2 rounded-xl cursor-pointer ${
+            className={`px-3 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl cursor-pointer ${
               activeTab === 'reports'
                 ? 'bg-[#E01E37] text-white shadow-[0_0_15px_rgba(224,30,55,0.3)]'
                 : 'bg-[#121212] border border-[#242424] text-[#808080] hover:text-white'
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            <span>02 // Tiket Moderasi ({reports.length})</span>
+            <span>02 // Moderasi ({reports.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('system')}
-            className={`px-4 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-2 rounded-xl cursor-pointer ${
+            className={`px-3 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl cursor-pointer ${
               activeTab === 'system'
                 ? 'bg-[#E01E37] text-white shadow-[0_0_15px_rgba(224,30,55,0.3)]'
                 : 'bg-[#121212] border border-[#242424] text-[#808080] hover:text-white'
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>03 // Status Infrastruktur</span>
+            <span>03 // Infrastruktur</span>
           </button>
 
           <button
@@ -874,14 +965,30 @@ export const AdminDashboardPage: React.FC = () => {
               setActiveTab('campuses')
               loadCampuses()
             }}
-            className={`px-4 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-2 rounded-xl cursor-pointer ${
+            className={`px-3 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl cursor-pointer ${
               activeTab === 'campuses'
                 ? 'bg-[#E01E37] text-white shadow-[0_0_15px_rgba(224,30,55,0.3)]'
                 : 'bg-[#121212] border border-[#242424] text-[#808080] hover:text-white'
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5 text-[#FFD166]" />
-            <span>04 // Afiliasi Kampus ({campuses.length})</span>
+            <span>04 // Kampus ({campuses.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('bands')
+              loadAdminBands()
+            }}
+            className={`px-3 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl cursor-pointer ${
+              activeTab === 'bands'
+                ? 'bg-[#E01E37] text-white shadow-[0_0_15px_rgba(224,30,55,0.3)]'
+                : 'bg-[#121212] border border-[#242424] text-[#808080] hover:text-white'
+            }`}
+          >
+            <Star className="w-3.5 h-3.5 text-[#FFD166]" />
+            <span>05 // Kontrol Musisi & Rating</span>
           </button>
         </div>
 
@@ -1019,7 +1126,29 @@ export const AdminDashboardPage: React.FC = () => {
                             </span>
                           </td>
                           <td className="py-3.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-2 flex-wrap">
+                              {u.band_profile_id && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await loadAdminBands()
+                                    const res = await fetch('/api/admin/bands', { headers: authClient.getAuthHeaders() })
+                                    const json = await res.json()
+                                    const bandsList = json.data || []
+                                    const found = bandsList.find((b: any) => b.id === u.band_profile_id)
+                                    if (found) {
+                                      setEditingBand(found)
+                                    } else {
+                                      setActiveTab('bands')
+                                    }
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-lg bg-[#FFD166]/10 text-[#FFD166] border border-[#FFD166]/40 hover:bg-[#FFD166] hover:text-black font-mono text-[11px] uppercase transition-all min-h-[44px] whitespace-nowrap cursor-pointer inline-flex items-center gap-1 font-bold"
+                                  title="Super Admin: Ubah status, rating, harga dan profil band"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  <span>Kontrol Band</span>
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => handleToggleSuspendUser(u.id, u.is_active)}
@@ -1426,6 +1555,454 @@ export const AdminDashboardPage: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: SUPER ADMIN BANDS & RATING CONTROL */}
+        {activeTab === 'bands' && (
+          <div className="bg-[#121212] border border-[#242424] rounded-2xl p-6 shadow-xl space-y-8">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#202020]">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 bg-[#E01E37] rounded-full animate-pulse" />
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#E01E37] font-bold">
+                    HAK OTORITAS TERTINGGI // SUPER ADMIN
+                  </span>
+                </div>
+                <h2 className="font-mono text-base font-bold text-white uppercase">
+                  KONTROL LENGKAP MUSISI, RATING &amp; HARGA
+                </h2>
+                <p className="text-xs text-[#808080] font-sans">
+                  Akun Administrator memiliki kuasa penuh mengubah nama, genre, status keaktifan, afiliasi kampus, tarif panggung, dan melakukan override manual rating bintang musisi.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={loadAdminBands}
+                  disabled={loadingBands}
+                  className="px-4 py-2 bg-[#1C1C1C] hover:bg-[#252525] border border-[#333333] text-white font-mono text-xs uppercase font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingBands ? 'animate-spin' : ''}`} />
+                  <span>Segarkan Data Band</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter & Search */}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#666]" />
+                <input
+                  type="text"
+                  value={bandSearch}
+                  onChange={(e) => setBandSearch(e.target.value)}
+                  placeholder="Cari musisi berdasarkan nama, genre, kota, atau kampus..."
+                  className="w-full bg-[#0E0E0E] border border-[#2A2A2A] focus:border-[#E01E37] text-white text-xs pl-9 pr-3 py-2 rounded-xl outline-none font-mono transition-colors"
+                />
+              </div>
+
+              <div className="font-mono text-xs text-[#888]">
+                Total: <span className="text-white font-bold">{adminBands.length}</span> Musisi Terdaftar
+              </div>
+            </div>
+
+            {/* Bands Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse font-mono text-xs">
+                <thead>
+                  <tr className="border-b border-[#242424] text-[#737373] uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-4">Musisi &amp; Kontak</th>
+                    <th className="py-3 px-4">Genre &amp; Domisili</th>
+                    <th className="py-3 px-4">Afiliasi Kampus</th>
+                    <th className="py-3 px-4">Rating &amp; Tier</th>
+                    <th className="py-3 px-4">Estimasi Tarif</th>
+                    <th className="py-3 px-4">Status Akun</th>
+                    <th className="py-3 px-4 text-right">Otoritas Admin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#1C1C1C]">
+                  {adminBands
+                    .filter((b) => {
+                      if (!bandSearch.trim()) return true
+                      const q = bandSearch.toLowerCase()
+                      return (
+                        b.bandName.toLowerCase().includes(q) ||
+                        b.genre.toLowerCase().includes(q) ||
+                        b.locationCity.toLowerCase().includes(q) ||
+                        (b.campus && b.campus.toLowerCase().includes(q))
+                      )
+                    })
+                    .map((b) => {
+                      const tierInfo = getRatingTierBadge(b.rating)
+                      return (
+                        <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="space-y-0.5">
+                              <span className="font-bold text-white text-sm block uppercase">{b.bandName}</span>
+                              <span className="text-[11px] text-[#777] block">{b.userEmail}</span>
+                              <span className="text-[11px] text-[#999] block font-sans">WA: {b.phone || '-'}</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="space-y-0.5">
+                              <span className="text-[#FF4D6D] font-bold block">{b.genre}</span>
+                              <span className="text-[#888] block">{b.locationCity}</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {b.campus ? (
+                              <span className="font-mono text-[10px] uppercase font-bold text-[#FFD166] bg-[#FFD166]/10 px-2.5 py-1 rounded border border-[#FFD166]/30 inline-flex items-center gap-1">
+                                <span>🎓</span>
+                                <span>{b.campus}</span>
+                              </span>
+                            ) : (
+                              <span className="text-[#555] font-mono text-[11px]">Bebas Kampus</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <Star className="w-3.5 h-3.5 fill-[#FFD166] text-[#FFD166]" />
+                                <span className="font-bold text-white text-sm">{b.rating.toFixed(1)}</span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${tierInfo.bgClass}`}>
+                                  {tierInfo.label}
+                                </span>
+                              </div>
+                              {b.ratingOverride !== null && (
+                                <span className="text-[9px] font-mono text-[#FFD166] bg-[#FFD166]/10 px-1.5 py-0.5 rounded border border-[#FFD166]/30 block w-fit">
+                                  OVERRIDE ADMIN
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="space-y-0.5 font-mono text-xs">
+                              <span className="text-white font-bold block">
+                                {b.budgetMin ? formatRupiah(b.budgetMin) : 'Negosiasi'}
+                              </span>
+                              {b.budgetMax && b.budgetMax !== b.budgetMin && (
+                                <span className="text-[#777] text-[11px] block">
+                                  s/d {formatRupiah(b.budgetMax)}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-flex items-center gap-1 whitespace-nowrap ${
+                                b.isActive !== false
+                                  ? 'bg-white/15 text-white border border-white/30'
+                                  : 'bg-[#E01E37]/20 text-[#F87171] border border-[#E01E37]/40'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${b.isActive !== false ? 'bg-white' : 'bg-[#F87171]'}`} />
+                              {b.isActive !== false ? 'AKTIF' : 'NONAKTIF'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => setEditingBand({ ...b })}
+                              className="px-3.5 py-2 rounded-xl bg-[#E01E37]/15 hover:bg-[#E01E37] text-white border border-[#E01E37]/50 hover:border-[#E01E37] font-mono text-xs font-bold uppercase tracking-wider transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit Super Admin</span>
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* SUPER ADMIN BAND EDIT MODAL */}
+        {editingBand && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Super Admin Band Editor"
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            onClick={() => setEditingBand(null)}
+          >
+            <div
+              className="bg-[#121212] border-2 border-[#E01E37] rounded-3xl w-full max-w-2xl max-h-[92dvh] flex flex-col overflow-hidden shadow-[0_0_60px_rgba(224,30,55,0.4)] my-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="shrink-0 p-5 sm:p-6 border-b border-[#242424] flex items-center justify-between gap-4 bg-[#0A0A0A]">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#E01E37] animate-pulse" />
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-[#E01E37] font-bold">
+                      OTORITAS TERTINGGI // SUPER ADMIN
+                    </span>
+                  </div>
+                  <h3 className="font-mono text-lg font-bold text-white uppercase mt-0.5">
+                    Edit Musisi &amp; Override Rating: {editingBand.bandName}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingBand(null)}
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-[#888] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <form onSubmit={handleSaveBand} className="p-6 overflow-y-auto space-y-6">
+                {/* 1. Identity Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      NAMA BAND:
+                    </label>
+                    <input
+                      type="text"
+                      value={editingBand.bandName}
+                      onChange={(e) => setEditingBand({ ...editingBand, bandName: e.target.value })}
+                      required
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      GENRE MUSIK:
+                    </label>
+                    <input
+                      type="text"
+                      value={editingBand.genre}
+                      onChange={(e) => setEditingBand({ ...editingBand, genre: e.target.value })}
+                      required
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      KOTA DOMISILI (FOKUS REGIONAL):
+                    </label>
+                    <select
+                      value={editingBand.locationCity}
+                      onChange={(e) => setEditingBand({ ...editingBand, locationCity: e.target.value })}
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none cursor-pointer"
+                    >
+                      <option value="Kota Semarang">Kota Semarang</option>
+                      <option value="Kota Jogja">Kota Jogja</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#FFD166] block font-bold">
+                      AFILIASI KAMPUS (ADMIN ACCESS):
+                    </label>
+                    <select
+                      value={editingBand.campus || ''}
+                      onChange={(e) => setEditingBand({ ...editingBand, campus: e.target.value || null })}
+                      className="w-full bg-[#0E0E0E] border border-[#FFD166]/40 focus:border-[#FFD166] text-[#FFD166] p-2.5 rounded-xl font-mono text-xs outline-none cursor-pointer"
+                    >
+                      <option value="">-- Bebas Kampus / Non-Afiliasi --</option>
+                      {campuses.map((c) => (
+                        <option key={c.id} value={c.short_name}>
+                          {c.short_name} ({c.name} - {c.city})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 2. Rating & Tier Override Section */}
+                <div className="bg-[#181310] border border-[#FFD166]/40 p-4 sm:p-5 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-[10px] uppercase tracking-widest text-[#FFD166] font-bold block">
+                        OVERRIDE RATING BINTANG // SUPER ADMIN
+                      </span>
+                      <h4 className="font-mono text-sm font-bold text-white uppercase">
+                        Kontrol Penilaian &amp; Tier Representasi
+                      </h4>
+                    </div>
+
+                    {editingBand.ratingOverride !== null && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingBand({ ...editingBand, ratingOverride: null })}
+                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-[#FFD166] border border-[#FFD166]/30 text-[10px] font-mono uppercase rounded transition-colors"
+                      >
+                        Reset ke Skor Alami EO
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-[#BBB] font-sans leading-relaxed">
+                    Admin dapat menentukan rating band secara langsung (1.0 sampai 5.0 bintang). Tier akan otomatis berubah secara real-time sesuai ketentuan:
+                    <br />
+                    • <strong>1.0 - 2.9</strong>: Baik | • <strong>3.0 - 4.4</strong>: Sangat Baik | • <strong>4.5 - 5.0</strong>: Rekomendasi Favorit
+                  </p>
+
+                  <div className="space-y-3 bg-[#0A0A0A] p-4 rounded-xl border border-white/5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs text-white font-bold">
+                        Bintang Manual: {Number(editingBand.ratingOverride ?? editingBand.rating).toFixed(1)} / 5.0
+                      </span>
+
+                      {(() => {
+                        const score = Number(editingBand.ratingOverride ?? editingBand.rating)
+                        const tier = getRatingTierBadge(score)
+                        return (
+                          <span className={`font-mono text-xs font-bold px-3 py-1 rounded-full border uppercase tracking-wider ${tier.bgClass}`}>
+                            {tier.badgeText}
+                          </span>
+                        )
+                      })()}
+                    </div>
+
+                    <input
+                      type="range"
+                      min="1.0"
+                      max="5.0"
+                      step="0.1"
+                      value={Number(editingBand.ratingOverride ?? editingBand.rating)}
+                      onChange={(e) =>
+                        setEditingBand({
+                          ...editingBand,
+                          ratingOverride: parseFloat(e.target.value),
+                          rating: parseFloat(e.target.value),
+                        })
+                      }
+                      className="w-full accent-[#E01E37] cursor-pointer"
+                    />
+
+                    <div className="flex justify-between text-[10px] font-mono text-[#666]">
+                      <span>1.0 (Baik)</span>
+                      <span>3.0 (Sangat Baik)</span>
+                      <span>4.5 (Rekomendasi Favorit)</span>
+                      <span>5.0</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Pricing / Honor Range */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      TARIF MINIMUM (RP):
+                    </label>
+                    <input
+                      type="number"
+                      step="100000"
+                      value={editingBand.budgetMin || 0}
+                      onChange={(e) =>
+                        setEditingBand({
+                          ...editingBand,
+                          budgetMin: parseInt(e.target.value, 10) || 0,
+                        })
+                      }
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                    <span className="text-[10px] font-mono text-[#666]">
+                      {editingBand.budgetMin ? formatRupiah(editingBand.budgetMin) : 'Rp 0'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      TARIF MAKSIMUM (RP):
+                    </label>
+                    <input
+                      type="number"
+                      step="100000"
+                      value={editingBand.budgetMax || 0}
+                      onChange={(e) =>
+                        setEditingBand({
+                          ...editingBand,
+                          budgetMax: parseInt(e.target.value, 10) || 0,
+                        })
+                      }
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                    <span className="text-[10px] font-mono text-[#666]">
+                      {editingBand.budgetMax ? formatRupiah(editingBand.budgetMax) : 'Rp 0'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4. Phone & Active Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      NOMOR WHATSAPP MANAJEMEN:
+                    </label>
+                    <input
+                      type="text"
+                      value={editingBand.phone || ''}
+                      onChange={(e) => setEditingBand({ ...editingBand, phone: e.target.value })}
+                      placeholder="+6281234567890"
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      STATUS OPERASIONAL AKUN:
+                    </label>
+                    <select
+                      value={editingBand.isActive !== false ? 'active' : 'suspended'}
+                      onChange={(e) =>
+                        setEditingBand({
+                          ...editingBand,
+                          isActive: e.target.value === 'active',
+                        })
+                      }
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none cursor-pointer"
+                    >
+                      <option value="active">Aktif (Live di Web &amp; Pencarian)</option>
+                      <option value="suspended">Nonaktif / Ditangguhkan</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* 5. Bio */}
+                <div className="space-y-1.5">
+                  <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                    DESKRIPSI &amp; BIO MUSISI:
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={editingBand.bio || ''}
+                    onChange={(e) => setEditingBand({ ...editingBand, bio: e.target.value })}
+                    className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-3 rounded-xl font-sans text-xs outline-none leading-relaxed"
+                  />
+                </div>
+
+                {/* Submit Actions */}
+                <div className="pt-4 border-t border-[#222222] flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingBand(null)}
+                    className="px-4 py-2.5 rounded-xl border border-[#333333] text-[#CCC] hover:text-white font-mono text-xs uppercase font-bold transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingBand}
+                    className="px-6 py-2.5 rounded-xl bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{isSavingBand ? 'Menyimpan...' : 'Simpan Perubahan (Super Admin)'}</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

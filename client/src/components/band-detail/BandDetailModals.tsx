@@ -234,7 +234,7 @@ interface DirectBookingModalProps {
   totalPrice: number
   currentUser?: AuthUser | null
   onClose: () => void
-  onConfirmWhatsApp: () => void
+  onConfirmWhatsApp: (eventDate: string, eventName: string) => void
 }
 
 export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
@@ -246,6 +246,13 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
   onClose,
   onConfirmWhatsApp,
 }) => {
+  const [eventDate, setEventDate] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 7)
+    return d.toISOString().split('T')[0]
+  })
+  const [eventName, setEventName] = useState('Pensi Kampus / Festival Musik')
+
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -304,7 +311,7 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
           </div>
         )}
 
-        <div className="bg-[#0A0A0A] border border-[#222222] p-4 space-y-2 mb-6 font-mono text-xs rounded-xl">
+        <div className="bg-[#0A0A0A] border border-[#222222] p-4 space-y-3 mb-6 font-mono text-xs rounded-xl">
           <div className="flex justify-between py-1 border-b border-[#181818]">
             <span className="text-[#888] uppercase">FORMAT PANGGUNG</span>
             <span className="text-white font-bold uppercase">PERFORMA PANGGUNG LIVE</span>
@@ -317,12 +324,52 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
             <span className="text-[#888] uppercase">KOTA VENUE</span>
             <span className="text-white font-bold uppercase">{band.locationCity}</span>
           </div>
+
+          {/* Tanggal Acara / Tampil Input */}
+          <div className="py-2 border-b border-[#181818] space-y-1">
+            <label className="text-[#FFD166] text-[11px] uppercase tracking-wider block font-bold">
+              📅 TANGGAL TAMPIL / ACARA (Wajib Diisi EO):
+            </label>
+            <input
+              type="date"
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              className="w-full bg-[#181818] border border-[#333333] focus:border-[#E01E37] text-white p-2.5 rounded font-mono text-xs outline-none"
+              required
+            />
+          </div>
+
+          {/* Nama Acara Input */}
+          <div className="py-2 border-b border-[#181818] space-y-1">
+            <label className="text-[#888] text-[11px] uppercase tracking-wider block">
+              NAMA ACARA / PENSI / FESTIVAL:
+            </label>
+            <input
+              type="text"
+              value={eventName}
+              onChange={(e) => setEventName(e.target.value)}
+              placeholder="Contoh: Dies Natalis UNNES Fest 2026"
+              className="w-full bg-[#181818] border border-[#333333] focus:border-[#E01E37] text-white p-2.5 rounded font-mono text-xs outline-none"
+            />
+          </div>
+
           <div className="flex justify-between pt-1">
             <span className="text-[#888] uppercase">TOTAL ESTIMASI BIAYA</span>
             <span className="text-[#E01E37] font-bold text-sm">
               {totalPrice > 0 ? formatRupiah(totalPrice) : 'Negosiasi'}
             </span>
           </div>
+        </div>
+
+        {/* Automated Review Notice Banner */}
+        <div className="bg-[#1C1410] border border-[#FFD166]/30 p-3 rounded-lg mb-4 text-[11px] font-sans text-[#E0E0E0] space-y-1">
+          <div className="flex items-center gap-1.5 font-mono font-bold text-[#FFD166] text-xs">
+            <span>ℹ️</span>
+            <span>SISTEM RATING OTOMATIS EO</span>
+          </div>
+          <p className="leading-relaxed text-[#B0B0B0]">
+            Setelah tanggal tampil <strong className="text-white">{eventDate || 'yang ditentukan'}</strong> tepat pukul <strong>00.00 WIB</strong>, akun Anda akan menerima email notifikasi otomatis dari sistem untuk memberikan rating (1-5 bintang) dan ulasan penampilan band demi menjaga kualitas musisi terkurasi.
+          </p>
         </div>
 
         {currentUser && (
@@ -362,12 +409,12 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
           <div className="space-y-3">
             <button
               type="button"
-              onClick={onConfirmWhatsApp}
-              disabled={!hasReachablePhone}
+              onClick={() => onConfirmWhatsApp(eventDate, eventName)}
+              disabled={!hasReachablePhone || !eventDate}
               className="w-full min-h-[44px] h-12 bg-[#E01E37] hover:bg-[#C71B30] disabled:bg-[#2A2A2A] disabled:text-[#888] disabled:cursor-not-allowed disabled:shadow-none text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 rounded-xl cursor-pointer"
             >
               <Phone className="w-4 h-4" />
-              <span>{hasReachablePhone ? 'HUBUNGI VIA WHATSAPP RESMI' : 'NOMOR WHATSAPP BELUM TERSEDIA'}</span>
+              <span>{hasReachablePhone ? 'KONFIRMASI BOOKING & HUBUNGI WHATSAPP' : 'NOMOR WHATSAPP BELUM TERSEDIA'}</span>
             </button>
             <button
               type="button"

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ArrowRight } from 'lucide-react'
+import { Check, ArrowRight, Star } from 'lucide-react'
 import type { Band } from '../../types'
 import { formatRupiah } from '../../lib/utils'
 import { getBandProfileUrl } from '../../lib/bandHelpers'
+import { getRatingTierBadge } from '../../lib/ratingHelpers'
 
 interface BandCardProps {
   band: Band
@@ -76,9 +77,14 @@ export const BandCard: React.FC<BandCardProps> = ({
   }, [band.bandName])
 
   const photo = band.profilePhotoUrl || band.coverPhotoUrl || null
-  const budgetText = band.budgetMin
-    ? `Mulai ${formatRupiah(band.budgetMin)}`
-    : 'Negosiasi'
+  const currentRating = Number(band.rating || band.ratingAverage || 4.8)
+  const ratingTierInfo = getRatingTierBadge(currentRating)
+
+  const budgetText = band.budgetMin && band.budgetMax && band.budgetMin !== band.budgetMax
+    ? `${formatRupiah(band.budgetMin)} - ${formatRupiah(band.budgetMax)}`
+    : band.budgetMin
+      ? `Mulai ${formatRupiah(band.budgetMin)}`
+      : 'Negosiasi'
 
   const resolvedAccentTag = accentTag || (band.genre ? band.genre.toUpperCase() : 'TERKURASI')
   const resolvedGlassTag = glassTag || (band.locationCity ? band.locationCity.toUpperCase() : 'INDONESIA')
@@ -163,6 +169,26 @@ export const BandCard: React.FC<BandCardProps> = ({
         className="flex-1 flex flex-col justify-between p-5 text-inherit no-underline space-y-4"
       >
         <div className="space-y-2">
+          {/* Rating Stars & Tier Representation Badge */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 bg-black/60 px-2 py-0.5 rounded border border-white/10 font-mono text-xs">
+              <Star className="w-3.5 h-3.5 fill-[#FFD166] text-[#FFD166]" />
+              <span className="font-bold text-white">{currentRating.toFixed(1)}</span>
+            </div>
+            <span
+              className={`font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 font-bold border rounded ${ratingTierInfo.bgClass}`}
+              title={ratingTierInfo.description}
+            >
+              {ratingTierInfo.label}
+            </span>
+            {band.campus && (
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#FFD166] bg-black/70 border border-[#FFD166]/40 px-1.5 py-0.5 font-bold rounded flex items-center gap-0.5">
+                <span>🎓</span>
+                <span>{band.campus}</span>
+              </span>
+            )}
+          </div>
+
           {/* Band Title with Cipher text scramble */}
           <h3 className="font-mono font-bold text-lg text-white uppercase tracking-tight group-hover:text-[#E01E37] transition-colors truncate">
             {displayText}

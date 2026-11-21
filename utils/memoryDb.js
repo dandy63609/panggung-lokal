@@ -17,9 +17,11 @@ const CLOUD_SYNC_TABLES = [
   'band_posts',
   'media_files',
   'connections',
+  'password_reset_tokens',
   'reports',
   'job_broadcasts',
-  'campuses'
+  'campuses',
+  'reviews'
 ];
 
 const TABLE_COLUMNS = {
@@ -29,7 +31,9 @@ const TABLE_COLUMNS = {
     'budget_min', 'budget_max', 'profile_photo_url', 'cover_photo_url', 'phone',
     'instagram_handle', 'facebook_url', 'youtube_url', 'profile_views',
     'rider_channel_inputs', 'rider_sound_system', 'rider_instruments', 'rider_hospitality',
-    'rider_items', 'spotify_url', 'tiktok_url', 'stage_visual_post_id', 'created_at', 'updated_at'
+    'rider_items', 'spotify_url', 'tiktok_url', 'stage_visual_post_id',
+    'rating_average', 'rating_count', 'rating_override',
+    'created_at', 'updated_at'
   ],
   band_posts: [
     'id', 'band_profile_id', 'media_type', 'media_url', 'thumbnail_url',
@@ -39,7 +43,11 @@ const TABLE_COLUMNS = {
     'id', 'band_profile_id', 'file_type', 'file_url', 'thumbnail_url',
     'title', 'display_order', 'created_at'
   ],
-  connections: ['id', 'organizer_user_id', 'band_profile_id', 'connection_type', 'created_at', 'notes'],
+  connections: [
+    'id', 'organizer_user_id', 'band_profile_id', 'connection_type',
+    'event_date', 'event_name', 'status', 'is_reviewed',
+    'created_at', 'notes'
+  ],
   password_reset_tokens: ['id', 'user_id', 'token', 'expires_at', 'used', 'created_at'],
   reports: [
     'id', 'reporter_user_id', 'reported_entity_type', 'reported_entity_id',
@@ -51,7 +59,8 @@ const TABLE_COLUMNS = {
     'perform_end_time', 'venue_location', 'event_scale', 'event_details',
     'attachments', 'recipient_band_count', 'created_at'
   ],
-  campuses: ['id', 'name', 'short_name', 'city', 'created_at']
+  campuses: ['id', 'name', 'short_name', 'city', 'created_at'],
+  reviews: ['id', 'band_profile_id', 'organizer_user_id', 'connection_id', 'rating', 'review_text', 'event_date', 'created_at']
 };
 
 let memDbInstance = null;
@@ -106,6 +115,9 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   spotify_url VARCHAR(500),
   tiktok_url VARCHAR(500),
   stage_visual_post_id INTEGER,
+  rating_average NUMERIC(3, 1) DEFAULT 4.8,
+  rating_count INTEGER DEFAULT 1,
+  rating_override NUMERIC(3, 1),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -139,6 +151,10 @@ CREATE TABLE IF NOT EXISTS connections (
   organizer_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   band_profile_id INTEGER NOT NULL REFERENCES band_profiles(id) ON DELETE CASCADE,
   connection_type VARCHAR(50) DEFAULT 'contact_view',
+  event_date VARCHAR(50),
+  event_name VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'confirmed',
+  is_reviewed BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   notes TEXT
 );
@@ -187,6 +203,17 @@ CREATE TABLE IF NOT EXISTS campuses (
   name VARCHAR(255) NOT NULL,
   short_name VARCHAR(50) NOT NULL,
   city VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS reviews (
+  id SERIAL PRIMARY KEY,
+  band_profile_id INTEGER NOT NULL REFERENCES band_profiles(id) ON DELETE CASCADE,
+  organizer_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  connection_id INTEGER,
+  rating NUMERIC(3, 1) NOT NULL,
+  review_text TEXT,
+  event_date VARCHAR(50),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 `;
@@ -383,7 +410,7 @@ async function syncAllToCloud(options = {}) {
 }
 
 async function syncSerialSequences(db, pool) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'reviews'];
   for (const tableName of tables) {
     try {
       const res = await pool.query(`SELECT COALESCE(MAX(id), 0) AS max_id FROM ${tableName}`);
@@ -402,7 +429,7 @@ async function syncSerialSequences(db, pool) {
 }
 
 async function restoreData(pool, data) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'reviews'];
   for (const table of tables) {
     if (Array.isArray(data[table])) {
       const allowedCols = new Set(TABLE_COLUMNS[table] || []);
@@ -432,10 +459,63 @@ async function restoreData(pool, data) {
   } catch {
     // ignore
   }
+
+  // Ensure default ratings, prices, and reviews exist
+  try {
+    const reviewCountRes = await pool.query('SELECT COUNT(*) as count FROM reviews');
+    if (parseInt(reviewCountRes.rows[0].count, 10) === 0) {
+      await pool.query(`
+        INSERT INTO reviews (id, band_profile_id, organizer_user_id, rating, review_text, event_date) VALUES
+        (1, 1, 9, 5.0, 'Penampilan Kelana Ombak di Pensi Kampus luar biasa! Sound vintage surf rock mereka bikin seluruh penonton bergoyang.', '2026-11-10'),
+        (2, 1, 10, 4.8, 'Komunikasi technical rider audio sangat kooperatif, tepat waktu saat soundcheck dan aksi panggung profesional.', '2026-11-15'),
+        (3, 2, 9, 4.8, 'Suasana kafe sangat hidup dengan harmoni vokal dan cello Senja Bersuara. Sangat direkomendasikan untuk event intim!', '2026-11-08'),
+        (4, 4, 10, 3.8, 'Energi rock alternatif mereka mantap untuk crowd muda kampus, riff distorsi solid.', '2026-11-05'),
+        (5, 8, 9, 2.8, 'Kualitas aransemen funk sangat bagus, namun waktu mulai perform sedikit terlambat dari rundown.', '2026-11-02')
+      `);
+
+      // Update ratings on bands
+      const initialRatings = [
+        { id: 1, avg: 4.9, count: 14, min: 3500000, max: 7000000 },
+        { id: 2, avg: 4.8, count: 10, min: 2000000, max: 4500000 },
+        { id: 3, avg: 4.6, count: 9, min: 5000000, max: 12000000 },
+        { id: 4, avg: 3.8, count: 6, min: 3000000, max: 6000000 },
+        { id: 5, avg: 4.2, count: 7, min: 2500000, max: 5000000 },
+        { id: 6, avg: 3.5, count: 5, min: 2500000, max: 5500000 },
+        { id: 7, avg: 4.7, count: 8, min: 4000000, max: 9000000 },
+        { id: 8, avg: 2.8, count: 4, min: 4500000, max: 10000000 }
+      ];
+
+      for (const ir of initialRatings) {
+        await pool.query(
+          `UPDATE band_profiles 
+           SET rating_average = $1, rating_count = $2, budget_min = $3, budget_max = $4 
+           WHERE id = $5`,
+          [ir.avg, ir.count, ir.min, ir.max, ir.id]
+        );
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // Ensure sample past booking exists for EO review gating simulation
+  try {
+    const pastBookingRes = await pool.query(
+      "SELECT COUNT(*) as count FROM connections WHERE event_date IS NOT NULL AND is_reviewed = FALSE"
+    );
+    if (parseInt(pastBookingRes.rows[0].count, 10) === 0) {
+      await pool.query(`
+        INSERT INTO connections (organizer_user_id, band_profile_id, connection_type, event_date, event_name, status, is_reviewed, notes)
+        VALUES (9, 1, 'direct_booking', '2026-11-19', 'Pensi Akbar Mahasiswa Kampus', 'confirmed', FALSE, '2 Set Performa Live')
+      `);
+    }
+  } catch {
+    // ignore
+  }
 }
 
 function dumpData(db) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'reviews'];
   const dump = {};
   for (const table of tables) {
     try {

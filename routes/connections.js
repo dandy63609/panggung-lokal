@@ -10,7 +10,7 @@ const { verifyToken, requireBand } = require('../middleware/auth');
  */
 router.post('/', verifyToken, async (req, res) => {
   try {
-    const { bandProfileId, notes, connectionType } = req.body;
+    const { bandProfileId, notes, connectionType, eventDate, eventName } = req.body;
 
     if (!bandProfileId) {
       return res.status(400).json({
@@ -40,7 +40,9 @@ router.post('/', verifyToken, async (req, res) => {
       organizerUserId: req.user.id,
       bandProfileId: band.id,
       connectionType: connectionType || 'contact_view',
-      notes: notes || null
+      notes: notes || null,
+      eventDate: eventDate || null,
+      eventName: eventName || null
     });
 
     // Format WhatsApp link if phone is present

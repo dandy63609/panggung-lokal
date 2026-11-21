@@ -10,6 +10,10 @@ class Connection {
     this.organizerUserId = data.organizer_user_id;
     this.bandProfileId = data.band_profile_id;
     this.connectionType = data.connection_type;
+    this.eventDate = data.event_date || null;
+    this.eventName = data.event_name || null;
+    this.status = data.status || 'confirmed';
+    this.isReviewed = Boolean(data.is_reviewed);
     this.createdAt = data.created_at;
     this.notes = data.notes;
     // Joined fields if available
@@ -26,14 +30,18 @@ class Connection {
   static async create(data) {
     const result = await db.query(
       `INSERT INTO connections (
-        organizer_user_id, band_profile_id, connection_type, notes
-      ) VALUES ($1, $2, $3, $4)
+        organizer_user_id, band_profile_id, connection_type, notes, event_date, event_name, status, is_reviewed
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *`,
       [
         data.organizerUserId,
         data.bandProfileId,
         data.connectionType || 'contact_view',
-        data.notes || null
+        data.notes || null,
+        data.eventDate || null,
+        data.eventName || null,
+        data.status || 'confirmed',
+        data.isReviewed || false
       ]
     );
     return new Connection(result.rows[0]);

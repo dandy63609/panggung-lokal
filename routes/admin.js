@@ -453,4 +453,197 @@ router.put('/bands/:id/campus', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/bands
+ * List all band profiles with full details for Super Admin management
+ */
+router.get('/bands', async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT bp.*, u.email as user_email, u.is_active as user_is_active
+      FROM band_profiles bp
+      JOIN users u ON u.id = bp.user_id
+      ORDER BY bp.id ASC
+    `);
+
+    const bands = result.rows.map(row => {
+      const avg = row.rating_average !== null && row.rating_average !== undefined ? Number(row.rating_average) : 4.8;
+      const count = row.rating_count !== null && row.rating_count !== undefined ? Number(row.rating_count) : 1;
+      const override = row.rating_override !== null && row.rating_override !== undefined ? Number(row.rating_override) : null;
+      const effectiveRating = override !== null ? override : avg;
+      const rounded = Number(effectiveRating.toFixed(1));
+      let tier = 'Baik';
+      if (rounded >= 4.5) tier = 'Rekomendasi Favorit';
+      else if (rounded >= 3.0) tier = 'Sangat Baik';
+
+      return {
+        id: row.id,
+        userId: row.user_id,
+        bandName: row.band_name,
+        genre: row.genre,
+        locationCity: row.location_city,
+        locationRegion: row.location_region,
+        campus: row.campus,
+        bio: row.bio,
+        budgetMin: row.budget_min,
+        budgetMax: row.budget_max,
+        profilePhotoUrl: row.profile_photo_url,
+        phone: row.phone,
+        profileViews: row.profile_views || 0,
+        ratingAverage: avg,
+        ratingCount: count,
+        ratingOverride: override,
+        rating: rounded,
+        ratingTier: tier,
+        userEmail: row.user_email,
+        isActive: Boolean(row.user_is_active),
+        createdAt: row.created_at
+      };
+    });
+
+    return res.json({
+      success: true,
+      data: bands
+    });
+  } catch (error) {
+    console.error('Admin get bands error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil data musisi admin'
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/bands/:id
+ * Super Admin Full Authority: Update ANY aspect of a band profile:
+ * rating override, pricing, campus, verification/active status, name, genre, city, bio
+ */
+router.put('/bands/:id', async (req, res) => {
+  try {
+    const bandId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(bandId) || bandId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID band tidak valid'
+      });
+    }
+
+    const {
+      bandName,
+      genre,
+      locationCity,
+      locationRegion,
+      campus,
+      bio,
+      budgetMin,
+      budgetMax,
+      phone,
+      ratingOverride,
+      isActive
+    } = req.body;
+
+    const existingRes = await db.query('SELECT * FROM band_profiles WHERE id = $1', [bandId]);
+    if (existingRes.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil band tidak ditemukan'
+      });
+    }
+
+    const current = existingRes.rows[0];
+
+    // Prepare fields to update
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    if (bandName !== undefined) {
+      fields.push(`band_name = $${idx++}`);
+      values.push(String(bandName).trim());
+    }
+    if (genre !== undefined) {
+      fields.push(`genre = $${idx++}`);
+      values.push(String(genre).trim());
+    }
+    if (locationCity !== undefined) {
+      fields.push(`location_city = $${idx++}`);
+      values.push(String(locationCity).trim());
+    }
+    if (locationRegion !== undefined) {
+      fields.push(`location_region = $${idx++}`);
+      values.push(String(locationRegion).trim());
+    }
+    if (campus !== undefined) {
+      fields.push(`campus = $${idx++}`);
+      values.push(campus ? String(campus).trim().toUpperCase() : null);
+    }
+    if (bio !== undefined) {
+      fields.push(`bio = $${idx++}`);
+      values.push(bio ? String(bio).trim() : null);
+    }
+    if (budgetMin !== undefined) {
+      fields.push(`budget_min = $${idx++}`);
+      values.push(budgetMin ? parseInt(String(budgetMin), 10) : 0);
+    }
+    if (budgetMax !== undefined) {
+      fields.push(`budget_max = $${idx++}`);
+      values.push(budgetMax ? parseInt(String(budgetMax), 10) : 0);
+    }
+    if (phone !== undefined) {
+      fields.push(`phone = $${idx++}`);
+      values.push(phone ? String(phone).trim() : null);
+    }
+    if (ratingOverride !== undefined) {
+      fields.push(`rating_override = $${idx++}`);
+      const rNum = parseFloat(ratingOverride);
+      values.push(!isNaN(rNum) && rNum >= 1.0 && rNum <= 5.0 ? Math.round(rNum * 10) / 10 : null);
+    }
+
+    fields.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(bandId);
+
+    const updateQuery = `UPDATE band_profiles SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
+    const updateRes = await db.query(updateQuery, values);
+    const updated = updateRes.rows[0];
+
+    // If isActive boolean is passed, also update user active status
+    if (typeof isActive === 'boolean' && current.user_id) {
+      await db.query('UPDATE users SET is_active = $1 WHERE id = $2', [isActive, current.user_id]);
+    }
+
+    const avg = updated.rating_average !== null && updated.rating_average !== undefined ? Number(updated.rating_average) : 4.8;
+    const override = updated.rating_override !== null && updated.rating_override !== undefined ? Number(updated.rating_override) : null;
+    const effectiveRating = override !== null ? override : avg;
+    const rounded = Number(effectiveRating.toFixed(1));
+    let tier = 'Baik';
+    if (rounded >= 4.5) tier = 'Rekomendasi Favorit';
+    else if (rounded >= 3.0) tier = 'Sangat Baik';
+
+    return res.json({
+      success: true,
+      message: `Profil band ${updated.band_name} berhasil diperbarui oleh Administrator`,
+      data: {
+        id: updated.id,
+        bandName: updated.band_name,
+        genre: updated.genre,
+        locationCity: updated.location_city,
+        campus: updated.campus,
+        budgetMin: updated.budget_min,
+        budgetMax: updated.budget_max,
+        ratingOverride: override,
+        rating: rounded,
+        ratingTier: tier,
+        updatedAt: updated.updated_at
+      }
+    });
+  } catch (error) {
+    console.error('Admin update band error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal memperbarui data band oleh administrator'
+    });
+  }
+});
+
 module.exports = router;
