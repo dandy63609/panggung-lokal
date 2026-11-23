@@ -164,6 +164,27 @@ class BandProfile {
   }
 
   /**
+   * Ensure an authenticated band user has a band_profiles row, self-healing orphaned accounts
+   */
+  static async findOrCreateForUser(user, overrides = {}) {
+    const existing = await this.findByUserId(user.id);
+    if (existing) return existing;
+
+    const fallbackName = (user.email ? String(user.email).split('@')[0] : '') || `Band ${user.id}`;
+    try {
+      return await this.create({
+        userId: user.id,
+        bandName: (overrides.bandName && String(overrides.bandName).trim()) || fallbackName,
+        genre: (overrides.genre && String(overrides.genre).trim()) || 'Indie / Pop',
+        locationCity: (overrides.locationCity && String(overrides.locationCity).trim()) || 'Kota Semarang',
+        bio: overrides.bio !== undefined ? overrides.bio : 'Profil band baru di Reffband',
+      });
+    } catch {
+      return this.findByUserId(user.id);
+    }
+  }
+
+  /**
    * Create a new band profile
    */
   static async create(data) {

@@ -253,6 +253,88 @@ describe('Admin User Deletion (Band & EO) & New Band Profile Routing API', () =>
     expect(res.body.success).toBe(false);
   });
 
+  it('accepts arbitrary Rupiah budgets including blank budgetMax and self-heals missing band_profiles rows', async () => {
+    const suffix = Date.now() + 3;
+
+    // 1. Registered band saves non-500k budget range and min-only (null budgetMax)
+    const bandRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: `budgetband.${suffix}@test.id`,
+        password: 'Password123!',
+        accountType: 'band',
+        bandName: `Band Tarif Bebas ${suffix}`,
+        genre: 'Pop',
+        locationCity: 'Semarang',
+      })
+      .expect(201);
+
+    createdUserIds.push(bandRes.body.user.id);
+    const bandToken = bandRes.body.token;
+
+    const arbitraryRes = await request(app)
+      .put('/api/bands/profile')
+      .set('Authorization', `Bearer ${bandToken}`)
+      .send({ budgetMin: 100000, budgetMax: 150000 })
+      .expect(200);
+
+    expect(arbitraryRes.body.data.budgetMin).toBe(100000);
+    expect(arbitraryRes.body.data.budgetMax).toBe(150000);
+
+    const minOnlyRes = await request(app)
+      .put('/api/bands/profile')
+      .set('Authorization', `Bearer ${bandToken}`)
+      .send({ budgetMin: 100000, budgetMax: null })
+      .expect(200);
+
+    expect(minOnlyRes.body.data.budgetMin).toBe(100000);
+    expect(minOnlyRes.body.data.budgetMax).toBeNull();
+
+    // 2. Pre-migration band user with no band_profiles row self-heals on GET /api/dashboard/band
+    const orphanDashUser = await db.query(
+      "INSERT INTO users (email, password_hash, account_type, is_active) VALUES ($1, $2, 'band', true) RETURNING id, email, account_type",
+      [`orphandash.${suffix}@test.id`, 'hashed-secret']
+    );
+    const dashUser = orphanDashUser.rows[0];
+    createdUserIds.push(dashUser.id);
+    const dashToken = generateToken({ id: dashUser.id, email: dashUser.email, accountType: 'band' });
+
+    const dashRes = await request(app)
+      .get('/api/dashboard/band')
+      .set('Authorization', `Bearer ${dashToken}`)
+      .expect(200);
+
+    expect(dashRes.body.success).toBe(true);
+    expect(dashRes.body.data.profile).toBeDefined();
+    expect(dashRes.body.data.profile.userId).toBe(dashUser.id);
+
+    // 3. Pre-migration band user with no band_profiles row self-heals on PUT /api/bands/profile
+    const orphanPutUser = await db.query(
+      "INSERT INTO users (email, password_hash, account_type, is_active) VALUES ($1, $2, 'band', true) RETURNING id, email, account_type",
+      [`orphanput.${suffix}@test.id`, 'hashed-secret']
+    );
+    const putUser = orphanPutUser.rows[0];
+    createdUserIds.push(putUser.id);
+    const putToken = generateToken({ id: putUser.id, email: putUser.email, accountType: 'band' });
+
+    const healPutRes = await request(app)
+      .put('/api/bands/profile')
+      .set('Authorization', `Bearer ${putToken}`)
+      .send({
+        bandName: `Self Heal ${suffix}`,
+        genre: 'Indie Rock',
+        locationCity: 'Kota Jogja',
+        budgetMin: 100000,
+        budgetMax: 150000,
+      })
+      .expect(200);
+
+    expect(healPutRes.body.success).toBe(true);
+    expect(healPutRes.body.data.bandName).toBe(`Self Heal ${suffix}`);
+    expect(healPutRes.body.data.budgetMin).toBe(100000);
+    expect(healPutRes.body.data.budgetMax).toBe(150000);
+  });
+
   it('hides suspended bands from catalog and deletes all dummy accounts via DELETE /api/admin/dummy-users', async () => {
     const suffix = Date.now() + 2;
     const bandRes = await request(app)

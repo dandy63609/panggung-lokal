@@ -48,8 +48,8 @@ export interface Band {
   locationRegion?: string
   campus?: string | null
   bio?: string
-  budgetMin?: number
-  budgetMax?: number
+  budgetMin?: number | null
+  budgetMax?: number | null
   rating?: number
   ratingAverage?: number
   ratingCount?: number

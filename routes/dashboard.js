@@ -12,7 +12,7 @@ const { requireBand, verifyToken } = require('../middleware/auth');
  */
 router.get('/band', requireBand, async (req, res) => {
   try {
-    const bandProfile = await BandProfile.findByUserId(req.user.id);
+    const bandProfile = await BandProfile.findOrCreateForUser(req.user);
     if (!bandProfile) {
       return res.status(404).json({
         success: false,

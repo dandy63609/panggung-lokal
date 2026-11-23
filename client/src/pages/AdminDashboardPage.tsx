@@ -2016,8 +2016,10 @@ export const AdminDashboardPage: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="100000"
-                      value={editingBand.budgetMin || 0}
+                      step="1"
+                      min="0"
+                      inputMode="numeric"
+                      value={editingBand.budgetMin || ''}
                       onChange={(e) =>
                         setEditingBand({
                           ...editingBand,
@@ -2037,8 +2039,10 @@ export const AdminDashboardPage: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="100000"
-                      value={editingBand.budgetMax || 0}
+                      step="1"
+                      min="0"
+                      inputMode="numeric"
+                      value={editingBand.budgetMax || ''}
                       onChange={(e) =>
                         setEditingBand({
                           ...editingBand,

@@ -273,7 +273,12 @@ router.post('/profile', requireBand, async (req, res) => {
  */
 router.put('/profile', requireBand, async (req, res) => {
   try {
-    const profile = await BandProfile.findByUserId(req.user.id);
+    const profile = await BandProfile.findOrCreateForUser(req.user, {
+      bandName: req.body?.bandName,
+      genre: req.body?.genre,
+      locationCity: req.body?.locationCity,
+      bio: req.body?.bio,
+    });
     if (!profile) {
       return res.status(404).json({
         success: false,

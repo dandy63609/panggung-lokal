@@ -859,8 +859,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   <input
                     id="edit-budget-min"
                     type="number"
-                    step="500000"
+                    step="1"
                     min="0"
+                    inputMode="numeric"
                     value={editForm.budgetMin || ''}
                     onChange={(e) =>
                       onChange({
@@ -883,8 +884,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   <input
                     id="edit-budget-max"
                     type="number"
-                    step="500000"
+                    step="1"
                     min="0"
+                    inputMode="numeric"
                     value={editForm.budgetMax || ''}
                     onChange={(e) =>
                       onChange({
