@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const BandProfile = require('../models/BandProfile');
 const BandPost = require('../models/BandPost');
+const BandSchedule = require('../models/BandSchedule');
 const db = require('../utils/db');
 const { validatePhone } = require('../utils/validation');
 const { requireBand, extractOptionalUser } = require('../middleware/auth');
@@ -158,9 +159,10 @@ router.get('/profile/:id', async (req, res) => {
       updatedProfileViews = band.profileViews + 1;
     }
 
-    // Fetch Instagram-style posts and media files
+    // Fetch Instagram-style posts, media files, and confirmed stage schedules
     const posts = await BandPost.findByBandProfileId(band.id);
     const mediaFiles = await band.getMediaFiles();
+    const schedules = await BandSchedule.findByBandProfileId(band.id);
 
     const displayPhone = isSneakPeek && band.phone
       ? (band.phone.substring(0, 8) + 'xxxx')
@@ -175,6 +177,7 @@ router.get('/profile/:id', async (req, res) => {
         profileViews: updatedProfileViews,
         posts,
         mediaFiles,
+        schedules,
         isOwner
       }
     });
@@ -569,6 +572,160 @@ router.put('/media/:id', requireBand, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Gagal memperbarui media'
+    });
+  }
+});
+
+/**
+ * GET /api/bands/:id/schedules
+ * Get confirmed stage schedules for a band profile (public)
+ */
+router.get('/:id/schedules', async (req, res) => {
+  try {
+    const rawIdentifier = req.params.id;
+    const band = await BandProfile.findByIdOrSlug(rawIdentifier);
+    if (!band) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil band tidak ditemukan'
+      });
+    }
+
+    const schedules = await BandSchedule.findByBandProfileId(band.id);
+    return res.json({
+      success: true,
+      data: schedules
+    });
+  } catch (error) {
+    console.error('Get band schedules error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil jadwal manggung band'
+    });
+  }
+});
+
+/**
+ * POST /api/bands/schedules
+ * Add confirmed performance schedule (Band Owner only)
+ */
+router.post('/schedules', requireBand, async (req, res) => {
+  try {
+    const profile = await BandProfile.findByUserId(req.user.id);
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil band tidak ditemukan'
+      });
+    }
+
+    const {
+      eventDate,
+      startTime,
+      endTime,
+      eventName,
+      venue,
+      locationCity,
+      organizerName,
+      organizerUserId,
+      notes
+    } = req.body;
+
+    if (!eventDate || typeof eventDate !== 'string' || !eventDate.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tanggal manggung wajib diisi (format YYYY-MM-DD)'
+      });
+    }
+
+    if (!startTime || typeof startTime !== 'string' || !startTime.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Jam mulai manggung wajib diisi'
+      });
+    }
+
+    if (!endTime || typeof endTime !== 'string' || !endTime.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Jam selesai manggung wajib diisi'
+      });
+    }
+
+    if (!eventName || typeof eventName !== 'string' || !eventName.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nama acara panggung wajib diisi'
+      });
+    }
+
+    const schedule = await BandSchedule.create({
+      bandProfileId: profile.id,
+      organizerUserId: organizerUserId ? parseInt(organizerUserId, 10) : null,
+      eventDate: eventDate.trim(),
+      startTime: startTime.trim(),
+      endTime: endTime.trim(),
+      eventName: eventName.trim(),
+      venue: venue ? String(venue).trim() : null,
+      locationCity: locationCity ? String(locationCity).trim() : profile.locationCity,
+      organizerName: organizerName ? String(organizerName).trim() : null,
+      notes: notes ? String(notes).trim() : null,
+      status: 'confirmed'
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Jadwal panggung berhasil dikonfirmasi dan dipublikasikan di kalender profil',
+      data: schedule
+    });
+  } catch (error) {
+    console.error('Create schedule error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal menambahkan jadwal manggung'
+    });
+  }
+});
+
+/**
+ * DELETE /api/bands/schedules/:id
+ * Delete/cancel confirmed performance schedule (Band Owner only)
+ */
+router.delete('/schedules/:id', requireBand, async (req, res) => {
+  try {
+    const profile = await BandProfile.findByUserId(req.user.id);
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil band tidak ditemukan'
+      });
+    }
+
+    const scheduleId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(scheduleId) || scheduleId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID jadwal tidak valid'
+      });
+    }
+
+    const deleted = await BandSchedule.delete(scheduleId, profile.id);
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Jadwal tidak ditemukan atau bukan milik band Anda'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Jadwal manggung berhasil dihapus dari kalender'
+    });
+  } catch (error) {
+    console.error('Delete schedule error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal menghapus jadwal manggung'
     });
   }
 });

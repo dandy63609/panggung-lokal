@@ -832,5 +832,97 @@
       "value": "false",
       "updated_at": "2026-11-21T12:31:13.030Z"
     }
+  ],
+  "band_schedules": [
+    {
+      "id": 1,
+      "band_profile_id": 1,
+      "organizer_user_id": 9,
+      "event_date": "2026-11-28",
+      "start_time": "19:30",
+      "end_time": "21:00",
+      "event_name": "Semarang Indie Stage Wave 2026",
+      "venue": "Taman Budaya Raden Saleh",
+      "location_city": "Kota Semarang",
+      "organizer_name": "Kolektif Indie Semarang",
+      "notes": "Main stage guest star, 2 set perform vintage surf rock",
+      "status": "confirmed",
+      "created_at": "2026-11-23T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "band_profile_id": 1,
+      "organizer_user_id": 10,
+      "event_date": "2026-12-05",
+      "start_time": "20:00",
+      "end_time": "22:00",
+      "event_name": "Dies Natalis UNNES Music Fest",
+      "venue": "Auditorium UNNES Sekaran",
+      "location_city": "Kota Semarang",
+      "organizer_name": "BEM KM UNNES",
+      "notes": "Soundcheck rundown jam 16:00 WIB, FOH monitor stereo",
+      "status": "confirmed",
+      "created_at": "2026-11-23T10:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "band_profile_id": 1,
+      "organizer_user_id": null,
+      "event_date": "2026-12-19",
+      "start_time": "19:00",
+      "end_time": "21:30",
+      "event_name": "Festival Akhir Tahun Jawa Tengah",
+      "venue": "PRPP Convention Hall",
+      "location_city": "Kota Semarang",
+      "organizer_name": "Dinas Kebudayaan & Pariwisata",
+      "notes": "Panggung utama indoor",
+      "status": "confirmed",
+      "created_at": "2026-11-23T10:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "band_profile_id": 2,
+      "organizer_user_id": 9,
+      "event_date": "2026-11-29",
+      "start_time": "18:30",
+      "end_time": "20:30",
+      "event_name": "Sunset Acoustic Night",
+      "venue": "Kafe Selasar Kaliurang",
+      "location_city": "Kota Jogja",
+      "organizer_name": "Selasar Community",
+      "notes": "Akustik folk cello intim",
+      "status": "confirmed",
+      "created_at": "2026-11-23T10:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "band_profile_id": 2,
+      "organizer_user_id": 10,
+      "event_date": "2026-12-12",
+      "start_time": "19:30",
+      "end_time": "21:30",
+      "event_name": "Jogja Art & Music Gathering",
+      "venue": "Bentara Budaya Yogyakarta",
+      "location_city": "Kota Jogja",
+      "organizer_name": "Panitia Seni Jogja",
+      "notes": "Format full orchestra akustik",
+      "status": "confirmed",
+      "created_at": "2026-11-23T10:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "band_profile_id": 4,
+      "organizer_user_id": 10,
+      "event_date": "2026-12-02",
+      "start_time": "20:00",
+      "end_time": "22:00",
+      "event_name": "Campus Rock Arena 2026",
+      "venue": "Stadion Diponegoro",
+      "location_city": "Kota Semarang",
+      "organizer_name": "UKM Musik Undip",
+      "notes": "Rock alternatif panggung luar",
+      "status": "confirmed",
+      "created_at": "2026-11-23T10:00:00.000Z"
+    }
   ]
 }

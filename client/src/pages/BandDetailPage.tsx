@@ -24,6 +24,7 @@ import {
   Settings,
   X,
   Lock,
+  Calendar,
 } from 'lucide-react'
 import { BandCard } from '../components/ui/BandCard'
 import {
@@ -35,6 +36,8 @@ import {
 import { BroadcastInquirySection } from '../components/band-detail/BroadcastInquirySection'
 import { PostViewerModal, DirectBookingModal } from '../components/band-detail/BandDetailModals'
 import { ManageAudioModal } from '../components/band/ManageAudioModal'
+import { BandScheduleCalendar } from '../components/band/BandScheduleCalendar'
+import { ManageScheduleModal } from '../components/band/ManageScheduleModal'
 import {
   formatWhatsAppPhone,
   isActualVideoSlide,
@@ -74,6 +77,7 @@ export const BandDetailPage: React.FC = () => {
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authClient.getUser())
   const [isAudioManageModalOpen, setIsAudioManageModalOpen] = useState<boolean>(false)
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false)
 
   // Auto-open manage audio modal if requested via URL query params
   useEffect(() => {
@@ -971,6 +975,14 @@ export const BandDetailPage: React.FC = () => {
                   <>
                     <button
                       type="button"
+                      onClick={() => setIsScheduleModalOpen(true)}
+                      className="px-5 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] cursor-pointer"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span>+ Input Jadwal Manggung</span>
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setIsAudioManageModalOpen(true)}
                       className="px-5 py-2.5 rounded-full bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333] font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer"
                     >
@@ -986,14 +998,23 @@ export const BandDetailPage: React.FC = () => {
                     </Link>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsOrderModalOpen(true)}
-                    className="px-6 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] cursor-pointer"
-                  >
-                    {currentUser ? <Phone className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                    <span>{currentUser ? 'Booking Sekarang' : 'Hubungi Band (Login)'}</span>
-                  </button>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setIsOrderModalOpen(true)}
+                      className="px-6 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] cursor-pointer"
+                    >
+                      {currentUser ? <Phone className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                      <span>{currentUser ? 'Booking Sekarang' : 'Hubungi Band (Login)'}</span>
+                    </button>
+                    <a
+                      href="#jadwal-manggung"
+                      className="px-5 py-2.5 rounded-full bg-[#181818] hover:bg-[#252525] border border-[#FFD166]/40 text-[#FFD166] hover:text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span>Kalender Manggung ({band.schedules?.length || 0})</span>
+                    </a>
+                  </div>
                 )}
               </div>
             </div>
@@ -1377,6 +1398,16 @@ export const BandDetailPage: React.FC = () => {
           </div>
 
         </div>
+
+        {/* 4. KALENDER PANGGUNG LIVE & JADWAL MANGGUNG TERKONFIRMASI */}
+        <BandScheduleCalendar
+          schedules={band.schedules || []}
+          bandName={band.bandName}
+          bandId={band.id}
+          isOwner={canManage}
+          onAddScheduleClick={() => setIsScheduleModalOpen(true)}
+          onScheduleDeleted={() => refetchBandProfile()}
+        />
 
         {/* 5. POSTINGAN & GALERI KARYA */}
         <section className="w-full pt-4 pb-16">
@@ -1766,8 +1797,17 @@ export const BandDetailPage: React.FC = () => {
         setQuantity={setQuantity}
         totalPrice={totalPrice}
         currentUser={currentUser}
+        schedules={band.schedules || []}
         onClose={() => setIsOrderModalOpen(false)}
         onConfirmWhatsApp={handleDirectWhatsApp}
+      />
+
+      {/* Modal Input Jadwal Manggung (Mode Pemilik Band) */}
+      <ManageScheduleModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        onSuccess={() => refetchBandProfile()}
+        defaultCity={band.locationCity}
       />
 
       {/* Modal Kelola & Edit Sampel Audio Profil (Mode Pemilik) */}

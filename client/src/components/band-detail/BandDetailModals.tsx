@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { X, Eye, Phone, ChevronLeft, ChevronRight, ImageOff, Film, Camera, Lock } from 'lucide-react'
+import { X, Eye, Phone, ChevronLeft, ChevronRight, ImageOff, Film, Camera, Lock, AlertTriangle, Calendar } from 'lucide-react'
 import { formatRupiah } from '../../lib/utils'
 import { isActualVideoSlide, parsePostSlides } from '../../lib/bandHelpers'
-import type { Band, BandPost } from '../../types'
+import type { Band, BandPost, BandSchedule } from '../../types'
 import type { AuthUser } from '../../lib/auth'
 
 interface PostViewerModalProps {
@@ -233,6 +233,7 @@ interface DirectBookingModalProps {
   setQuantity: number
   totalPrice: number
   currentUser?: AuthUser | null
+  schedules?: BandSchedule[]
   onClose: () => void
   onConfirmWhatsApp: (eventDate: string, eventName: string) => void
 }
@@ -243,6 +244,7 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
   setQuantity,
   totalPrice,
   currentUser,
+  schedules = [],
   onClose,
   onConfirmWhatsApp,
 }) => {
@@ -252,6 +254,11 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
     return d.toISOString().split('T')[0]
   })
   const [eventName, setEventName] = useState('Pensi Kampus / Festival Musik')
+
+  const overlappingSchedule = useMemo(() => {
+    if (!eventDate || !schedules || schedules.length === 0) return null
+    return schedules.find((s) => s.eventDate === eventDate) || null
+  }, [eventDate, schedules])
 
   useEffect(() => {
     if (!isOpen) return
@@ -327,9 +334,16 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
 
           {/* Tanggal Acara / Tampil Input */}
           <div className="py-2 border-b border-[#181818] space-y-1">
-            <label className="text-[#FFD166] text-[11px] uppercase tracking-wider block font-bold">
-              📅 TANGGAL TAMPIL / ACARA (Wajib Diisi EO):
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-[#FFD166] text-[11px] uppercase tracking-wider block font-bold">
+                📅 TANGGAL TAMPIL / ACARA (PILIHAN EO):
+              </label>
+              {schedules && schedules.length > 0 && (
+                <span className="text-[10px] text-[#A0A0A0]">
+                  {schedules.length} Jadwal Terisi
+                </span>
+              )}
+            </div>
             <input
               type="date"
               value={eventDate}
@@ -337,6 +351,19 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
               className="w-full bg-[#181818] border border-[#333333] focus:border-[#E01E37] text-white p-2.5 rounded font-mono text-xs outline-none"
               required
             />
+
+            {/* Overlap Warning Alert */}
+            {overlappingSchedule && (
+              <div className="p-3 bg-red-950/40 border border-[#E01E37] text-white rounded-lg space-y-1 font-sans text-xs mt-2 animate-in fade-in">
+                <div className="flex items-center gap-1.5 font-mono font-bold text-[#E01E37] text-[11px] uppercase tracking-wider">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>JADWAL BENTROK TERDETEKSI</span>
+                </div>
+                <p className="text-[11px] text-[#D0D0D0] leading-relaxed">
+                  Musisi ini sudah memiliki jadwal manggung pada <strong>{overlappingSchedule.eventDate}</strong> ({overlappingSchedule.startTime} - {overlappingSchedule.endTime} WIB) di <strong>{overlappingSchedule.eventName}</strong>. Anda tetap dapat berdiskusi via WhatsApp untuk penyesuaian jam tampil.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Nama Acara Input */}
@@ -361,21 +388,21 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
           </div>
         </div>
 
-        {/* Automated Review Notice Banner */}
+        {/* Inquiry and Official Booking Notice Banner */}
         <div className="bg-[#1C1410] border border-[#FFD166]/30 p-3 rounded-lg mb-4 text-[11px] font-sans text-[#E0E0E0] space-y-1">
           <div className="flex items-center gap-1.5 font-mono font-bold text-[#FFD166] text-xs">
             <span>ℹ️</span>
-            <span>SISTEM RATING OTOMATIS EO</span>
+            <span>TAHAP INQUIRY & KESEPAKATAN JADWAL</span>
           </div>
           <p className="leading-relaxed text-[#B0B0B0]">
-            Setelah tanggal tampil <strong className="text-white">{eventDate || 'yang ditentukan'}</strong> tepat pukul <strong>00.00 WIB</strong>, akun Anda akan menerima email notifikasi otomatis dari sistem untuk memberikan rating (1-5 bintang) dan ulasan penampilan band demi menjaga kualitas musisi terkurasi.
+            Menghubungi via WhatsApp merupakan tahap komunikasi & negosiasi awal. Penampilan baru dihitung resmi setelah kedua belah pihak sepakat dan <strong className="text-white">pihak band mengonfirmasi jadwal di kalender profil</strong>. Rating & ulasan EO otomatis diminta setelah hari tampil terlaksana (H+1).
           </p>
         </div>
 
         {currentUser && (
           <p className="text-xs text-[#A0A0A0] leading-relaxed mb-6 font-sans">
             {hasReachablePhone
-              ? 'Anda akan diarahkan langsung ke WhatsApp manajemen resmi band untuk konfirmasi jadwal, penyelarasan technical rider panggung, dan kesepakatan surat kontrak.'
+              ? 'Anda akan diarahkan langsung ke WhatsApp manajemen resmi band untuk negosiasi jadwal, rundown acara, dan riders panggung.'
               : isMasked
                 ? 'Masuk menggunakan akun EO / Penyelenggara untuk membuka nomor WhatsApp lengkap manajemen band.'
                 : 'Band ini belum mencantumkan nomor WhatsApp manajemen pada profilnya. Gunakan broadcast lowongan di bawah untuk menghubungi seluruh band.'}
@@ -414,7 +441,7 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
               className="w-full min-h-[44px] h-12 bg-[#E01E37] hover:bg-[#C71B30] disabled:bg-[#2A2A2A] disabled:text-[#888] disabled:cursor-not-allowed disabled:shadow-none text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 rounded-xl cursor-pointer"
             >
               <Phone className="w-4 h-4" />
-              <span>{hasReachablePhone ? 'KONFIRMASI BOOKING & HUBUNGI WHATSAPP' : 'NOMOR WHATSAPP BELUM TERSEDIA'}</span>
+              <span>{hasReachablePhone ? 'HUBUNGI WHATSAPP (INQUIRY JADWAL)' : 'NOMOR WHATSAPP BELUM TERSEDIA'}</span>
             </button>
             <button
               type="button"

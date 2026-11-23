@@ -120,6 +120,47 @@ export const fallbackBands: Band[] = [
         "display_order": 3,
         "created_at": "2026-10-16T13:36:20.035Z"
       }
+    ],
+    "schedules": [
+      {
+        "id": 1,
+        "bandProfileId": 1,
+        "eventDate": "2026-11-28",
+        "startTime": "19:30",
+        "endTime": "21:00",
+        "eventName": "Semarang Indie Stage Wave 2026",
+        "venue": "Taman Budaya Raden Saleh",
+        "locationCity": "Kota Semarang",
+        "organizerName": "Kolektif Indie Semarang",
+        "notes": "Main stage guest star, 2 set perform vintage surf rock",
+        "status": "confirmed"
+      },
+      {
+        "id": 2,
+        "bandProfileId": 1,
+        "eventDate": "2026-12-05",
+        "startTime": "20:00",
+        "endTime": "22:00",
+        "eventName": "Dies Natalis UNNES Music Fest",
+        "venue": "Auditorium UNNES Sekaran",
+        "locationCity": "Kota Semarang",
+        "organizerName": "BEM KM UNNES",
+        "notes": "Soundcheck rundown jam 16:00 WIB, FOH monitor stereo",
+        "status": "confirmed"
+      },
+      {
+        "id": 3,
+        "bandProfileId": 1,
+        "eventDate": "2026-12-19",
+        "startTime": "19:00",
+        "endTime": "21:30",
+        "eventName": "Festival Akhir Tahun Jawa Tengah",
+        "venue": "PRPP Convention Hall",
+        "locationCity": "Kota Semarang",
+        "organizerName": "Dinas Kebudayaan & Pariwisata",
+        "notes": "Panggung utama indoor",
+        "status": "confirmed"
+      }
     ]
   },
   {

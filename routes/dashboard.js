@@ -4,6 +4,7 @@ const BandProfile = require('../models/BandProfile');
 const BandPost = require('../models/BandPost');
 const Connection = require('../models/Connection');
 const JobBroadcast = require('../models/JobBroadcast');
+const BandSchedule = require('../models/BandSchedule');
 const { requireBand, verifyToken } = require('../middleware/auth');
 
 /**
@@ -33,6 +34,9 @@ router.get('/band', requireBand, async (req, res) => {
     // Incoming open gig broadcasts from Event Organizers
     const jobBroadcasts = await JobBroadcast.listRecent(50);
 
+    // Confirmed stage performance calendar schedules
+    const schedules = await BandSchedule.findByBandProfileId(bandProfile.id);
+
     const profileViews = Number(bandProfile.profileViews) || 0;
     const postViews = Number(performance.totalViews) || 0;
     const totalWaClicks = Math.max(Number(connectionStats.total || 0), Number(performance.totalWaClicks || 0));
@@ -54,6 +58,7 @@ router.get('/band', requireBand, async (req, res) => {
         posts: performance.posts,
         mediaFiles,
         recentConnections,
+        schedules,
         jobBroadcasts
       }
     });

@@ -48,6 +48,7 @@ router.get('/pending', verifyToken, async (req, res) => {
          AND c.event_date IS NOT NULL
          AND c.event_date != ''
          AND c.event_date <= $2
+         AND c.status = 'confirmed'
          AND (c.is_reviewed IS NULL OR c.is_reviewed = FALSE)
        ORDER BY c.event_date DESC`,
       [req.user.id, todayStr]

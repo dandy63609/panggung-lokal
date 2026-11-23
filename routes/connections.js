@@ -35,14 +35,16 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
-    // Record connection
+    // Record connection (inquiry stage - not yet a confirmed booking)
+    const initialStatus = connectionType === 'confirmed_booking' ? 'confirmed' : 'inquiry';
     const connection = await Connection.create({
       organizerUserId: req.user.id,
       bandProfileId: band.id,
       connectionType: connectionType || 'contact_view',
       notes: notes || null,
       eventDate: eventDate || null,
-      eventName: eventName || null
+      eventName: eventName || null,
+      status: initialStatus
     });
 
     // Format WhatsApp link if phone is present

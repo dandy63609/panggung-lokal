@@ -36,7 +36,8 @@ const CLOUD_SYNC_TABLES = [
   'job_broadcasts',
   'campuses',
   'reviews',
-  'platform_settings'
+  'platform_settings',
+  'band_schedules'
 ];
 
 const OPTIONAL_CLOUD_TABLES = new Set([
@@ -83,7 +84,12 @@ const TABLE_COLUMNS = {
   ],
   campuses: ['id', 'name', 'short_name', 'city', 'created_at'],
   reviews: ['id', 'band_profile_id', 'organizer_user_id', 'connection_id', 'rating', 'review_text', 'event_date', 'created_at'],
-  platform_settings: ['key', 'value', 'updated_at']
+  platform_settings: ['key', 'value', 'updated_at'],
+  band_schedules: [
+    'id', 'band_profile_id', 'organizer_user_id', 'event_date',
+    'start_time', 'end_time', 'event_name', 'venue', 'location_city',
+    'organizer_name', 'notes', 'status', 'created_at'
+  ]
 };
 
 let memDbInstance = null;
@@ -244,6 +250,22 @@ CREATE TABLE IF NOT EXISTS platform_settings (
   key VARCHAR(100) PRIMARY KEY,
   value VARCHAR(255) NOT NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS band_schedules (
+  id SERIAL PRIMARY KEY,
+  band_profile_id INTEGER NOT NULL REFERENCES band_profiles(id) ON DELETE CASCADE,
+  organizer_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  event_date VARCHAR(50) NOT NULL,
+  start_time VARCHAR(20) NOT NULL,
+  end_time VARCHAR(20) NOT NULL,
+  event_name VARCHAR(255) NOT NULL,
+  venue VARCHAR(255),
+  location_city VARCHAR(100),
+  organizer_name VARCHAR(255),
+  notes TEXT,
+  status VARCHAR(50) DEFAULT 'confirmed',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 `;
 

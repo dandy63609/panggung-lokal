@@ -72,6 +72,7 @@ export interface Band {
   stageVisualPostId?: number | null
   posts?: BandPost[]
   mediaFiles?: MediaFile[]
+  schedules?: BandSchedule[]
   isOwner?: boolean
 }
 
@@ -152,7 +153,26 @@ export interface BandDashboardData {
   posts: BandPost[]
   mediaFiles?: MediaFile[]
   recentConnections: RecentConnection[]
+  schedules?: BandSchedule[]
   jobBroadcasts?: JobBroadcast[]
+}
+
+export interface BandSchedule {
+  id: number
+  bandProfileId: number
+  organizerUserId?: number | null
+  eventDate: string
+  startTime: string
+  endTime: string
+  eventName: string
+  venue?: string | null
+  locationCity?: string | null
+  organizerName?: string | null
+  notes?: string | null
+  status: 'confirmed' | 'completed' | 'cancelled' | string
+  createdAt?: string
+  organizerEmail?: string
+  bandName?: string
 }
 
 export interface CampusRecord {
