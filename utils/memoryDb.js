@@ -607,7 +607,7 @@ async function saveMemoryDb(options = {}) {
   if (!memDbInstance) return;
   try {
     const data = dumpData(memDbInstance);
-    if (process.env.NODE_ENV !== 'test') {
+    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
       try {
         fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
       } catch {

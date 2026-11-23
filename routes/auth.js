@@ -13,6 +13,12 @@ const BandProfile = require('../models/BandProfile');
 const db = require('../utils/db');
 const { hashPassword, verifyPassword, needsRehash } = require('../utils/password');
 const { validateEmail } = require('../utils/validation');
+const {
+  isEmailConfigured,
+  getAppBaseUrl,
+  buildPasswordResetUrl,
+  sendPasswordResetEmail,
+} = require('../utils/email');
 const { generateToken, verifyToken, setAuthCookie } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
 
@@ -438,6 +444,25 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
       });
     }
 
+    const isProd = process.env.NODE_ENV === 'production';
+    const shouldSendRealEmail =
+      isEmailConfigured(process.env) &&
+      (process.env.NODE_ENV !== 'test' || process.env.ALLOW_TEST_EMAIL_SEND === '1');
+
+    if (isProd && !shouldSendRealEmail) {
+      console.error('RESEND_API_KEY is not configured; cannot send password reset email');
+      return res.status(503).json({
+        success: false,
+        message: 'Layanan pengiriman email pemulihan belum dikonfigurasi di server. Hubungi admin Reffband.'
+      });
+    }
+
+    // Invalidate previous unused reset tokens for this account
+    await db.query(
+      'UPDATE password_reset_tokens SET used = true WHERE user_id = $1 AND used = false',
+      [user.id]
+    );
+
     // Generate random reset token
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
@@ -448,14 +473,26 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
       [user.id, token, expiresAt]
     );
 
-    const isProd = process.env.NODE_ENV === 'production';
-    if (!isProd) {
-      console.log(`Password reset link generated for ${email}: /reset-password.html?token=${token}`);
+    const resetUrl = buildPasswordResetUrl(token, getAppBaseUrl(req, process.env));
+
+    if (shouldSendRealEmail) {
+      try {
+        await sendPasswordResetEmail({ to: user.email, resetUrl });
+      } catch (mailErr) {
+        console.error('Failed to send password reset email:', mailErr.message);
+        await db.query('DELETE FROM password_reset_tokens WHERE token = $1', [token]).catch(() => {});
+        return res.status(503).json({
+          success: false,
+          message: 'Gagal mengirim email pemulihan kata sandi. Silakan coba beberapa saat lagi.'
+        });
+      }
+    } else if (!isProd) {
+      console.log(`Password reset link generated for ${email}: ${resetUrl}`);
     }
 
     return res.json({
       success: true,
-      message: 'Instruksi reset password telah dikirim ke email Anda',
+      message: 'Instruksi reset password telah dikirim ke email Anda. Periksa kotak masuk atau folder spam.',
       ...(!isProd && { resetToken: token })
     });
   } catch (error) {
