@@ -33,6 +33,8 @@ export default defineConfig({
       NODE_ENV: bindings.text("production"),
       CLOUDFLARE_WORKERS: bindings.text("1"),
       SUPABASE_STORAGE_BUCKET: bindings.text("media"),
+      APP_URL: bindings.text("https://reffband.studio"),
+      EMAIL_FROM: bindings.text("Reffband <noreply@reffband.studio>"),
       CORS_ORIGIN: bindings.text(
         "https://panggung-lokal.dandy-adya2006.workers.dev,https://reffband.studio,https://www.reffband.studio"
       ),
@@ -48,6 +50,7 @@ export default defineConfig({
       ADMIN_EMAIL: bindings.secret(),
       ADMIN_PASSWORD: bindings.secret(),
       GOOGLE_CLIENT_ID: bindings.secret(),
+      RESEND_API_KEY: bindings.secret(),
     },
   },
 });
