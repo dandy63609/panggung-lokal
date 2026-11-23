@@ -13,11 +13,8 @@ import {
   Zap,
   ArrowLeft,
   Loader2,
-  Music2,
-  Building2,
 } from 'lucide-react'
 import { authClient } from '../lib/auth'
-import { INDONESIA_CITIES } from '../lib/cities'
 
 function getPostLoginRoute(accountType: string | undefined, fallback: string): string {
   if (fallback && fallback !== '/cari-band') return fallback
@@ -40,19 +37,12 @@ export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [accountNotFound, setAccountNotFound] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-
-  // First-time Google onboarding state
-  const [pendingGoogle, setPendingGoogle] = useState<{
-    credential: string
-    email: string
-    name: string
-  } | null>(null)
-  const [googleBandName, setGoogleBandName] = useState('')
-  const [googleCity, setGoogleCity] = useState<string>(INDONESIA_CITIES[0])
   const [existingUser] = useState(() => (authClient.getToken() ? authClient.getUser() : null))
 
   const hasGoogleClient = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID)
+  const registerHref = redirectParam ? `/daftar?redirect=${encodeURIComponent(redirectParam)}` : '/daftar'
 
   if (existingUser) {
     return <Navigate to={getPostLoginRoute(existingUser.accountType, fromLocation)} replace />
@@ -61,6 +51,7 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
+    setAccountNotFound(false)
     setSuccessMessage(null)
 
     const cleanEmail = email.trim()
@@ -85,6 +76,7 @@ export const LoginPage: React.FC = () => {
           navigate(destination)
         }, 800)
       } else {
+        setAccountNotFound(res.code === 'ACCOUNT_NOT_FOUND')
         setErrorMessage(res.message || 'Email atau kata sandi tidak cocok. Silakan coba kembali.')
         setLoading(false)
       }
@@ -124,22 +116,12 @@ export const LoginPage: React.FC = () => {
       return
     }
     setErrorMessage(null)
+    setAccountNotFound(false)
     setSuccessMessage(null)
     setLoading(true)
 
     try {
       const res = await authClient.loginWithGoogle({ credential })
-      if (res.success && res.needsOnboarding && res.googleProfile) {
-        setPendingGoogle({
-          credential,
-          email: res.googleProfile.email,
-          name: res.googleProfile.name,
-        })
-        setGoogleBandName('')
-        setLoading(false)
-        return
-      }
-
       if (res.success && res.user) {
         const destination = getPostLoginRoute(res.user.accountType, fromLocation)
         setSuccessMessage('Autentikasi Google terverifikasi. Mengalihkan...')
@@ -147,40 +129,17 @@ export const LoginPage: React.FC = () => {
           navigate(destination)
         }, 700)
       } else {
-        setErrorMessage(res.message || 'Gagal masuk menggunakan Google.')
+        const isNotFound = res.code === 'ACCOUNT_NOT_FOUND' || Boolean(res.needsOnboarding)
+        setAccountNotFound(isNotFound)
+        setErrorMessage(
+          isNotFound
+            ? res.message || 'Akun Google ini belum terdaftar. Silakan daftar terlebih dahulu.'
+            : res.message || 'Gagal masuk menggunakan Google.'
+        )
         setLoading(false)
       }
     } catch {
       setErrorMessage('Terjadi kendala saat menghubungkan akun Google.')
-      setLoading(false)
-    }
-  }
-
-  const handleCompleteGoogleOnboarding = async (chosenType: 'band' | 'general') => {
-    if (!pendingGoogle) return
-    if (chosenType === 'band' && !googleBandName.trim()) {
-      setErrorMessage('Nama band wajib diisi. Masukkan nama panggung / band Anda.')
-      return
-    }
-
-    setErrorMessage(null)
-    setLoading(true)
-
-    const res = await authClient.loginWithGoogle({
-      credential: pendingGoogle.credential,
-      accountType: chosenType,
-      bandName: chosenType === 'band' ? googleBandName.trim() : undefined,
-      locationCity: googleCity.trim() || 'Kota Semarang',
-    })
-
-    if (res.success && res.user) {
-      const destination = getPostLoginRoute(res.user.accountType, fromLocation)
-      setSuccessMessage('Akun Google berhasil dibuat! Mengalihkan ke ruang kerja...')
-      setTimeout(() => {
-        navigate(destination)
-      }, 700)
-    } else {
-      setErrorMessage(res.message || 'Gagal menyelesaikan pendaftaran Google.')
       setLoading(false)
     }
   }
@@ -238,7 +197,18 @@ export const LoginPage: React.FC = () => {
             className="mb-6 p-3.5 bg-[#E01E37]/15 border border-[#E01E37] text-white text-xs font-sans flex items-start gap-2.5 rounded-none"
           >
             <AlertCircle className="w-4 h-4 text-[#E01E37] shrink-0 mt-0.5" />
-            <div className="flex-1 leading-relaxed">{errorMessage}</div>
+            <div className="flex-1 leading-relaxed">
+              <p>{errorMessage}</p>
+              {accountNotFound && (
+                <Link
+                  to={registerHref}
+                  className="inline-flex items-center gap-1 mt-1.5 text-[#E01E37] hover:underline font-mono font-bold uppercase tracking-wider"
+                >
+                  <span>Daftar Sekarang</span>
+                  <span>▸</span>
+                </Link>
+              )}
+            </div>
           </div>
         )}
 
@@ -253,88 +223,7 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
 
-        {/* Google First-Time Role Onboarding OR Standard Login Form */}
-        {pendingGoogle ? (
-          <div className="space-y-5 bg-[#0C0C0C] border border-[#262626] p-5">
-            <div className="space-y-1">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-[#E01E37] font-bold block">
-                AKUN GOOGLE BARU TERDETEKSI
-              </span>
-              <p className="text-xs text-white font-mono truncate">
-                {pendingGoogle.email}
-              </p>
-              <p className="text-xs text-[#9E9E9E] font-sans">
-                Pilih peran Anda di ekosistem Reffband untuk menyelesaikan pendaftaran:
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-[#B0B0B0] mb-1">
-                  Nama Band / Nama Panggung * (Wajib untuk Musisi)
-                </label>
-                <input
-                  type="text"
-                  value={googleBandName}
-                  onChange={(e) => setGoogleBandName(e.target.value)}
-                  placeholder="Contoh: Nada Kota / The Semarang Waves"
-                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-sm px-3.5 py-2.5 min-h-[44px] outline-none font-sans"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-[#B0B0B0] mb-1">
-                  Kota Domisili
-                </label>
-                <select
-                  value={googleCity}
-                  onChange={(e) => setGoogleCity(e.target.value)}
-                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-sm px-3 py-2.5 min-h-[44px] outline-none font-sans cursor-pointer"
-                >
-                  {INDONESIA_CITIES.map((c) => (
-                    <option key={c} value={c} className="bg-[#181818] text-white">
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2.5 pt-1">
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => handleCompleteGoogleOnboarding('band')}
-                className="w-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs font-bold uppercase tracking-wider py-3 px-4 min-h-[44px] flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <Music2 className="w-4 h-4" />
-                <span>Lanjutkan sebagai Musisi / Band</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => handleCompleteGoogleOnboarding('general')}
-                className="w-full bg-[#181818] hover:bg-[#242424] border border-white/40 hover:border-white text-white font-mono text-xs font-bold uppercase tracking-wider py-3 px-4 min-h-[44px] flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <Building2 className="w-4 h-4" />
-                <span>Lanjutkan sebagai Penyelenggara / EO</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => {
-                  setPendingGoogle(null)
-                  setErrorMessage(null)
-                }}
-                className="w-full text-[#808080] hover:text-white font-mono text-[11px] uppercase tracking-wider py-2 min-h-[44px] cursor-pointer"
-              >
-                Batal &amp; Kembali ke Form Login
-              </button>
-            </div>
-          </div>
-        ) : (
+        {/* Standard Login Form */}
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {/* Email Field */}
           <div>
@@ -422,10 +311,9 @@ export const LoginPage: React.FC = () => {
             )}
           </button>
         </form>
-        )}
 
-        {/* Google Auth Onboarding or Sign-In Divider */}
-        {pendingGoogle ? null : hasGoogleClient && (
+        {/* Google Sign-In Divider */}
+        {hasGoogleClient && (
           <div className="mt-6">
             <div className="relative flex items-center justify-center mb-4">
               <div className="border-t border-[#262626] w-full" />
@@ -516,7 +404,7 @@ export const LoginPage: React.FC = () => {
           <p className="text-xs text-[#909090] font-sans">
             Belum memiliki akun terdaftar?{' '}
             <Link
-              to={redirectParam ? `/daftar?redirect=${encodeURIComponent(redirectParam)}` : '/daftar'}
+              to={registerHref}
               className="text-[#E01E37] hover:underline font-mono font-bold uppercase tracking-wider ml-1 inline-flex items-center gap-1"
             >
               <span>Daftar Sekarang</span>

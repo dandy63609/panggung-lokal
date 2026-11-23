@@ -158,7 +158,8 @@ router.post('/login', authLimiter, async (req, res) => {
     if (userResult.rows.length === 0) {
       return res.status(401).json({
         success: false,
-        message: 'Email atau password salah'
+        code: 'ACCOUNT_NOT_FOUND',
+        message: 'Akun belum terdaftar. Silakan daftar terlebih dahulu.'
       });
     }
 
@@ -333,16 +334,12 @@ router.post('/google', authLimiter, async (req, res) => {
       });
     }
 
-    // New user via Google: ask role selection if triggered from Login page without accountType
+    // New user via Google from Login page (no accountType): prompt to sign up first
     if (!accountType) {
-      return res.json({
-        success: true,
-        needsOnboarding: true,
-        googleProfile: {
-          email: normalizedEmail,
-          name: payload.name || normalizedEmail.split('@')[0],
-          picture: payload.picture || null
-        }
+      return res.status(404).json({
+        success: false,
+        code: 'ACCOUNT_NOT_FOUND',
+        message: 'Akun Google ini belum terdaftar. Silakan daftar terlebih dahulu.'
       });
     }
 
