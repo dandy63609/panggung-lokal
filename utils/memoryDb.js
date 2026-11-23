@@ -1,15 +1,29 @@
 const { newDb } = require('pg-mem');
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcrypt');
+const { hashPassword } = require('./password');
 
-const DATA_FILE = path.join(__dirname, '..', 'data', 'panggung_lokal.json');
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '';
-const SHOULD_USE_CLOUD_SYNC = Boolean(
-  process.env.NODE_ENV !== 'test' && SUPABASE_URL && SUPABASE_KEY
-);
+const BASE_DIR = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+const DATA_FILE = path.join(BASE_DIR, '..', 'data', 'panggung_lokal.json');
+
+function getCloudSyncConfig() {
+  const url = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_KEY ||
+    '';
+  const enabled = Boolean(process.env.NODE_ENV !== 'test' && url && key);
+  return { url, key, enabled };
+}
+
+function isServerlessRuntime() {
+  return Boolean(
+    process.env.VERCEL ||
+    process.env.CLOUDFLARE_WORKERS ||
+    process.env.CF_PAGES
+  );
+}
 
 const CLOUD_SYNC_TABLES = [
   'users',
@@ -247,6 +261,16 @@ function getMemoryDb() {
     implementation: () => 'PostgreSQL 15.0 (pg-mem embedded)',
   });
 
+  const pgTrimImpl = (value) => (value == null ? null : String(value).trim());
+  for (const fnName of ['trim', 'btrim']) {
+    db.public.registerFunction({
+      name: fnName,
+      args: [db.public.getType('text')],
+      returns: db.public.getType('text'),
+      implementation: pgTrimImpl,
+    });
+  }
+
   db.public.none(SCHEMA_SQL);
 
   const { Pool } = db.adapters.createPg();
@@ -256,25 +280,27 @@ function getMemoryDb() {
   poolInstance = pool;
 
   initPromise = (async () => {
+    const cloudEnabled = getCloudSyncConfig().enabled;
+    const serverless = isServerlessRuntime();
     try {
       let cloudData = null;
-      if (SHOULD_USE_CLOUD_SYNC) {
+      if (cloudEnabled) {
         cloudData = await fetchFromCloud();
       }
 
-      if (cloudData && Array.isArray(cloudData.users) && (cloudData.users.length > 0 || process.env.VERCEL)) {
+      if (cloudData && Array.isArray(cloudData.users) && (cloudData.users.length > 0 || serverless)) {
         await restoreData(pool, cloudData);
         lastCloudFetchAt = Date.now();
         console.log('☁️ Restored database from Supabase Cloud');
-      } else if (SHOULD_USE_CLOUD_SYNC && process.env.VERCEL) {
+      } else if (cloudEnabled && serverless) {
         // Avoid overwriting Supabase Cloud with local dummy seed data when cloud fetch fails transiently
-        console.warn('⚠️ Cloud restore unavailable on Vercel; starting with empty schema');
+        console.warn('⚠️ Cloud restore unavailable in serverless mode; starting with empty schema');
       } else if (fs.existsSync(DATA_FILE)) {
         try {
           const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
           await restoreData(pool, savedData);
           console.log('📦 Restored database from', DATA_FILE);
-          if (SHOULD_USE_CLOUD_SYNC) {
+          if (cloudEnabled) {
             await syncAllToCloud();
           }
         } catch (err) {
@@ -286,7 +312,7 @@ function getMemoryDb() {
       }
     } catch (err) {
       console.error('⚠️ Error during memory DB initialization:', err.message);
-      if (!(SHOULD_USE_CLOUD_SYNC && process.env.VERCEL)) {
+      if (!(cloudEnabled && serverless)) {
         await seedInitialData(pool);
       }
     }
@@ -297,15 +323,16 @@ function getMemoryDb() {
 }
 
 async function fetchFromCloud() {
-  if (!SHOULD_USE_CLOUD_SYNC) return null;
+  const { url, key, enabled } = getCloudSyncConfig();
+  if (!enabled) return null;
   try {
     const dump = {};
     const results = await Promise.all(
       CLOUD_SYNC_TABLES.map(async (table) => {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*`, {
+        const res = await fetch(`${url}/rest/v1/${table}?select=*`, {
           headers: {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`
+            apikey: key,
+            Authorization: `Bearer ${key}`
           }
         });
         if (!res.ok) {
@@ -331,7 +358,7 @@ async function fetchFromCloud() {
 }
 
 async function ensureFreshCloudData(force = false) {
-  if (!SHOULD_USE_CLOUD_SYNC || !process.env.VERCEL || !memDbInstance || !poolInstance) {
+  if (!getCloudSyncConfig().enabled || !isServerlessRuntime() || !memDbInstance || !poolInstance) {
     return false;
   }
   const ttlMs = 3000;
@@ -378,7 +405,8 @@ async function ensureFreshCloudData(force = false) {
 }
 
 async function syncAllToCloud(options = {}) {
-  if (!SHOULD_USE_CLOUD_SYNC || !memDbInstance) return;
+  const { url, key, enabled } = getCloudSyncConfig();
+  if (!enabled || !memDbInstance) return;
   const data = dumpData(memDbInstance);
 
   // Upsert rows in parent-before-child order so foreign keys always resolve cleanly.
@@ -387,11 +415,11 @@ async function syncAllToCloud(options = {}) {
     if (rows.length === 0) continue;
     const pkCol = table === 'platform_settings' ? 'key' : 'id';
     try {
-      const upsertRes = await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${pkCol}`, {
+      const upsertRes = await fetch(`${url}/rest/v1/${table}?on_conflict=${pkCol}`, {
         method: 'POST',
         headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
+          apikey: key,
+          Authorization: `Bearer ${key}`,
           'Content-Type': 'application/json',
           Prefer: 'resolution=merge-duplicates'
         },
@@ -399,10 +427,11 @@ async function syncAllToCloud(options = {}) {
       });
       if (!upsertRes.ok) {
         const errBody = await upsertRes.text().catch(() => '');
-        console.warn(`⚠️ Failed to upsert table ${table} to Supabase (${upsertRes.status}): ${errBody}`);
+        throw new Error(`Failed to upsert table ${table} to Supabase (${upsertRes.status}): ${errBody}`);
       }
     } catch (err) {
       console.warn(`⚠️ Failed to sync table ${table} to Supabase:`, err.message);
+      throw err;
     }
   }
 
@@ -418,11 +447,11 @@ async function syncAllToCloud(options = {}) {
           : table === 'platform_settings'
             ? 'key=neq.__none__'
             : 'id=gt.0';
-        const deleteRes = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${deleteFilter}`, {
+        const deleteRes = await fetch(`${url}/rest/v1/${table}?${deleteFilter}`, {
           method: 'DELETE',
           headers: {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`
+            apikey: key,
+            Authorization: `Bearer ${key}`
           }
         });
         if (!deleteRes.ok) {
@@ -490,7 +519,7 @@ async function restoreData(pool, data) {
   }
 
   // Ensure sample ratings/reviews and booking only auto-seed in non-cloud test/local fixture data
-  if (!SHOULD_USE_CLOUD_SYNC && !process.env.VERCEL) {
+  if (!getCloudSyncConfig().enabled && !isServerlessRuntime()) {
     try {
       const seededDummyCheck = await pool.query(
         'SELECT COUNT(*) as count FROM band_profiles WHERE id IN (1, 2, 4, 8)'
@@ -585,17 +614,20 @@ async function saveMemoryDb(options = {}) {
         // Ignore read-only filesystem on serverless platforms (Vercel)
       }
     }
-    if (SHOULD_USE_CLOUD_SYNC) {
+    if (getCloudSyncConfig().enabled) {
       await syncAllToCloud(options);
     }
   } catch (err) {
     console.error('Failed to save memory database:', err.message);
+    if (getCloudSyncConfig().enabled) {
+      throw err;
+    }
   }
 }
 
 async function seedInitialData(pool) {
   console.log('🌱 Seeding initial Indonesian band and organizer data...');
-  const defaultHash = bcrypt.hashSync('Password123!', 10);
+  const defaultHash = await hashPassword('Password123!');
 
   // 1. Seed Users
   const users = [

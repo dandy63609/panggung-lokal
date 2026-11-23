@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import {
   Lock,
@@ -49,17 +49,28 @@ export const LoginPage: React.FC = () => {
     name: string
   } | null>(null)
   const [googleBandName, setGoogleBandName] = useState('')
-  const [googleCity, setGoogleCity] = useState('Bandung')
+  const [googleCity, setGoogleCity] = useState<string>(INDONESIA_CITIES[0])
+  const [existingUser] = useState(() => (authClient.getToken() ? authClient.getUser() : null))
 
   const hasGoogleClient = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID)
+
+  if (existingUser) {
+    return <Navigate to={getPostLoginRoute(existingUser.accountType, fromLocation)} replace />
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
     setSuccessMessage(null)
 
-    if (!email || !password) {
+    const cleanEmail = email.trim()
+    if (!cleanEmail || !password) {
       setErrorMessage('Silakan masukkan email dan kata sandi Anda.')
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setErrorMessage('Format alamat email tidak valid.')
       return
     }
 

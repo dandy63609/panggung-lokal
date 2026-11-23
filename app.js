@@ -63,7 +63,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Static files & SPA routes
-const clientDistDir = path.join(__dirname, 'client', 'dist');
+const ROOT_DIR = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+const clientDistDir = path.join(ROOT_DIR, 'client', 'dist');
 const clientDistIndex = path.resolve(clientDistDir, 'index.html');
 const spaRoutes = [
   '/masuk',
@@ -108,16 +109,16 @@ if (fs.existsSync(clientDistDir)) {
   });
 }
 
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
-if (process.env.VERCEL) {
+app.use(express.static(path.join(ROOT_DIR, 'public'), { index: false }));
+if (process.env.VERCEL || process.env.CLOUDFLARE_WORKERS || process.env.CF_PAGES) {
   app.use('/uploads', express.static(path.join(os.tmpdir(), 'uploads')));
 }
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(ROOT_DIR, 'uploads')));
 app.get('/admin.html', require('./middleware/auth').requireAdminPage, (req, res) => {
   if (fs.existsSync(clientDistIndex)) {
     return sendSpaIndex(res);
   }
-  return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  return res.sendFile(path.join(ROOT_DIR, 'public', 'admin.html'));
 });
 
 // Redirect legacy organizer dashboard directly to search
@@ -149,7 +150,7 @@ app.get('/', (req, res) => {
     if (fs.existsSync(clientDistIndex)) {
       return sendSpaIndex(res);
     }
-    return res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
+    return res.sendFile(path.resolve(ROOT_DIR, 'public', 'index.html'));
   }
   res.json({
     message: 'Panggung Lokal API',

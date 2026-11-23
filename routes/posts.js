@@ -87,7 +87,7 @@ router.post('/:id/wa-click', async (req, res) => {
 
 router.post('/', requireAuth, requireBand, async (req, res) => {
   try {
-    const bandProfile = await BandProfile.findByUserId(req.user.id);
+    const bandProfile = await BandProfile.findOrCreateForUser(req.user);
     if (!bandProfile) {
       return res.status(404).json({ success: false, message: 'Profil band tidak ditemukan' });
     }
@@ -214,7 +214,7 @@ router.delete('/:id', requireAuth, requireBand, async (req, res) => {
  */
 router.get('/my-performance', requireAuth, requireBand, async (req, res) => {
   try {
-    const bandProfile = await BandProfile.findByUserId(req.user.id);
+    const bandProfile = await BandProfile.findOrCreateForUser(req.user);
     if (!bandProfile) {
       return res.status(404).json({ success: false, message: 'Profil band tidak ditemukan' });
     }

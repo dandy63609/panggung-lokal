@@ -421,9 +421,58 @@ class BandProfile {
     let paramIndex = 1;
 
     if (genre && genre.trim() !== '') {
-      conditions.push(`bp.genre ILIKE $${paramIndex}`);
-      params.push(`%${genre.trim()}%`);
-      paramIndex += 1;
+      const normalizedGenre = genre.trim().toLowerCase();
+      const categoryKeywords = {
+        'rock & grunge': ['rock', 'grunge', 'alternative', 'punk', 'britpop'],
+        'indie & folk': ['indie', 'folk', 'shoegaze', 'dream pop', 'acoustic', 'akustik'],
+        'metal & hardcore': ['metal', 'hardcore', 'thrash', 'metalcore', 'heavy'],
+        'pop & retro': ['pop', 'city pop', 'retro', 'synth', 'r&b'],
+        'dangdut fusion': ['dangdut', 'koplo', 'fusion', 'orkes', 'campursari', 'melayu'],
+        'jazz & soul': ['jazz', 'soul', 'funk', 'blues', 'fusion', 'bossa'],
+        rock: ['rock', 'grunge', 'alternative', 'punk', 'britpop'],
+        grunge: ['grunge', 'rock', 'alternative'],
+        indie: ['indie', 'folk', 'shoegaze', 'dream pop', 'acoustic', 'akustik'],
+        folk: ['folk', 'indie', 'akustik', 'acoustic'],
+        metal: ['metal', 'hardcore', 'thrash', 'metalcore', 'heavy'],
+        hardcore: ['hardcore', 'metal', 'punk', 'thrash'],
+        pop: ['pop', 'city pop', 'retro', 'synth', 'r&b'],
+        retro: ['retro', 'city pop', 'pop', 'synth'],
+        dangdut: ['dangdut', 'koplo', 'fusion', 'orkes', 'campursari', 'melayu'],
+        koplo: ['koplo', 'dangdut', 'fusion', 'campursari'],
+        jazz: ['jazz', 'soul', 'funk', 'blues', 'fusion', 'bossa'],
+        soul: ['soul', 'jazz', 'funk', 'r&b'],
+        akustik: ['akustik', 'acoustic', 'folk', 'unplugged'],
+        acoustic: ['acoustic', 'akustik', 'folk', 'unplugged'],
+      };
+
+      const expanded = new Set();
+      if (categoryKeywords[normalizedGenre]) {
+        for (const kw of categoryKeywords[normalizedGenre]) expanded.add(kw);
+      } else {
+        const segments = normalizedGenre.split(/[&/,+]+/).map((s) => s.trim()).filter(Boolean);
+        for (const segment of segments) {
+          if (categoryKeywords[segment]) {
+            for (const kw of categoryKeywords[segment]) expanded.add(kw);
+          } else if (segments.length > 1) {
+            expanded.add(segment);
+          }
+        }
+      }
+
+      const genreKeywords = expanded.size > 0 ? Array.from(expanded) : [genre.trim()];
+      if (genreKeywords.length === 1) {
+        conditions.push(`bp.genre ILIKE $${paramIndex}`);
+        params.push(`%${genreKeywords[0]}%`);
+        paramIndex += 1;
+      } else {
+        const orClauses = genreKeywords.map((kw) => {
+          params.push(`%${kw}%`);
+          const clause = `bp.genre ILIKE $${paramIndex}`;
+          paramIndex += 1;
+          return clause;
+        });
+        conditions.push(`(${orClauses.join(' OR ')})`);
+      }
     }
 
     if (location && location.trim() !== '') {

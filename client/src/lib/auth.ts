@@ -111,7 +111,7 @@ export const authClient = {
         body: JSON.stringify({ email, password }),
       })
 
-      const data: AuthResponse = await res.json()
+      const data = await this.readApiJson<AuthResponse>(res, 'Gagal masuk ke akun.')
       if (data.success && data.token && data.user) {
         const fullUser: AuthUser = {
           ...data.user,
@@ -136,7 +136,7 @@ export const authClient = {
         body: JSON.stringify(payload),
       })
 
-      const data: AuthResponse = await res.json()
+      const data = await this.readApiJson<AuthResponse>(res, 'Gagal mendaftar akun.')
       if (data.success && data.token && data.user) {
         const fullUser: AuthUser = {
           ...data.user,
@@ -161,7 +161,7 @@ export const authClient = {
         body: JSON.stringify(payload),
       })
 
-      const data: GoogleAuthResponse = await res.json()
+      const data = await this.readApiJson<GoogleAuthResponse>(res, 'Gagal autentikasi dengan Google.')
       if (data.success && data.token && data.user && !data.needsOnboarding) {
         const fullUser: AuthUser = {
           ...data.user,
@@ -185,13 +185,13 @@ export const authClient = {
           headers: this.getAuthHeaders(),
         })
         if (res.ok) {
-          return await res.json()
+          return await this.readApiJson(res, 'Gagal memuat data dashboard band')
         }
-        if (attempt < retries) {
-          await new Promise((r) => setTimeout(r, 300))
-          continue
+        if (res.status < 500 || attempt >= retries) {
+          return await this.readApiJson(res, 'Gagal memuat data dashboard band')
         }
-        return await res.json().catch(() => ({ success: false, message: 'Gagal memuat data dashboard band' }))
+        await new Promise((r) => setTimeout(r, 300))
+        continue
       } catch {
         if (attempt < retries) {
           await new Promise((r) => setTimeout(r, 300))
@@ -213,7 +213,10 @@ export const authClient = {
         },
         body: JSON.stringify(profileData),
       })
-      const data = await res.json()
+      const data = await this.readApiJson<{ success: boolean; data?: Band; message?: string }>(
+        res,
+        'Gagal memperbarui profil band'
+      )
       if (data.success && data.data) {
         const user = this.getUser()
         if (user) {
@@ -242,6 +245,33 @@ export const authClient = {
     } catch {
       return null
     }
+  },
+
+  async readApiJson<T extends Record<string, any> = Record<string, any>>(
+    res: Response,
+    fallbackMessage: string
+  ): Promise<T & { success: boolean; message?: string }> {
+    const parsed = await this.parseResponseJson<T>(res)
+    const resolvedMessage =
+      parsed?.message ||
+      parsed?.error?.message ||
+      (res.status === 401
+        ? 'Sesi login Anda berakhir. Silakan masuk kembali.'
+        : !res.ok
+          ? fallbackMessage
+          : undefined)
+
+    if (!parsed) {
+      return { success: false, message: resolvedMessage || fallbackMessage } as T & {
+        success: boolean
+        message?: string
+      }
+    }
+
+    if (resolvedMessage && !parsed.message) {
+      return { ...parsed, message: resolvedMessage }
+    }
+    return parsed as T & { success: boolean; message?: string }
   },
 
   resolveUploadErrorMessage(res: Response, jsonBody: Record<string, any> | null, fallback: string): string {
@@ -276,8 +306,37 @@ export const authClient = {
       wav: 'audio/wav',
       ogg: 'audio/ogg',
       m4a: 'audio/mp4',
+      aac: 'audio/aac',
     }
+    const allowedMimeTypes = new Set([
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'video/mp4',
+      'video/webm',
+      'video/quicktime',
+      'video/x-m4v',
+      'audio/mpeg',
+      'audio/mp3',
+      'audio/wav',
+      'audio/x-wav',
+      'audio/ogg',
+      'audio/mp4',
+      'audio/aac',
+      'audio/m4a',
+      'audio/x-m4a',
+    ])
     const mimeType = (rawMime && rawMime !== 'application/octet-stream' ? rawMime : extMimeMap[ext]) || rawMime || 'application/octet-stream'
+    if (!allowedMimeTypes.has(mimeType)) {
+      return {
+        valid: false,
+        fileType: 'photo',
+        mimeType,
+        message: 'Tipe file tidak didukung. Gunakan foto (JPG/PNG/WebP/GIF), video (MP4/WebM/MOV), atau audio (MP3/WAV/OGG/M4A/AAC).',
+      }
+    }
     const isVideo = mimeType.startsWith('video/')
     const isAudio = mimeType.startsWith('audio/')
     const fileType: 'photo' | 'video' | 'audio' = isVideo ? 'video' : isAudio ? 'audio' : 'photo'
@@ -466,7 +525,7 @@ export const authClient = {
         },
         body: JSON.stringify(postData),
       })
-      return await res.json()
+      return await this.readApiJson(res, 'Gagal mengunggah karya musik')
     } catch {
       return { success: false, message: 'Gagal mengunggah karya musik' }
     }
@@ -485,7 +544,7 @@ export const authClient = {
         },
         body: JSON.stringify(payload),
       })
-      return await res.json()
+      return await this.readApiJson(res, 'Gagal menambahkan media ke carousel karya')
     } catch {
       return { success: false, message: 'Gagal menambahkan media ke carousel karya' }
     }
@@ -497,7 +556,7 @@ export const authClient = {
         method: 'DELETE',
         headers: this.getAuthHeaders(),
       })
-      return await res.json()
+      return await this.readApiJson(res, 'Gagal menghapus postingan')
     } catch {
       return { success: false, message: 'Gagal menghapus postingan' }
     }
@@ -518,7 +577,7 @@ export const authClient = {
         },
         body: JSON.stringify(payload),
       })
-      return await res.json()
+      return await this.readApiJson(res, 'Gagal menambahkan berkas media')
     } catch {
       return { success: false, message: 'Gagal menambahkan berkas media' }
     }
@@ -530,7 +589,7 @@ export const authClient = {
         method: 'DELETE',
         headers: this.getAuthHeaders(),
       })
-      return await res.json()
+      return await this.readApiJson(res, 'Gagal menghapus media')
     } catch {
       return { success: false, message: 'Gagal menghapus media' }
     }
@@ -549,7 +608,7 @@ export const authClient = {
         },
         body: JSON.stringify(payload),
       })
-      return await res.json()
+      return await this.readApiJson(res, 'Gagal memperbarui data media')
     } catch {
       return { success: false, message: 'Gagal memperbarui data media' }
     }
@@ -569,7 +628,7 @@ export const authClient = {
         headers: this.getAuthHeaders(),
         body: formData,
       })
-      return await res.json()
+      return await this.readApiJson(res, 'Gagal mengunggah lampiran file')
     } catch {
       return { success: false, message: 'Gagal mengunggah lampiran file' }
     }
@@ -597,7 +656,7 @@ export const authClient = {
         },
         body: JSON.stringify(payload),
       })
-      return await res.json()
+      return await this.readApiJson(res, 'Gagal mengirim broadcast panggilan panggung')
     } catch {
       return { success: false, message: 'Gagal mengirim broadcast panggilan panggung' }
     }

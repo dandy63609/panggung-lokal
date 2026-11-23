@@ -16,10 +16,14 @@ const {
   uploadBufferToCloudStorage,
 } = require('../utils/storage');
 
-// Use /tmp/uploads on Vercel serverless where the project directory is read-only
-const uploadDir = process.env.VERCEL
+// Use /tmp/uploads in serverless runtimes (Vercel / Cloudflare Workers) where project disk is read-only
+const isServerless = Boolean(
+  process.env.VERCEL || process.env.CLOUDFLARE_WORKERS || process.env.CF_PAGES
+);
+const BASE_DIR = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+const uploadDir = isServerless
   ? path.join(os.tmpdir(), 'uploads')
-  : path.join(__dirname, '..', 'uploads');
+  : path.join(BASE_DIR, '..', 'uploads');
 
 function ensureUploadDir() {
   try {

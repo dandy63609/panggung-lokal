@@ -416,7 +416,10 @@ export const UploadMediaModal: React.FC<UploadMediaModalProps> = ({
                 </div>
 
                 {failedItems.length > 0 && (
-                  <p className="text-[11px] font-mono text-[#E01E37] bg-[#E01E37]/10 border border-[#E01E37]/40 px-3 py-2">
+                  <p
+                    role="alert"
+                    className="text-[11px] font-mono text-[#E01E37] bg-[#E01E37]/10 border border-[#E01E37]/40 px-3 py-2"
+                  >
                     {failedItems.length} berkas gagal diunggah. Hapus berkas bertanda merah sebelum mempublikasikan karya.
                   </p>
                 )}
@@ -663,6 +666,7 @@ interface EditProfileModalProps {
   onChange: (next: EditProfileFormState) => void
   onClose: () => void
   onSubmit: (e: React.FormEvent) => void
+  onUploadError?: (message: string) => void
 }
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({
@@ -672,7 +676,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onChange,
   onClose,
   onSubmit,
+  onUploadError,
 }) => {
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  const [uploadingPhotoField, setUploadingPhotoField] = useState<'profilePhotoUrl' | 'coverPhotoUrl' | null>(null)
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null)
+
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
+    setUploadingPhotoField(null)
+    setPhotoUploadError(null)
+  }
+
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -685,6 +700,44 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   }, [isOpen, onClose])
 
   if (!isOpen) return null
+
+  const handleProfilePhotoFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: 'profilePhotoUrl' | 'coverPhotoUrl'
+  ) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    setPhotoUploadError(null)
+    const validation = authClient.validateUploadFileClient(file)
+    if (!validation.valid || validation.fileType !== 'photo') {
+      const msg =
+        validation.message ||
+        'Hanya berkas foto (JPG, PNG, WebP, GIF) yang didukung untuk gambar profil.'
+      setPhotoUploadError(msg)
+      onUploadError?.(msg)
+      return
+    }
+
+    setUploadingPhotoField(field)
+    try {
+      const res = await authClient.uploadFile(file)
+      if (res.success && res.fileUrl) {
+        onChange({ ...editForm, [field]: res.fileUrl })
+      } else {
+        const msg = res.message || 'Gagal mengunggah gambar profil. Silakan coba lagi.'
+        setPhotoUploadError(msg)
+        onUploadError?.(msg)
+      }
+    } catch {
+      const msg = 'Terjadi gangguan koneksi saat mengunggah gambar.'
+      setPhotoUploadError(msg)
+      onUploadError?.(msg)
+    } finally {
+      setUploadingPhotoField(null)
+    }
+  }
 
   const hasCustomGenre =
     Boolean(editForm.genre) &&
@@ -994,20 +1047,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       className="flex-1 bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-2.5 min-h-[40px] outline-none font-mono"
                     />
                     <label className="px-3 py-2 bg-[#222222] hover:bg-[#2A2A2A] text-white border border-[#333333] text-xs font-mono uppercase flex items-center gap-1 cursor-pointer min-h-[40px]">
-                      <Upload className="w-3.5 h-3.5 text-[#00D9FF]" />
-                      <span>Upload</span>
+                      {uploadingPhotoField === 'profilePhotoUrl' ? (
+                        <Loader2 className="w-3.5 h-3.5 text-[#00D9FF] animate-spin" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5 text-[#00D9FF]" />
+                      )}
+                      <span>{uploadingPhotoField === 'profilePhotoUrl' ? 'Mengunggah...' : 'Upload'}</span>
                       <input
                         type="file"
                         accept="image/*"
+                        disabled={uploadingPhotoField !== null}
                         className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0]
-                          if (!file) return
-                          const res = await authClient.uploadFile(file)
-                          if (res.success && res.fileUrl) {
-                            onChange({ ...editForm, profilePhotoUrl: res.fileUrl })
-                          }
-                        }}
+                        onChange={(e) => handleProfilePhotoFileChange(e, 'profilePhotoUrl')}
                       />
                     </label>
                   </div>
@@ -1026,25 +1077,31 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       className="flex-1 bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-2.5 min-h-[40px] outline-none font-mono"
                     />
                     <label className="px-3 py-2 bg-[#222222] hover:bg-[#2A2A2A] text-white border border-[#333333] text-xs font-mono uppercase flex items-center gap-1 cursor-pointer min-h-[40px]">
-                      <Upload className="w-3.5 h-3.5 text-[#00D9FF]" />
-                      <span>Upload</span>
+                      {uploadingPhotoField === 'coverPhotoUrl' ? (
+                        <Loader2 className="w-3.5 h-3.5 text-[#00D9FF] animate-spin" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5 text-[#00D9FF]" />
+                      )}
+                      <span>{uploadingPhotoField === 'coverPhotoUrl' ? 'Mengunggah...' : 'Upload'}</span>
                       <input
                         type="file"
                         accept="image/*"
+                        disabled={uploadingPhotoField !== null}
                         className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0]
-                          if (!file) return
-                          const res = await authClient.uploadFile(file)
-                          if (res.success && res.fileUrl) {
-                            onChange({ ...editForm, coverPhotoUrl: res.fileUrl })
-                          }
-                        }}
+                        onChange={(e) => handleProfilePhotoFileChange(e, 'coverPhotoUrl')}
                       />
                     </label>
                   </div>
                 </div>
               </div>
+              {photoUploadError && (
+                <p
+                  role="alert"
+                  className="text-[11px] font-mono text-[#E01E37] bg-[#E01E37]/10 border border-[#E01E37]/40 px-3 py-2 mt-2"
+                >
+                  {photoUploadError}
+                </p>
+              )}
             </div>
           </div>
 
@@ -1098,16 +1155,35 @@ export const EditRiderModal: React.FC<EditRiderModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-4 sm:p-6 flex items-center justify-center overflow-hidden">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-rider-modal-title"
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-4 sm:p-6 flex items-center justify-center overflow-hidden"
+    >
       <div className="bg-[#121212] border border-[#2E2E2E] w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col shadow-2xl relative">
         <div className="shrink-0 bg-[#141414] border-b border-[#242424] p-5 sm:p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Sliders className="w-5 h-5 text-[#E01E37] shrink-0" />
             <div>
-              <h3 className="font-display text-xl sm:text-2xl tracking-wider text-white">
+              <h3
+                id="edit-rider-modal-title"
+                className="font-display text-xl sm:text-2xl tracking-wider text-white"
+              >
                 ATUR TECHNICAL RIDER
               </h3>
               <p className="text-xs text-[#808080] font-sans">

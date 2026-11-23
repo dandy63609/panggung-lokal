@@ -44,9 +44,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
   // Synchronize category filter and search query whenever query param in URL changes
   useEffect(() => {
     const genreParam = searchParams.get('genre')
-    if (genreParam !== null) {
-      setSelectedCategory(resolveInitialCategory(genreParam))
-    }
+    setSelectedCategory(genreParam ? resolveInitialCategory(genreParam) : 'SEMUA')
     const qParam = searchParams.get('q') || searchParams.get('search') || ''
     setSearchQuery(qParam.trim())
   }, [searchParams])
@@ -71,8 +69,11 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
       try {
         setLoading(true)
         const qParam = (searchParams.get('q') || searchParams.get('search') || '').trim()
-        const queryStr = qParam ? `&search=${encodeURIComponent(qParam)}` : ''
-        const res = await fetch(`/api/bands/search?limit=50${queryStr}`, {
+        const genreParam = (searchParams.get('genre') || '').trim()
+        const params = new URLSearchParams({ limit: '50' })
+        if (qParam) params.set('search', qParam)
+        if (genreParam && genreParam.toUpperCase() !== 'SEMUA') params.set('genre', genreParam)
+        const res = await fetch(`/api/bands/search?${params.toString()}`, {
           headers: authClient.getAuthHeaders(),
         })
         if (res.ok && !cancelled) {
@@ -279,7 +280,16 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
                       <React.Fragment key={cat}>
                         <button
                           type="button"
-                          onClick={() => setSelectedCategory(cat)}
+                          onClick={() => {
+                            setSelectedCategory(cat)
+                            const next = new URLSearchParams(searchParams)
+                            if (cat === 'SEMUA') {
+                              next.delete('genre')
+                            } else {
+                              next.set('genre', cat)
+                            }
+                            setSearchParams(next)
+                          }}
                           className={`min-h-[44px] px-2 font-mono text-xs uppercase tracking-wider whitespace-nowrap transition-colors shrink-0 flex items-center ${
                             active
                               ? 'text-[#E01E37] font-bold'
@@ -409,6 +419,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
                     const next = new URLSearchParams(searchParams)
                     next.delete('q')
                     next.delete('search')
+                    next.delete('genre')
                     setSearchParams(next)
                   }}
                   className="min-h-[44px] px-6 bg-[#E01E37] text-white font-mono text-xs font-bold uppercase tracking-wider cursor-pointer"

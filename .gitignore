@@ -34,3 +34,9 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Cloudflare
+.cloudflare/
+.wrangler/
+.dev.vars
+.dev.vars.*

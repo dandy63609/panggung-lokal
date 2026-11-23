@@ -15,6 +15,7 @@ const apiLimiter = rateLimit({
   max: 100, // 100 requests per windowMs
   message: {
     success: false,
+    message: 'Terlalu banyak permintaan, coba lagi nanti',
     error: {
       code: 'RATE_LIMIT_EXCEEDED',
       message: 'Terlalu banyak permintaan, coba lagi nanti'
@@ -39,6 +40,7 @@ const authLimiter = rateLimit({
   max: 5, // 5 login/auth attempts per 15 minutes
   message: {
     success: false,
+    message: 'Terlalu banyak percobaan login, coba lagi nanti',
     error: {
       code: 'AUTH_RATE_LIMIT_EXCEEDED',
       message: 'Terlalu banyak percobaan login, coba lagi nanti'
@@ -60,6 +62,7 @@ const uploadLimiter = rateLimit({
   max: 10, // 10 uploads per 15 minutes
   message: {
     success: false,
+    message: 'Terlalu banyak upload, coba lagi nanti',
     error: {
       code: 'UPLOAD_RATE_LIMIT_EXCEEDED',
       message: 'Terlalu banyak upload, coba lagi nanti'

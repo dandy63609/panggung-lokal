@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, Navigate, Link } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { useSmoothScroll } from './hooks/useSmoothScroll'
 import { Navbar } from './components/Navbar'
@@ -177,30 +177,9 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute requiredRole="band">
-                    <BandDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dashboard-band.html"
-                element={
-                  <ProtectedRoute requiredRole="band">
-                    <BandDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/account"
-                element={
-                  <ProtectedRoute requiredRole="band">
-                    <BandDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/dashboard" element={<Navigate to="/dashboard-band" replace />} />
+              <Route path="/dashboard-band.html" element={<Navigate to="/dashboard-band" replace />} />
+              <Route path="/account" element={<Navigate to="/dashboard-band" replace />} />
               <Route
                 path="/admin"
                 element={
@@ -225,7 +204,42 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="*" element={<HomePage stats={stats} />} />
+              <Route
+                path="*"
+                element={
+                  <section
+                    aria-labelledby="not-found-title"
+                    className="min-h-[calc(100vh-160px)] bg-[#0A0A0A] text-white flex flex-col items-center justify-center px-4 py-20 text-center"
+                  >
+                    <p className="font-mono text-xs uppercase tracking-[0.25em] text-[#E01E37] mb-3">
+                      Error 404
+                    </p>
+                    <h1
+                      id="not-found-title"
+                      className="font-display text-4xl sm:text-6xl tracking-wide text-white mb-3"
+                    >
+                      Halaman Tidak Ditemukan
+                    </h1>
+                    <p className="text-sm text-[#A0A0A0] font-sans max-w-md mb-8 leading-relaxed">
+                      Tautan yang Anda buka tidak tersedia atau sudah dipindahkan. Kembali ke beranda atau jelajahi katalog band lokal.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      <Link
+                        to="/"
+                        className="min-h-[44px] px-6 py-2.5 bg-[#E01E37] hover:bg-[#B8162B] text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E01E37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+                      >
+                        Kembali ke Beranda
+                      </Link>
+                      <Link
+                        to="/cari-band"
+                        className="min-h-[44px] px-6 py-2.5 bg-[#1C1C1C] hover:bg-[#282828] border border-[#333333] text-white font-mono text-xs uppercase tracking-wider flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+                      >
+                        Jelajahi Band
+                      </Link>
+                    </div>
+                  </section>
+                }
+              />
             </Routes>
           </main>
 

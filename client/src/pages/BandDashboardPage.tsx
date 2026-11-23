@@ -56,6 +56,7 @@ export const BandDashboardPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [dashboardData, setDashboardData] = useState<BandDashboardData | null>(null)
   const [activeTab, setActiveTab] = useState<'feed' | 'rider' | 'analytics' | 'broadcasts'>(() => {
     const params = new URLSearchParams(window.location.search)
@@ -114,6 +115,7 @@ export const BandDashboardPage: React.FC = () => {
   const applyDashboardResponse = useCallback(
     (res: Awaited<ReturnType<typeof authClient.getBandDashboard>>) => {
       if (res.success && res.data) {
+        setLoadError(null)
         setDashboardData(res.data)
         setEditForm({
           bandName: res.data.profile.bandName || '',
@@ -130,7 +132,9 @@ export const BandDashboardPage: React.FC = () => {
         })
         setEditRiderItems(res.data.profile.riderItems || [])
       } else {
-        showToast(res.message || 'Gagal memuat data dashboard band.', 'error')
+        const errMsg = res.message || 'Gagal memuat data dashboard band.'
+        setLoadError(errMsg)
+        showToast(errMsg, 'error')
       }
       setLoading(false)
     },
@@ -139,6 +143,7 @@ export const BandDashboardPage: React.FC = () => {
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true)
+    setLoadError(null)
     const res = await authClient.getBandDashboard()
     applyDashboardResponse(res)
   }, [applyDashboardResponse])
@@ -432,16 +437,38 @@ export const BandDashboardPage: React.FC = () => {
   // Submit handler: Profil band, tarif manggung, media sosial, dan foto
   const handleEditProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const cleanName = editForm.bandName.trim()
+    if (!cleanName) {
+      showToast('Nama band wajib diisi.', 'error')
+      return
+    }
+
+    const cleanPhone = editForm.phone.trim()
+    if (cleanPhone && !/^(\+62[0-9]{8,13}|62[0-9]{8,13}|0[0-9]{8,12})$/.test(cleanPhone.replace(/[\s-]/g, ''))) {
+      showToast('Format nomor WhatsApp tidak valid. Gunakan awalan 08 atau +62.', 'error')
+      return
+    }
+
+    const parsedBudgetMin =
+      editForm.budgetMin && editForm.budgetMin > 0 ? parseInt(String(editForm.budgetMin), 10) : null
+    const parsedBudgetMax =
+      editForm.budgetMax && editForm.budgetMax > 0 ? parseInt(String(editForm.budgetMax), 10) : null
+    if (parsedBudgetMin !== null && parsedBudgetMax !== null && parsedBudgetMin > parsedBudgetMax) {
+      showToast('Tarif minimum tidak boleh lebih besar dari tarif maksimum.', 'error')
+      return
+    }
+
     setEditSubmitting(true)
 
     const res = await authClient.updateBandProfile({
-      bandName: editForm.bandName.trim(),
+      bandName: cleanName,
       genre: editForm.genre.trim(),
       locationCity: editForm.locationCity.trim(),
-      phone: editForm.phone.trim(),
+      phone: cleanPhone,
       bio: editForm.bio.trim(),
-      budgetMin: editForm.budgetMin && editForm.budgetMin > 0 ? parseInt(String(editForm.budgetMin), 10) : null,
-      budgetMax: editForm.budgetMax && editForm.budgetMax > 0 ? parseInt(String(editForm.budgetMax), 10) : null,
+      budgetMin: parsedBudgetMin,
+      budgetMax: parsedBudgetMax,
       spotifyUrl: editForm.spotifyUrl?.trim(),
       instagramHandle: editForm.instagramHandle?.trim(),
       youtubeUrl: editForm.youtubeUrl?.trim(),
@@ -468,11 +495,17 @@ export const BandDashboardPage: React.FC = () => {
   // Submit handler: Tab 2 Technical Rider Panggung
   const handleRiderSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setRiderSubmitting(true)
 
     const cleanedItems = editRiderItems.filter(
       (item) => item.title.trim() !== '' || item.description.trim() !== ''
     )
+
+    if (editRiderItems.length > 0 && cleanedItems.length === 0) {
+      showToast('Isi minimal judul atau deskripsi rider, atau hapus baris kosong sebelum menyimpan.', 'error')
+      return
+    }
+
+    setRiderSubmitting(true)
 
     const res = await authClient.updateBandProfile({
       riderItems: cleanedItems,
@@ -540,6 +573,43 @@ export const BandDashboardPage: React.FC = () => {
     )
   }
 
+  if (loadError || !dashboardData) {
+    return (
+      <div className="min-h-[calc(100vh-80px)] bg-[#0A0A0A] flex flex-col items-center justify-center px-4 py-24 text-white">
+        <div
+          role="alert"
+          className="max-w-md w-full bg-[#121212] border border-[#E01E37]/50 rounded-2xl p-6 text-center space-y-4 shadow-2xl"
+        >
+          <AlertCircle className="w-10 h-10 text-[#E01E37] mx-auto" />
+          <div className="space-y-1.5">
+            <h1 className="font-display text-2xl tracking-wider uppercase text-white">
+              Gagal Memuat Dashboard Band
+            </h1>
+            <p className="text-xs font-mono text-[#B0B0B0] leading-relaxed">
+              {loadError || 'Data profil band tidak dapat dimuat saat ini.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={fetchDashboard}
+              className="min-h-[44px] px-5 py-2.5 bg-[#E01E37] hover:bg-[#B8162B] text-white font-mono text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors"
+            >
+              Coba Muat Ulang
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/masuk?redirect=/dashboard-band')}
+              className="min-h-[44px] px-5 py-2.5 bg-[#1C1C1C] hover:bg-[#282828] border border-[#333333] text-white font-mono text-xs uppercase tracking-wider cursor-pointer transition-colors"
+            >
+              Masuk Ulang
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-[calc(100vh-80px)] bg-[#0A0A0A] text-[#F5F5F5] pb-24 selection:bg-[#E01E37] selection:text-white relative overflow-x-hidden">
       {/* Background Circuit Grid Texture */}
@@ -551,8 +621,9 @@ export const BandDashboardPage: React.FC = () => {
       {/* Floating Toast Notification */}
       {toastMessage && (
         <div
-          role="status"
-          className={`fixed bottom-6 right-6 z-50 p-4 border flex items-center gap-3 shadow-2xl transition-all duration-200 max-w-md ${
+          role={toastMessage.type === 'error' ? 'alert' : 'status'}
+          aria-live={toastMessage.type === 'error' ? 'assertive' : 'polite'}
+          className={`fixed bottom-6 right-6 z-[70] p-4 border flex items-center gap-3 shadow-2xl transition-all duration-200 max-w-md ${
             toastMessage.type === 'success'
               ? 'bg-[#161616] border-white text-white'
               : 'bg-[#1C1214] border-[#E01E37] text-white'
@@ -654,7 +725,7 @@ export const BandDashboardPage: React.FC = () => {
               <div className="space-y-1.5 flex-1">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <h1 className="font-display text-2xl sm:text-4xl text-white tracking-wide">
-                    {profile?.bandName || 'NAMA BAND'}
+                    {profile?.bandName || 'Profil Band'}
                   </h1>
                   <button
                     type="button"
@@ -666,7 +737,7 @@ export const BandDashboardPage: React.FC = () => {
                     <span>Ubah Profil</span>
                   </button>
                   <span className="px-2.5 py-0.5 bg-[#E01E37]/15 border border-[#E01E37]/50 text-[#E01E37] text-[11px] font-mono font-bold uppercase tracking-wider rounded-md">
-                    {profile?.genre || 'Rock Alternatif'}
+                    {profile?.genre || 'Genre belum diatur'}
                   </span>
                   {profile?.campus && (
                     <span className="px-2.5 py-0.5 bg-[#FFD166]/15 border border-[#FFD166]/50 text-[#FFD166] text-[11px] font-mono font-bold uppercase tracking-wider rounded-md flex items-center gap-1">
@@ -682,19 +753,19 @@ export const BandDashboardPage: React.FC = () => {
 
                 <p className="text-xs sm:text-sm text-[#A0A0A0] font-sans max-w-2xl line-clamp-2 leading-relaxed">
                   {profile?.bio ||
-                    'Band independen siap tampil untuk panggung live festival, gig intim, dan pementasan kampus.'}
+                    'Belum ada deskripsi profil band. Klik Ubah Profil untuk melengkapi informasi panggung band Anda.'}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#808080] pt-1">
                   <span className="flex items-center gap-1.5 text-[#D4D4D4]">
                     <MapPin className="w-3.5 h-3.5 text-[#E01E37]" />
-                    {profile?.locationCity || 'Kota Semarang'}
+                    {profile?.locationCity || 'Kota belum diatur'}
                     {profile?.locationRegion ? `, ${profile.locationRegion}` : ''}
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1.5 text-[#D4D4D4]">
                     <Phone className="w-3.5 h-3.5 text-[#E01E37]" />
-                    {profile?.phone || '0812-xxxx-xxxx'}
+                    {profile?.phone || 'Nomor WhatsApp belum diisi'}
                   </span>
                 </div>
               </div>
@@ -831,7 +902,7 @@ export const BandDashboardPage: React.FC = () => {
                 {/* Metric 2: Profil Views */}
                 <div>
                   <div className="text-white font-display text-xl sm:text-2xl tracking-wide">
-                    {stats?.totalViews?.toLocaleString('id-ID') || '1.344'}
+                    {(stats?.totalViews ?? 0).toLocaleString('id-ID')}
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
                     tayangan
@@ -847,7 +918,7 @@ export const BandDashboardPage: React.FC = () => {
                       ? `${formatRupiah(profile.budgetMin)} - ${formatRupiah(profile.budgetMax)}`
                       : profile?.budgetMin
                         ? formatRupiah(profile.budgetMin)
-                        : 'Rp 3.500.000'}
+                        : 'Belum diatur'}
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
                     tarif manggung
@@ -856,7 +927,7 @@ export const BandDashboardPage: React.FC = () => {
               </div>
 
               {/* Right: Rounded Pill CTA Buttons */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={handleOpenEditProfileModal}
@@ -1400,6 +1471,7 @@ export const BandDashboardPage: React.FC = () => {
         onClose={() => {
           setIsUploadModalOpen(false)
           setUploadTargetPostId(null)
+          setUploadCaption('')
           clearUploadedItems()
         }}
         onFilesSelected={handleFilesSelected}
@@ -1434,6 +1506,7 @@ export const BandDashboardPage: React.FC = () => {
         onChange={setEditForm}
         onClose={() => setIsEditProfileModalOpen(false)}
         onSubmit={handleEditProfileSubmit}
+        onUploadError={(msg) => showToast(msg, 'error')}
       />
 
       <EditRiderModal

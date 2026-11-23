@@ -26,6 +26,16 @@ function getTodayStr() {
  */
 router.get('/pending', verifyToken, async (req, res) => {
   try {
+    const accountType = req.user.accountType || req.user.account_type;
+    if (accountType === 'band' || accountType === 'admin') {
+      return res.json({
+        success: true,
+        pendingCount: 0,
+        isGated: false,
+        data: [],
+      });
+    }
+
     const todayStr = getTodayStr();
 
     // Query unreviewed bookings for this user where event_date is on or before today
@@ -36,14 +46,16 @@ router.get('/pending', verifyToken, async (req, res) => {
        JOIN band_profiles bp ON bp.id = c.band_profile_id
        WHERE c.organizer_user_id = $1
          AND c.event_date IS NOT NULL
-         AND TRIM(c.event_date) != ''
+         AND c.event_date != ''
          AND c.event_date <= $2
          AND (c.is_reviewed IS NULL OR c.is_reviewed = FALSE)
        ORDER BY c.event_date DESC`,
       [req.user.id, todayStr]
     );
 
-    const pendingBookings = result.rows.map(row => ({
+    const pendingBookings = result.rows
+      .filter((row) => String(row.event_date || '').trim() !== '')
+      .map(row => ({
       connectionId: row.connection_id,
       bandProfileId: row.band_profile_id,
       bandName: row.band_name,

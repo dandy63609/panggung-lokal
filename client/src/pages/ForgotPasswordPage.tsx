@@ -44,8 +44,14 @@ export const ForgotPasswordPage: React.FC = () => {
     setErrorMessage(null)
     setSuccessMessage(null)
 
-    if (!email.trim()) {
+    const cleanEmail = email.trim()
+    if (!cleanEmail) {
       setErrorMessage('Masukkan alamat email akun yang terdaftar.')
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setErrorMessage('Format alamat email tidak valid.')
       return
     }
 
@@ -54,9 +60,9 @@ export const ForgotPasswordPage: React.FC = () => {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: cleanEmail }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
 
       if (data.success) {
         if (data.resetToken) {
@@ -69,7 +75,9 @@ export const ForgotPasswordPage: React.FC = () => {
           )
         }
       } else {
-        setErrorMessage(data.message || 'Gagal memproses permintaan pemulihan kata sandi.')
+        setErrorMessage(
+          data.message || data.error?.message || 'Gagal memproses permintaan pemulihan kata sandi.'
+        )
       }
     } catch {
       setErrorMessage('Terjadi kendala koneksi ke server auth. Silakan coba sesaat lagi.')
@@ -105,7 +113,7 @@ export const ForgotPasswordPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: token.trim(), newPassword }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
 
       if (data.success) {
         setSuccessMessage('Kata sandi berhasil diperbarui! Mengalihkan ke halaman masuk...')
@@ -113,7 +121,7 @@ export const ForgotPasswordPage: React.FC = () => {
           navigate('/masuk')
         }, 1200)
       } else {
-        setErrorMessage(data.message || 'Gagal memperbarui kata sandi.')
+        setErrorMessage(data.message || data.error?.message || 'Gagal memperbarui kata sandi.')
         setLoading(false)
       }
     } catch {

@@ -56,20 +56,47 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
 
   // Feedback banner
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
+    if (!isOpen) {
+      setTrackTitle('')
+      setSelectedFile(null)
+      setAudioUrlInput('')
+      setPlayingTrackId(null)
+      setEditingTrackId(null)
+      setEditingTitle('')
+      setFeedback(null)
+    }
+  }
 
   const showFeedback = (text: string, type: 'success' | 'error' = 'success') => {
     setFeedback({ text, type })
     setTimeout(() => setFeedback(null), 4000)
   }
 
-  // Cleanup audio preview when unmounting or closing
+  // Stop audio preview when modal closes and close on Escape when open
   useEffect(() => {
+    if (!isOpen) {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause()
+      }
+      return
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
+      window.removeEventListener('keydown', handleKeyDown)
       if (previewAudioRef.current) {
         previewAudioRef.current.pause()
       }
     }
-  }, [])
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
@@ -239,7 +266,7 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Tutup jendela kelola audio"
-            className="w-9 h-9 rounded-full bg-[#202020] hover:bg-[#E01E37] text-[#A0A0A0] hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            className="min-w-[44px] min-h-[44px] rounded-full bg-[#202020] hover:bg-[#E01E37] text-[#A0A0A0] hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -248,6 +275,8 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
         {/* Feedback Alert */}
         {feedback && (
           <div
+            role={feedback.type === 'error' ? 'alert' : 'status'}
+            aria-live={feedback.type === 'error' ? 'assertive' : 'polite'}
             className={`mx-6 mt-4 p-3 rounded-xl flex items-center gap-2 text-xs font-mono ${
               feedback.type === 'success'
                 ? 'bg-[#102A1C] border border-[#25D366]/40 text-[#25D366]'
@@ -447,10 +476,14 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
 
             {/* Track Title */}
             <div className="space-y-1.5">
-              <label className="block font-mono text-[11px] font-bold uppercase tracking-wider text-[#A0A0A0]">
+              <label
+                htmlFor="audio-track-title"
+                className="block font-mono text-[11px] font-bold uppercase tracking-wider text-[#A0A0A0]"
+              >
                 Judul Potongan Lagu / Versi Demo *
               </label>
               <input
+                id="audio-track-title"
                 type="text"
                 value={trackTitle}
                 onChange={(e) => setTrackTitle(e.target.value)}
@@ -497,10 +530,14 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
               </div>
             ) : (
               <div className="space-y-1.5">
-                <label className="block font-mono text-[11px] font-bold uppercase tracking-wider text-[#A0A0A0]">
+                <label
+                  htmlFor="audio-external-url"
+                  className="block font-mono text-[11px] font-bold uppercase tracking-wider text-[#A0A0A0]"
+                >
                   URL Audio Eksternal (HTTP/HTTPS) *
                 </label>
                 <input
+                  id="audio-external-url"
                   type="url"
                   value={audioUrlInput}
                   onChange={(e) => setAudioUrlInput(e.target.value)}

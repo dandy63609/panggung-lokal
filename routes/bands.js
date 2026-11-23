@@ -3,6 +3,7 @@ const router = express.Router();
 const BandProfile = require('../models/BandProfile');
 const BandPost = require('../models/BandPost');
 const db = require('../utils/db');
+const { validatePhone } = require('../utils/validation');
 const { requireBand, extractOptionalUser } = require('../middleware/auth');
 
 /**
@@ -310,6 +311,20 @@ router.put('/profile', requireBand, async (req, res) => {
       stageVisualPostId
     } = req.body;
 
+    if (bandName !== undefined && String(bandName).trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Nama band wajib diisi'
+      });
+    }
+
+    if (phone !== undefined && phone !== null && String(phone).trim() !== '' && !validatePhone(String(phone).trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Format nomor WhatsApp/telepon tidak valid (gunakan awalan 08 atau +62)'
+      });
+    }
+
     const parsedBudgetMin =
       budgetMin !== undefined && budgetMin !== null && budgetMin !== ''
         ? parseInt(budgetMin, 10)
@@ -407,7 +422,7 @@ router.put('/profile', requireBand, async (req, res) => {
  */
 router.post('/media', requireBand, async (req, res) => {
   try {
-    const profile = await BandProfile.findByUserId(req.user.id);
+    const profile = await BandProfile.findOrCreateForUser(req.user);
     if (!profile) {
       return res.status(404).json({
         success: false,

@@ -26,7 +26,7 @@ export const ReviewGatingModal: React.FC<ReviewGatingModalProps> = ({ onSuccess 
   // Fetch pending unreviewed bookings for logged-in EO
   const checkPendingReviews = async () => {
     const user = authClient.getUser()
-    if (!user) {
+    if (!user || user.accountType === 'band' || user.accountType === 'admin') {
       setLoading(false)
       return
     }

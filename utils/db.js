@@ -1,36 +1,108 @@
-const { Pool: PgPool } = require('pg');
+const { Pool: PgPool, Client: PgClient } = require('pg');
 require('dotenv').config();
 const { getMemoryDb, saveMemoryDb, ensureFreshCloudData, withMemoryDbLock } = require('./memoryDb');
 
 let activePool = null;
 let isUsingMemory = false;
 let memoryReadyPromise = null;
+let hyperdriveResolver = null;
 
-const forceMemory = process.env.DB_CLIENT === 'memory';
+function isServerlessRuntime(env = process.env) {
+  return Boolean(
+    env.VERCEL ||
+    env.CLOUDFLARE_WORKERS ||
+    env.CF_PAGES
+  );
+}
 
-function initPool() {
+function shouldForceMemory(env = process.env) {
+  return (
+    env.DB_CLIENT === 'memory' ||
+    (env.NODE_ENV === 'test' && env.DB_CLIENT !== 'postgres')
+  );
+}
+
+function setHyperdriveResolver(resolver) {
+  hyperdriveResolver = typeof resolver === 'function' ? resolver : null;
+}
+
+function getHyperdriveConnectionString(env = process.env) {
+  if (env && env.DB_CLIENT === 'memory') {
+    return null;
+  }
+  if (typeof hyperdriveResolver !== 'function') {
+    return null;
+  }
+  try {
+    const value = hyperdriveResolver();
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function isLocalConnectionString(connectionString) {
+  try {
+    const parsed = new URL(connectionString);
+    return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '::1';
+  } catch {
+    return /^postgres(ql)?:\/\/([^@]+@)?(localhost|127\.0\.0\.1)(:|\/|$)/i.test(connectionString);
+  }
+}
+
+function buildPgPoolConfig(env = process.env) {
+  const connectionString = (env.DATABASE_URL || '').trim();
+  const isServerless = isServerlessRuntime(env);
+  const max = isServerless ? 3 : 10;
+
+  if (connectionString) {
+    return {
+      connectionString,
+      ssl: isLocalConnectionString(connectionString) ? false : { rejectUnauthorized: false },
+      max,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: isServerless ? 5000 : 2000,
+    };
+  }
+
+  return {
+    host: env.DB_HOST || 'localhost',
+    port: Number(env.DB_PORT) || 5432,
+    database: env.DB_NAME || 'panggung_lokal',
+    user: env.DB_USER || 'postgres',
+    password: env.DB_PASSWORD || 'postgres',
+    max,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 1000,
+  };
+}
+
+function shouldAllowMemoryFallback(env = process.env) {
+  if (getHyperdriveConnectionString(env)) {
+    return false;
+  }
+  // Serverless production with DATABASE_URL must fail loudly rather than diverge into pg-mem.
+  return !(isServerlessRuntime(env) && Boolean((env.DATABASE_URL || '').trim()));
+}
+
+function activateMemoryFallback() {
+  const { pool, ready } = getMemoryDb();
+  activePool = pool;
+  isUsingMemory = true;
+  memoryReadyPromise = ready;
+  return activePool;
+}
+
+function ensurePool() {
   if (activePool) return activePool;
 
-  if (forceMemory) {
+  if (shouldForceMemory(process.env)) {
     console.log('📦 Using embedded PostgreSQL (pg-mem) database');
-    const { pool, ready } = getMemoryDb();
-    activePool = pool;
-    isUsingMemory = true;
-    memoryReadyPromise = ready;
-    return activePool;
+    return activateMemoryFallback();
   }
 
   try {
-    const pgPool = new PgPool({
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      database: process.env.DB_NAME || 'panggung_lokal',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 1000,
-    });
+    const pgPool = new PgPool(buildPgPoolConfig(process.env));
 
     pgPool.on('error', (err) => {
       console.warn('⚠️ PostgreSQL pool notice:', err.message);
@@ -39,19 +111,46 @@ function initPool() {
     activePool = pgPool;
     return activePool;
   } catch (err) {
+    if (!shouldAllowMemoryFallback(process.env)) {
+      throw err;
+    }
     console.warn('⚠️ Failed to initialize PostgreSQL pool, falling back to embedded db:', err.message);
-    const { pool, ready } = getMemoryDb();
-    activePool = pool;
-    isUsingMemory = true;
-    memoryReadyPromise = ready;
-    return activePool;
+    return activateMemoryFallback();
   }
 }
 
-initPool();
+async function executeWithHyperdriveClient(connectionString, callback) {
+  // Do not force `ssl` options: Hyperdrive terminates TLS between the edge and origin Postgres.
+  const client = new PgClient({ connectionString });
+  try {
+    await client.connect();
+    return await callback(client);
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
 
 // Query helper function with fallback and error handling
 const query = async (text, params) => {
+  const hyperdriveConnectionString = getHyperdriveConnectionString(process.env);
+  if (hyperdriveConnectionString) {
+    const start = Date.now();
+    try {
+      const res = await executeWithHyperdriveClient(hyperdriveConnectionString, (client) =>
+        client.query(text, params)
+      );
+      const duration = Date.now() - start;
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Executed query', { text: text.trim().substring(0, 80), duration, rows: res.rowCount });
+      }
+      return res;
+    } catch (error) {
+      console.error('Database query error', { text, error: error.message });
+      throw error;
+    }
+  }
+
+  ensurePool();
   if (isUsingMemory && memoryReadyPromise) {
     await memoryReadyPromise;
   }
@@ -98,12 +197,9 @@ const query = async (text, params) => {
                         (error.message && error.message.includes('connect')) ||
                         (error.errors && error.errors.some(e => (e.code === 'ECONNREFUSED' || e.code === 'EACCES' || (e.message && e.message.includes('connect')))));
 
-    if (!isUsingMemory && isConnError) {
+    if (!isUsingMemory && isConnError && shouldAllowMemoryFallback(process.env)) {
       console.warn('⚠️ PostgreSQL connection failed, switching to embedded memory DB');
-      const { pool, ready } = getMemoryDb();
-      activePool = pool;
-      isUsingMemory = true;
-      memoryReadyPromise = ready;
+      activateMemoryFallback();
       await memoryReadyPromise;
       return query(text, params);
     }
@@ -114,6 +210,22 @@ const query = async (text, params) => {
 
 // Transaction helper
 const transaction = async (callback) => {
+  const hyperdriveConnectionString = getHyperdriveConnectionString(process.env);
+  if (hyperdriveConnectionString) {
+    return executeWithHyperdriveClient(hyperdriveConnectionString, async (client) => {
+      await client.query('BEGIN');
+      try {
+        const result = await callback(client);
+        await client.query('COMMIT');
+        return result;
+      } catch (error) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw error;
+      }
+    });
+  }
+
+  ensurePool();
   if (isUsingMemory && memoryReadyPromise) {
     await memoryReadyPromise;
   }
@@ -130,7 +242,7 @@ const transaction = async (callback) => {
       }
       return result;
     } catch (error) {
-      await client.query('ROLLBACK');
+      await client.query('ROLLBACK').catch(() => {});
       throw error;
     } finally {
       client.release();
@@ -146,8 +258,21 @@ const transaction = async (callback) => {
 module.exports = {
   query,
   get pool() {
-    return activePool;
+    if (getHyperdriveConnectionString(process.env)) {
+      return null;
+    }
+    return ensurePool();
   },
   transaction,
-  isUsingMemory: () => isUsingMemory
+  isUsingMemory: () => {
+    if (getHyperdriveConnectionString(process.env)) {
+      return false;
+    }
+    return Boolean(isUsingMemory || (!activePool && shouldForceMemory(process.env)));
+  },
+  setHyperdriveResolver,
+  getHyperdriveConnectionString,
+  isServerlessRuntime,
+  buildPgPoolConfig,
+  shouldAllowMemoryFallback
 };

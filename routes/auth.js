@@ -11,7 +11,7 @@ try {
 const User = require('../models/User');
 const BandProfile = require('../models/BandProfile');
 const db = require('../utils/db');
-const { hashPassword, verifyPassword } = require('../utils/password');
+const { hashPassword, verifyPassword, needsRehash } = require('../utils/password');
 const { validateEmail } = require('../utils/validation');
 const { generateToken, verifyToken, setAuthCookie } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
@@ -181,13 +181,23 @@ router.post('/login', authLimiter, async (req, res) => {
       });
     }
 
+    if (needsRehash(userData.password_hash)) {
+      try {
+        const upgradedHash = await hashPassword(password);
+        await User.updatePassword(userData.id, upgradedHash);
+        userData.password_hash = upgradedHash;
+      } catch (rehashError) {
+        console.warn('Password rehash skipped:', rehashError.message);
+      }
+    }
+
     const user = new User(userData);
     await user.updateLastLogin();
 
-    // If band, get profile
+    // If band, get profile (self-healing orphaned accounts)
     let bandProfile = null;
     if (user.isBand()) {
-      bandProfile = await BandProfile.findByUserId(user.id);
+      bandProfile = await BandProfile.findOrCreateForUser(user);
     }
 
     const token = generateToken(user);
@@ -303,7 +313,7 @@ router.post('/google', authLimiter, async (req, res) => {
 
       let bandProfile = null;
       if (user.isBand()) {
-        bandProfile = await BandProfile.findByUserId(user.id);
+        bandProfile = await BandProfile.findOrCreateForUser(user);
       }
 
       const token = generateToken(user);
@@ -533,7 +543,7 @@ router.get('/me', verifyToken, async (req, res) => {
 
     let bandProfile = null;
     if (user.isBand()) {
-      bandProfile = await BandProfile.findByUserId(user.id);
+      bandProfile = await BandProfile.findOrCreateForUser(user);
     }
 
     return res.json({

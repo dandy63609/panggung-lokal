@@ -25,7 +25,6 @@ import {
   X,
   Lock,
 } from 'lucide-react'
-import { fallbackBands } from '../data/bandsData'
 import { BandCard } from '../components/ui/BandCard'
 import {
   SpotifyIcon,
@@ -41,7 +40,6 @@ import {
   isActualVideoSlide,
   parsePostSlides,
   sanitizeExternalUrl,
-  slugify,
   getBandProfileUrl,
 } from '../lib/bandHelpers'
 import { formatRupiah } from '../lib/utils'
@@ -99,29 +97,11 @@ export const BandDetailPage: React.FC = () => {
 
   // Parse requested band profile identifier (supports both numeric ID e.g. "15" and URL slug e.g. "reffband")
   const rawIdentifier = (routeId || searchParams.get('id') || '1').trim()
-  const isNumeric = /^\d+$/.test(rawIdentifier)
-  const numericId = isNumeric ? parseInt(rawIdentifier, 10) : null
   const isValidIdentifier = Boolean(rawIdentifier)
 
-  const fallbackMatch = useMemo(() => {
-    if (!isValidIdentifier) return null
-    if (numericId !== null && numericId > 0) {
-      return fallbackBands.find((b) => b.id === numericId) || null
-    }
-    const cleanSlug = rawIdentifier.toLowerCase()
-    return (
-      fallbackBands.find(
-        (b) =>
-          slugify(b.bandName) === cleanSlug ||
-          (b.slug && b.slug.toLowerCase() === cleanSlug) ||
-          b.bandName.toLowerCase() === cleanSlug
-      ) || null
-    )
-  }, [isValidIdentifier, numericId, rawIdentifier])
-
   const [prevIdentifier, setPrevIdentifier] = useState(rawIdentifier)
-  const [band, setBand] = useState<Band | null>(fallbackMatch)
-  const [loadingBand, setLoadingBand] = useState<boolean>(isValidIdentifier && !fallbackMatch)
+  const [band, setBand] = useState<Band | null>(null)
+  const [loadingBand, setLoadingBand] = useState<boolean>(isValidIdentifier)
   const [notFoundError, setNotFoundError] = useState<boolean>(!isValidIdentifier)
   const [liveRelatedBands, setLiveRelatedBands] = useState<Band[] | null>(null)
   const [reviews, setReviews] = useState<BandReview[]>([])
@@ -129,8 +109,8 @@ export const BandDetailPage: React.FC = () => {
 
   if (rawIdentifier !== prevIdentifier) {
     setPrevIdentifier(rawIdentifier)
-    setBand(fallbackMatch)
-    setLoadingBand(isValidIdentifier && !fallbackMatch)
+    setBand(null)
+    setLoadingBand(isValidIdentifier)
     setNotFoundError(!isValidIdentifier)
     setActiveSlide(0)
     setIsPlayingAudio(false)
@@ -189,21 +169,19 @@ export const BandDetailPage: React.FC = () => {
         if (profileRes.ok && !cancelled) {
           const json = await profileRes.json()
           if (json.success && json.data && !cancelled) {
-            setBand(fallbackMatch ? { ...fallbackMatch, ...json.data } : json.data)
+            setBand(json.data)
             setNotFoundError(false)
             setLoadingBand(false)
             return
           }
         }
 
-        if ((profileRes.status === 404 || profileRes.status === 400) && !cancelled) {
+        if ((profileRes.status === 404 || profileRes.status === 400 || !profileRes.ok) && !cancelled) {
           setBand(null)
-          setNotFoundError(true)
-        } else if (!fallbackMatch && !cancelled) {
           setNotFoundError(true)
         }
       } catch {
-        if (!fallbackMatch && !cancelled) {
+        if (!cancelled) {
           setNotFoundError(true)
         }
       } finally {
@@ -217,7 +195,7 @@ export const BandDetailPage: React.FC = () => {
     return () => {
       cancelled = true
     }
-  }, [rawIdentifier, isValidIdentifier, fallbackMatch, currentUser?.id])
+  }, [rawIdentifier, isValidIdentifier, currentUser?.id])
 
   // Check if current user is the owner of this band
   const isOwner = Boolean(
@@ -244,13 +222,13 @@ export const BandDetailPage: React.FC = () => {
       if (res.ok) {
         const json = await res.json()
         if (json.success && json.data) {
-          setBand(fallbackMatch ? { ...fallbackMatch, ...json.data } : json.data)
+          setBand(json.data)
         }
       }
     } catch (err) {
       console.error('Failed to refetch band profile:', err)
     }
-  }, [isValidIdentifier, rawIdentifier, fallbackMatch])
+  }, [isValidIdentifier, rawIdentifier])
 
   // Extract Audio tracks from mediaFiles
   const audioTracks: MediaFile[] = useMemo(() => {
@@ -352,53 +330,10 @@ export const BandDetailPage: React.FC = () => {
 
   const audioProgressPercent = audioDuration > 0 ? (audioCurrentTime / audioDuration) * 100 : 0
 
-  // Extract all portfolio posts (show honest empty state for newly registered bands with no posts yet)
+  // Extract portfolio posts strictly from database payload
   const allPosts: BandPost[] = useMemo(() => {
     if (!band) return []
-    if (band.posts && band.posts.length > 0) return band.posts
-    if (band.id > 8) return []
-    return [
-      {
-        id: band.id * 100 + 1,
-        bandProfileId: band.id,
-        mediaType: 'photo',
-        mediaUrl: band.coverPhotoUrl || band.profilePhotoUrl,
-        thumbnailUrl: band.profilePhotoUrl,
-        caption: `Energi panggung live ${band.bandName}. Terima kasih festival kampus dan para penonton atas sambutan hangatnya!`,
-        viewsCount: 342,
-        createdAt: '2026-11-04T16:45:00.000Z',
-      },
-      {
-        id: band.id * 100 + 2,
-        bandProfileId: band.id,
-        mediaType: 'video',
-        mediaUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=400&auto=format&fit=crop',
-        caption: `Cuplikan live session pembuka. Full band format siap guncang panggung festival terbuka!`,
-        viewsCount: 514,
-        createdAt: '2026-10-28T09:15:00.000Z',
-      },
-      {
-        id: band.id * 100 + 3,
-        bandProfileId: band.id,
-        mediaType: 'photo',
-        mediaUrl: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?q=80&w=800&auto=format&fit=crop',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?q=80&w=400&auto=format&fit=crop',
-        caption: `Soundcheck showcase acoustic session. Reverb analog siap mengalun di panggung akhir pekan ini.`,
-        viewsCount: 289,
-        createdAt: '2026-10-20T14:20:00.000Z',
-      },
-      {
-        id: band.id * 100 + 4,
-        bandProfileId: band.id,
-        mediaType: 'photo',
-        mediaUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=800&auto=format&fit=crop',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=400&auto=format&fit=crop',
-        caption: `Backstage vibes sebelum naik panggung. Rider aman, soundcheck terkalibrasi, energi maksimal.`,
-        viewsCount: 199,
-        createdAt: '2026-10-15T18:00:00.000Z',
-      },
-    ]
+    return band.posts || []
   }, [band])
 
   // Stage Visual Carousel: use the band-selected post carousel if configured, otherwise default slides

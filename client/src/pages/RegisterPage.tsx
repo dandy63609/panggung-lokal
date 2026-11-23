@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import {
   Lock,
@@ -52,6 +52,7 @@ export const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [existingUser] = useState(() => (authClient.getToken() ? authClient.getUser() : null))
 
   const hasGoogleClient = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID)
 
@@ -99,8 +100,14 @@ export const RegisterPage: React.FC = () => {
     setErrorMessage(null)
     setSuccessMessage(null)
 
-    if (!email || !password) {
+    const cleanEmail = email.trim()
+    if (!cleanEmail || !password) {
       setErrorMessage('Email dan kata sandi wajib diisi.')
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setErrorMessage('Format alamat email tidak valid.')
       return
     }
 
@@ -144,6 +151,16 @@ export const RegisterPage: React.FC = () => {
       setErrorMessage('Terjadi kendala koneksi ke server auth. Silakan coba sesaat lagi.')
       setLoading(false)
     }
+  }
+
+  if (existingUser) {
+    const destination =
+      existingUser.accountType === 'band'
+        ? '/dashboard-band'
+        : existingUser.accountType === 'admin'
+          ? '/admin'
+          : redirectParam || '/cari-band'
+    return <Navigate to={destination} replace />
   }
 
   return (
@@ -365,6 +382,7 @@ export const RegisterPage: React.FC = () => {
                     value={bandName}
                     onChange={(e) => setBandName(e.target.value)}
                     placeholder="Contoh: Nada Semarang / Jogja Harmoni"
+                    maxLength={100}
                     required
                     className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white placeholder-[#606060] text-sm pl-10 pr-4 py-3 min-h-[44px] transition-colors outline-none font-sans"
                   />

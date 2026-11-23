@@ -1,9 +1,16 @@
 /**
- * Tests for password hashing utilities
+ * Tests for password hashing utilities (Web Crypto PBKDF2 + legacy bcrypt support)
  * Requirements: 1.5 - Password security
  */
 
-const { hashPassword, verifyPassword, SALT_ROUNDS } = require('../utils/password');
+const bcrypt = require('bcryptjs');
+const {
+  hashPassword,
+  verifyPassword,
+  needsRehash,
+  PBKDF2_ITERATIONS,
+  PBKDF2_PREFIX
+} = require('../utils/password');
 
 describe('Password Hashing Utilities', () => {
   describe('hashPassword', () => {
@@ -13,7 +20,7 @@ describe('Password Hashing Utilities', () => {
 
       expect(hash).toBeDefined();
       expect(typeof hash).toBe('string');
-      expect(hash).not.toBe(password); // Hash should not equal plaintext
+      expect(hash).not.toBe(password);
       expect(hash.length).toBeGreaterThan(0);
     });
 
@@ -22,11 +29,12 @@ describe('Password Hashing Utilities', () => {
       const hash1 = await hashPassword(password);
       const hash2 = await hashPassword(password);
 
-      expect(hash1).not.toBe(hash2); // Different salts produce different hashes
+      expect(hash1).not.toBe(hash2);
     });
 
-    test('should use cost factor of 12', () => {
-      expect(SALT_ROUNDS).toBe(12);
+    test('should configure PBKDF2-SHA256 with 100,000 iterations', () => {
+      expect(PBKDF2_PREFIX).toBe('pbkdf2_sha256');
+      expect(PBKDF2_ITERATIONS).toBe(100000);
     });
 
     test('should throw error for empty password', async () => {
@@ -62,6 +70,35 @@ describe('Password Hashing Utilities', () => {
       const isValid = await verifyPassword(wrongPassword, hash);
 
       expect(isValid).toBe(false);
+    });
+
+    test('should verify legacy bcrypt hashes cleanly', async () => {
+      const legacyHash = bcrypt.hashSync('legacyPass123', 6);
+
+      await expect(verifyPassword('legacyPass123', legacyHash)).resolves.toBe(true);
+      await expect(verifyPassword('wrongPass', legacyHash)).resolves.toBe(false);
+    });
+
+    test('should reject malformed, out-of-bounds, and unrecognized hashes without throwing', async () => {
+      const validHexSalt = 'aa'.repeat(16);
+      const validHexKey = 'bb'.repeat(32);
+
+      await expect(verifyPassword('password123', 'pbkdf2_sha256$100000$short')).resolves.toBe(false);
+      await expect(
+        verifyPassword('password123', `pbkdf2_sha256$notanumber$${validHexSalt}$${validHexKey}`)
+      ).resolves.toBe(false);
+      await expect(
+        verifyPassword('password123', `pbkdf2_sha256$9999999$${validHexSalt}$${validHexKey}`)
+      ).resolves.toBe(false);
+      await expect(
+        verifyPassword('password123', `pbkdf2_sha256$500$${validHexSalt}$${validHexKey}`)
+      ).resolves.toBe(false);
+      await expect(
+        verifyPassword('password123', `pbkdf2_sha256$100000$${'zz'.repeat(16)}$${validHexKey}`)
+      ).resolves.toBe(false);
+      await expect(verifyPassword('password123', 'argon2id$v=19$invalidformat')).resolves.toBe(
+        false
+      );
     });
 
     test('should reject empty password', async () => {
@@ -109,6 +146,24 @@ describe('Password Hashing Utilities', () => {
     });
   });
 
+  describe('needsRehash', () => {
+    test('should return false for a fresh PBKDF2 hash', async () => {
+      const hash = await hashPassword('myPassword123');
+      expect(needsRehash(hash)).toBe(false);
+    });
+
+    test('should return true for legacy bcrypt, outdated iterations, or invalid hashes', () => {
+      const legacyHash = bcrypt.hashSync('legacyPass123', 6);
+      const lowerIterHash = `pbkdf2_sha256$50000$${'aa'.repeat(16)}$${'bb'.repeat(32)}`;
+
+      expect(needsRehash(legacyHash)).toBe(true);
+      expect(needsRehash(lowerIterHash)).toBe(true);
+      expect(needsRehash('pbkdf2_sha256$100000$broken')).toBe(true);
+      expect(needsRehash('')).toBe(true);
+      expect(needsRehash(null)).toBe(true);
+    });
+  });
+
   describe('Security Properties', () => {
     test('should never store password in plaintext', async () => {
       const password = 'myPassword123';
@@ -118,20 +173,12 @@ describe('Password Hashing Utilities', () => {
       expect(hash).not.toBe(password);
     });
 
-    test('should produce hash of sufficient length', async () => {
+    test('should produce formatted PBKDF2-SHA256 hash of 118 characters', async () => {
       const password = 'short';
       const hash = await hashPassword(password);
 
-      // bcrypt hashes are 60 characters long
-      expect(hash.length).toBe(60);
-    });
-
-    test('should produce hash starting with bcrypt identifier', async () => {
-      const password = 'testPassword';
-      const hash = await hashPassword(password);
-
-      // bcrypt hashes start with $2a$, $2b$, or $2y$ followed by cost factor
-      expect(hash).toMatch(/^\$2[aby]\$/);
+      expect(hash).toMatch(/^pbkdf2_sha256\$100000\$[0-9a-f]{32}\$[0-9a-f]{64}$/);
+      expect(hash.length).toBe(118);
     });
   });
 });
