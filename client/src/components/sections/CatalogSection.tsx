@@ -8,6 +8,7 @@ import type { FilterState } from '../ui/FilterDrawer'
 import { CompareDrawer } from '../ui/CompareDrawer'
 import { authClient, type AuthUser } from '../../lib/auth'
 import { BAND_GENRE_FILTERS, CATALOG_FILTER_CATEGORIES, matchesGenreCategory } from '../../lib/genres'
+import { matchesCityFilter } from '../../lib/cities'
 
 interface CatalogSectionProps {
   initialBands?: Band[]
@@ -158,17 +159,9 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
         return false
       }
 
-      // 2. City filter (Semarang & Jogja focus)
-      if (filters.city !== 'Semua') {
-        const bandCity = (band.locationCity || '').toLowerCase()
-        const targetCity = filters.city.toLowerCase()
-        if (targetCity.includes('semarang')) {
-          if (!bandCity.includes('semarang')) return false
-        } else if (targetCity.includes('jogja') || targetCity.includes('yogyakarta')) {
-          if (!bandCity.includes('jogja') && !bandCity.includes('yogyakarta')) return false
-        } else {
-          if (!bandCity.includes(targetCity)) return false
-        }
+      // 2. City / Kabupaten filter (supports all 514 Indonesia regions + legacy aliases)
+      if (!matchesCityFilter(band.locationCity, filters.city)) {
+        return false
       }
 
       // 4. Budget range

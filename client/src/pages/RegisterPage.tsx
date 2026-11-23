@@ -11,7 +11,6 @@ import {
   EyeOff,
   AlertCircle,
   CheckCircle2,
-  MapPin,
   Guitar,
   ArrowLeft,
   Loader2,
@@ -19,7 +18,8 @@ import {
 } from 'lucide-react'
 import { authClient, type RegisterPayload } from '../lib/auth'
 import { BAND_GENRE_OPTIONS } from '../lib/genres'
-import { INDONESIA_CITIES } from '../lib/cities'
+import { DEFAULT_CITY } from '../lib/cities'
+import { CityCombobox } from '../components/ui/CityCombobox'
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate()
@@ -46,7 +46,7 @@ export const RegisterPage: React.FC = () => {
   const [bandName, setBandName] = useState('')
   const [orgName, setOrgName] = useState('')
   const [genre, setGenre] = useState(BAND_GENRE_OPTIONS[1])
-  const [locationCity, setLocationCity] = useState<string>(INDONESIA_CITIES[0])
+  const [locationCity, setLocationCity] = useState<string>(DEFAULT_CITY)
 
   // UI state
   const [loading, setLoading] = useState(false)
@@ -419,25 +419,15 @@ export const RegisterPage: React.FC = () => {
                     htmlFor="reg-city"
                     className="block text-xs font-mono uppercase tracking-wider text-[#D0D0D0] mb-1.5"
                   >
-                    Kota Domisili *
+                    Kota / Kabupaten Domisili *
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#707070]">
-                      <MapPin className="w-4 h-4" />
-                    </div>
-                    <select
-                      id="reg-city"
-                      value={locationCity}
-                      onChange={(e) => setLocationCity(e.target.value)}
-                      className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white text-sm pl-10 pr-4 py-3 min-h-[44px] transition-colors outline-none font-sans cursor-pointer"
-                    >
-                      {INDONESIA_CITIES.map((c) => (
-                        <option key={c} value={c} className="bg-[#181818] text-white">
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <CityCombobox
+                    id="reg-city"
+                    value={locationCity}
+                    onChange={setLocationCity}
+                    required
+                    placeholder="Ketik kota / kabupaten (contoh: Semarang, Bandung)"
+                  />
                 </div>
               </div>
             </>
@@ -471,25 +461,15 @@ export const RegisterPage: React.FC = () => {
                   htmlFor="reg-city-org"
                   className="block text-xs font-mono uppercase tracking-wider text-[#D0D0D0] mb-1.5"
                 >
-                  Kota Domisili *
+                  Kota / Kabupaten Domisili *
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#707070]">
-                    <MapPin className="w-4 h-4" />
-                  </div>
-                  <select
-                    id="reg-city-org"
-                    value={locationCity}
-                    onChange={(e) => setLocationCity(e.target.value)}
-                    className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white text-sm pl-10 pr-4 py-3 min-h-[44px] transition-colors outline-none font-sans cursor-pointer"
-                  >
-                    {INDONESIA_CITIES.map((c) => (
-                      <option key={c} value={c} className="bg-[#181818] text-white">
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <CityCombobox
+                  id="reg-city-org"
+                  value={locationCity}
+                  onChange={setLocationCity}
+                  required
+                  placeholder="Ketik kota / kabupaten..."
+                />
               </div>
             </div>
           )}

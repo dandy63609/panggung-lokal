@@ -18,7 +18,7 @@ import {
   Globe,
 } from 'lucide-react'
 import { BAND_GENRE_OPTIONS } from '../../lib/genres'
-import { INDONESIA_CITIES } from '../../lib/cities'
+import { CityCombobox } from '../ui/CityCombobox'
 import { formatRupiah } from '../../lib/utils'
 import {
   SpotifyIcon,
@@ -852,20 +852,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     htmlFor="edit-band-city"
                     className="block text-xs font-mono uppercase tracking-wider text-[#A0A0A0] mb-1.5"
                   >
-                    Kota Domisili *
+                    Kota / Kabupaten Domisili *
                   </label>
-                  <select
+                  <CityCombobox
                     id="edit-band-city"
                     value={editForm.locationCity}
-                    onChange={(e) => onChange({ ...editForm, locationCity: e.target.value })}
-                    className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-sans cursor-pointer"
-                  >
-                    {INDONESIA_CITIES.map((c) => (
-                      <option key={c} value={c} className="bg-[#181818] text-white">
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(city) => onChange({ ...editForm, locationCity: city })}
+                    required
+                    showIcon={false}
+                    placeholder="Ketik kota / kabupaten..."
+                    inputClassName="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white placeholder-[#8A8A8A] text-xs pl-3 pr-14 py-3 min-h-[44px] outline-none font-sans"
+                  />
                 </div>
 
                 <div>

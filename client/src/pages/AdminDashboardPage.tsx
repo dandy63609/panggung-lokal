@@ -28,6 +28,8 @@ import { authClient, type AuthUser } from '../lib/auth'
 import { getRatingTierBadge, getRatingTier } from '../lib/ratingHelpers'
 import { formatRupiah } from '../lib/utils'
 import { setLocalShowCampus } from '../lib/platformSettings'
+import { DEFAULT_CITY } from '../lib/cities'
+import { CityCombobox } from '../components/ui/CityCombobox'
 
 interface AdminCampus {
   id: number
@@ -131,7 +133,7 @@ export const AdminDashboardPage: React.FC = () => {
   const [bandAffiliations, setBandAffiliations] = useState<AdminBandAffiliation[]>([])
   const [newCampusName, setNewCampusName] = useState('')
   const [newCampusShort, setNewCampusShort] = useState('')
-  const [newCampusCity, setNewCampusCity] = useState<'Kota Semarang' | 'Kota Jogja'>('Kota Semarang')
+  const [newCampusCity, setNewCampusCity] = useState<string>(DEFAULT_CITY)
   const [isSubmittingCampus, setIsSubmittingCampus] = useState(false)
   const [updatingBandCampusId, setUpdatingBandCampusId] = useState<number | null>(null)
 
@@ -1403,7 +1405,7 @@ export const AdminDashboardPage: React.FC = () => {
                   MANAJEMEN LABEL KAMPUS &amp; HAK AKSES AFILIASI MUSISI
                 </h2>
                 <p className="text-xs text-[#808080] font-sans">
-                  Fokus regional: Kota Semarang &amp; Kota Jogja. Hanya Admin yang dapat menambahkan master kampus dan memberikan hak akses afiliasi kepada musisi.
+                  Mendukung seluruh 514 Kota &amp; Kabupaten di Indonesia. Hanya Admin yang dapat menambahkan master kampus dan memberikan hak akses afiliasi kepada musisi.
                 </p>
               </div>
 
@@ -1492,17 +1494,21 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-mono uppercase tracking-wider text-[#A0A0A0] mb-1">
-                        Kota *
-                      </label>
-                      <select
-                        value={newCampusCity}
-                        onChange={(e) => setNewCampusCity(e.target.value as 'Kota Semarang' | 'Kota Jogja')}
-                        className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs px-2.5 py-2.5 min-h-[40px] outline-none font-sans cursor-pointer rounded-none"
+                      <label
+                        htmlFor="admin-new-campus-city"
+                        className="block text-[11px] font-mono uppercase tracking-wider text-[#A0A0A0] mb-1"
                       >
-                        <option value="Kota Semarang" className="bg-[#181818] text-white">Kota Semarang</option>
-                        <option value="Kota Jogja" className="bg-[#181818] text-white">Kota Jogja</option>
-                      </select>
+                        Kota / Kabupaten *
+                      </label>
+                      <CityCombobox
+                        id="admin-new-campus-city"
+                        value={newCampusCity}
+                        onChange={setNewCampusCity}
+                        required
+                        showIcon={false}
+                        placeholder="Ketik kota / kabupaten..."
+                        inputClassName="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white placeholder-[#8A8A8A] text-xs pl-2.5 pr-14 py-2.5 min-h-[40px] outline-none font-sans rounded-none"
+                      />
                     </div>
                   </div>
 
@@ -1905,17 +1911,21 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
-                      KOTA DOMISILI (FOKUS REGIONAL):
-                    </label>
-                    <select
-                      value={editingBand.locationCity}
-                      onChange={(e) => setEditingBand({ ...editingBand, locationCity: e.target.value })}
-                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none cursor-pointer"
+                    <label
+                      htmlFor="admin-edit-band-city"
+                      className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold"
                     >
-                      <option value="Kota Semarang">Kota Semarang</option>
-                      <option value="Kota Jogja">Kota Jogja</option>
-                    </select>
+                      KOTA / KABUPATEN DOMISILI:
+                    </label>
+                    <CityCombobox
+                      id="admin-edit-band-city"
+                      value={editingBand.locationCity}
+                      onChange={(city) => setEditingBand({ ...editingBand, locationCity: city })}
+                      required
+                      showIcon={false}
+                      placeholder="Ketik kota / kabupaten..."
+                      inputClassName="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] focus:ring-1 focus:ring-[#E01E37] text-white placeholder-[#8A8A8A] pl-2.5 pr-14 py-2.5 min-h-[44px] rounded-xl font-mono text-xs outline-none"
+                    />
                   </div>
 
                   <div className="space-y-1.5">
