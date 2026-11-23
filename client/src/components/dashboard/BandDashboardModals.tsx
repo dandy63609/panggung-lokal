@@ -513,6 +513,17 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
 }) => {
   const [brokenUrlMap, setBrokenUrlMap] = useState<Record<string, boolean>>({})
 
+  useEffect(() => {
+    if (!post) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [post, onClose])
+
   if (!post) return null
 
   const currentSlide = slides[slideIndex]
@@ -522,11 +533,19 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
   const isBroken = Boolean(currentUrl && brokenUrlMap[currentUrl])
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="post-detail-modal-title"
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+    >
       <div className="bg-[#121212] border border-[#2E2E2E] w-full max-w-xl p-6 relative shadow-2xl max-h-[90dvh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-[#242424] mb-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono uppercase tracking-widest text-[#E01E37] font-bold">
+            <span
+              id="post-detail-modal-title"
+              className="text-xs font-mono uppercase tracking-widest text-[#E01E37] font-bold"
+            >
               DETAIL KARYA INSIGHT
             </span>
             {slides.length > 1 && (

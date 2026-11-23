@@ -400,4 +400,45 @@ describe('QA Band Audit Regression Fixes', () => {
       expect(shouldAllowMemoryFallback({})).toBe(true);
     });
   });
+
+  describe('7. Band dashboard recentConnections fields & zero-review ratingCount default', () => {
+    it('returns real organizerEmail, eventName, eventDate, and createdAt in GET /api/dashboard/band and defaults ratingCount to 0', async () => {
+      const passwordHash = await hashPassword('Password123!');
+      const ts = Date.now();
+      const bUser = await User.create(`qa-conn-band-${ts}@example.com`, passwordHash, 'band');
+      const eUser = await User.create(`qa-conn-eo-${ts}@example.com`, passwordHash, 'general');
+      createdUserIds.push(bUser.id, eUser.id);
+
+      const profile = await BandProfile.create({
+        userId: bUser.id,
+        bandName: `QA Inquiry Band ${ts}`,
+        genre: 'Rock & Grunge',
+        locationCity: 'Kota Semarang',
+      });
+      createdProfileIds.push(profile.id);
+      expect(profile.ratingCount).toBe(0);
+
+      await db.query(
+        `INSERT INTO connections (organizer_user_id, band_profile_id, connection_type, event_date, event_name, status, is_reviewed, notes)
+         VALUES ($1, $2, 'direct_booking', '2026-11-22', 'QA Direct Booking Event', 'confirmed', FALSE, 'Soundcheck jam 16:00')`,
+        [eUser.id, profile.id]
+      );
+
+      const bToken = generateToken(bUser);
+      const dashRes = await request(app)
+        .get('/api/dashboard/band')
+        .set('Authorization', `Bearer ${bToken}`);
+
+      expect(dashRes.status).toBe(200);
+      expect(dashRes.body.success).toBe(true);
+      expect(dashRes.body.data.profile.ratingCount).toBe(0);
+      expect(dashRes.body.data.recentConnections).toHaveLength(1);
+      const conn = dashRes.body.data.recentConnections[0];
+      expect(conn.organizerEmail).toBe(eUser.email);
+      expect(conn.eventName).toBe('QA Direct Booking Event');
+      expect(conn.eventDate).toBe('2026-11-22');
+      expect(conn.createdAt).toBeTruthy();
+      expect(conn.status).toBe('confirmed');
+    });
+  });
 });

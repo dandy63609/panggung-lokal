@@ -88,7 +88,7 @@ class BandProfile {
     
     // Rating & Review system
     this.ratingAverage = data.rating_average !== undefined && data.rating_average !== null ? Number(data.rating_average) : 4.8;
-    this.ratingCount = data.rating_count !== undefined && data.rating_count !== null ? Number(data.rating_count) : 1;
+    this.ratingCount = data.rating_count !== undefined && data.rating_count !== null ? Number(data.rating_count) : 0;
     this.ratingOverride = data.rating_override !== undefined && data.rating_override !== null ? Number(data.rating_override) : null;
     const effectiveRating = this.ratingOverride !== null ? this.ratingOverride : this.ratingAverage;
     this.rating = Number(Number(effectiveRating).toFixed(1));
@@ -200,8 +200,8 @@ class BandProfile {
         phone, instagram_handle, facebook_url, youtube_url,
         spotify_url, tiktok_url,
         rider_channel_inputs, rider_sound_system, rider_instruments, rider_hospitality,
-        rider_items
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        rider_items, rating_count
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
       RETURNING *`,
       [
         data.userId,
@@ -224,7 +224,8 @@ class BandProfile {
         data.riderSoundSystem || null,
         data.riderInstruments || null,
         data.riderHospitality || null,
-        riderItemsJson
+        riderItemsJson,
+        data.ratingCount !== undefined ? Number(data.ratingCount) : 0
       ]
     );
     return new BandProfile(result.rows[0]);

@@ -96,11 +96,21 @@ export interface StatsResponse {
 
 export interface RecentConnection {
   id?: number
+  organizerUserId?: number
+  bandProfileId?: number
+  connectionType?: string
+  eventDate?: string | null
+  eventName?: string | null
+  notes?: string | null
+  status?: string
+  isReviewed?: boolean
+  createdAt?: string
+  organizerEmail?: string
   organizer_email?: string
   event_type?: string
+  event_name?: string
   event_date?: string
   created_at?: string
-  status?: string
 }
 
 export interface BroadcastAttachment {

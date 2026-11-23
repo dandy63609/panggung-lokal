@@ -188,6 +188,7 @@ export const ForgotPasswordPage: React.FC = () => {
         {errorMessage && (
           <div
             role="alert"
+            aria-live="assertive"
             className="mb-6 p-3.5 bg-[#E01E37]/15 border border-[#E01E37] text-white text-xs font-sans flex items-start gap-2.5"
           >
             <AlertCircle className="w-4 h-4 text-[#E01E37] shrink-0 mt-0.5" />
@@ -199,6 +200,7 @@ export const ForgotPasswordPage: React.FC = () => {
         {successMessage && (
           <div
             role="status"
+            aria-live="polite"
             className="mb-6 p-3.5 bg-[#181818] border border-white text-white text-xs font-sans flex items-start gap-2.5"
           >
             <CheckCircle2 className="w-4 h-4 text-[#E01E37] shrink-0 mt-0.5" />

@@ -623,7 +623,7 @@ export const BandDashboardPage: React.FC = () => {
         <div
           role={toastMessage.type === 'error' ? 'alert' : 'status'}
           aria-live={toastMessage.type === 'error' ? 'assertive' : 'polite'}
-          className={`fixed bottom-6 right-6 z-[70] p-4 border flex items-center gap-3 shadow-2xl transition-all duration-200 max-w-md ${
+          className={`fixed top-24 right-4 sm:right-6 z-[70] p-4 border flex items-center gap-3 shadow-2xl transition-all duration-200 max-w-md ${
             toastMessage.type === 'success'
               ? 'bg-[#161616] border-white text-white'
               : 'bg-[#1C1214] border-[#E01E37] text-white'
@@ -1424,29 +1424,57 @@ export const BandDashboardPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#202020] text-[#D0D0D0]">
-                    {connections.map((c, idx) => (
-                      <tr key={idx} className="hover:bg-[#161616] transition-colors">
-                        <td className="py-3.5 px-4 font-mono text-white font-bold">
-                          {c.organizer_email || 'Penyelenggara Terverifikasi'}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2 py-0.5 bg-[#1F1F1F] border border-[#2F2F2F] text-[11px] font-mono text-white">
-                            {c.event_type || 'Live Music / Gig'}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-[#A0A0A0]">
-                          {c.event_date || 'TBD'}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-[#808080]">
-                          {c.created_at ? new Date(c.created_at).toLocaleDateString('id-ID') : '-'}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2 py-0.5 bg-[#E01E37]/15 border border-[#E01E37]/40 text-[#E01E37] text-[10px] font-mono uppercase font-bold">
-                            {c.status || 'TERHUBUNG'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {connections.map((c, idx) => {
+                      const organizerLabel =
+                        c.organizerEmail || c.organizer_email || 'Penyelenggara Terverifikasi'
+                      const eventLabel =
+                        c.eventName ||
+                        c.event_name ||
+                        c.event_type ||
+                        (c.connectionType === 'direct_booking'
+                          ? 'Booking Langsung'
+                          : c.connectionType === 'whatsapp_click'
+                            ? 'Inquiry WhatsApp'
+                            : 'Live Music / Gig')
+                      const eventDateLabel = c.eventDate || c.event_date || 'Belum dijadwalkan'
+                      const rawCreatedAt = c.createdAt || c.created_at
+                      const inquiryDateLabel = rawCreatedAt
+                        ? new Date(rawCreatedAt).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : '-'
+
+                      return (
+                        <tr key={c.id ?? idx} className="hover:bg-[#161616] transition-colors">
+                          <td className="py-3.5 px-4 font-mono text-white font-bold">
+                            {organizerLabel}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2 py-0.5 bg-[#1F1F1F] border border-[#2F2F2F] text-[11px] font-mono text-white inline-block">
+                              {eventLabel}
+                            </span>
+                            {c.notes && (
+                              <p className="text-[11px] text-[#8A8A8A] font-sans mt-1 line-clamp-1 max-w-xs">
+                                {c.notes}
+                              </p>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-[#A0A0A0]">
+                            {eventDateLabel}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-[#808080]">
+                            {inquiryDateLabel}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2 py-0.5 bg-[#E01E37]/15 border border-[#E01E37]/40 text-[#E01E37] text-[10px] font-mono uppercase font-bold">
+                              {c.status || 'TERHUBUNG'}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

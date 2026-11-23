@@ -719,7 +719,12 @@ export const BandDetailPage: React.FC = () => {
                       </span>
                       <span className="text-[#555]">•</span>
                       <span className="font-mono text-xs text-[#A0A0A0]">
-                        {reviews.length || band.ratingCount || 1} Penilaian EO Terverifikasi
+                        {(() => {
+                          const verifiedCount = reviews.length > 0 ? reviews.length : Number(band.ratingCount ?? 0)
+                          return verifiedCount > 0
+                            ? `${verifiedCount} Penilaian EO Terverifikasi`
+                            : 'Belum Ada Penilaian EO'
+                        })()}
                       </span>
                     </div>
                   )
@@ -856,16 +861,41 @@ export const BandDetailPage: React.FC = () => {
             <div className="border-t border-[#222222] mt-6 pt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
               {/* 3 Metrics separated by vertical line dividers */}
               <div className="flex items-center gap-5 sm:gap-8 flex-wrap">
-                {/* Metric 1: Rating */}
-                <div>
-                  <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
-                    <Star className="w-4 h-4 fill-[#E01E37] text-[#E01E37]" />
-                    <span>4.9</span>
-                  </div>
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
-                    RATING PANGGUNG
-                  </span>
-                </div>
+                {/* Metric 1: Rating / Curation Status */}
+                {(() => {
+                  const effectiveRating = Number(band.rating ?? band.ratingAverage ?? 0)
+                  const verifiedCount = reviews.length > 0 ? reviews.length : Number(band.ratingCount ?? 0)
+                  const tierInfo = getRatingTierBadge(effectiveRating > 0 ? effectiveRating : 4.8)
+
+                  if (currentUser?.accountType === 'admin') {
+                    return (
+                      <div>
+                        <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
+                          <Star className="w-4 h-4 fill-[#E01E37] text-[#E01E37]" />
+                          <span>{effectiveRating > 0 ? effectiveRating.toFixed(1) : '-'}</span>
+                        </div>
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
+                          RATING PANGGUNG
+                        </span>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div>
+                      <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
+                        <span>
+                          {verifiedCount > 0 || band.ratingOverride != null
+                            ? tierInfo.label.toUpperCase()
+                            : 'TERKURASI'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
+                        STATUS KURASI
+                      </span>
+                    </div>
+                  )
+                })()}
 
                 <div className="w-px h-8 bg-[#2A2A2A] hidden sm:block" />
 

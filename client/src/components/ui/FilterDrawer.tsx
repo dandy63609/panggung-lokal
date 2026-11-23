@@ -35,13 +35,15 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
 }) => {
   // Close on Escape key
   useEffect(() => {
+    if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
         onClose()
       }
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [isOpen, onClose])
 
   if (!isOpen) return null
@@ -58,6 +60,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
       {/* Filter Card / Popover Container */}
       <div
         role="dialog"
+        aria-modal="true"
         aria-label="Filter Spesifikasi Band"
         className="fixed inset-x-0 bottom-0 top-auto md:absolute md:inset-auto md:right-0 md:top-[calc(100%+8px)] z-50 w-full md:w-[480px] max-h-[85vh] md:max-h-[600px] overflow-y-auto bg-[#141414] border border-[#323232] shadow-[0_20px_50px_rgba(0,0,0,0.9)] p-6 flex flex-col justify-between space-y-6"
       >

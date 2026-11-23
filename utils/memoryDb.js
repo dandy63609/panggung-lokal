@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   tiktok_url VARCHAR(500),
   stage_visual_post_id INTEGER,
   rating_average NUMERIC(3, 1) DEFAULT 4.8,
-  rating_count INTEGER DEFAULT 1,
+  rating_count INTEGER DEFAULT 0,
   rating_override NUMERIC(3, 1),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
