@@ -657,6 +657,12 @@ export const BandDetailPage: React.FC = () => {
 
               {/* Status Badges */}
               <div className="flex items-center gap-2 flex-wrap">
+                {band.customTag && (
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-black bg-[#00D9FF] px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full shadow-sm">
+                    <span>✨</span>
+                    <span>{band.customTag}</span>
+                  </span>
+                )}
                 <span className="font-mono text-[11px] uppercase tracking-wider text-white bg-[#E01E37] px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                   TOP BAND TERKURASI
@@ -665,7 +671,7 @@ export const BandDetailPage: React.FC = () => {
                   SOUNDCHECK VERIFIED
                 </span>
                 {(() => {
-                  const currentRating = Number(band.rating || band.ratingAverage || 4.8)
+                  const currentRating = Number(band.rating ?? band.ratingAverage ?? 2.5)
                   const tierInfo = getRatingTierBadge(currentRating)
                   return (
                     <div className={`font-mono text-[11px] uppercase tracking-wider px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full border ${tierInfo.bgClass}`}>
@@ -691,10 +697,19 @@ export const BandDetailPage: React.FC = () => {
 
                 {/* Rating & Review Counter Line (Stars visible only to Admin; public only sees status words) */}
                 {(() => {
-                  const currentRating = Number(band.rating || band.ratingAverage || 4.8)
+                  const currentRating = Number(band.rating ?? band.ratingAverage ?? 2.5)
                   const tierInfo = getRatingTierBadge(currentRating)
                   return (
                     <div className="flex items-center gap-3 flex-wrap pt-0.5">
+                      {band.customTag && (
+                        <>
+                          <span className="font-mono text-xs font-bold px-3 py-1 rounded border uppercase tracking-wider bg-[#00D9FF]/15 border-[#00D9FF] text-[#00D9FF] flex items-center gap-1">
+                            <span>✨</span>
+                            <span>{band.customTag}</span>
+                          </span>
+                          <span className="text-[#555]">•</span>
+                        </>
+                      )}
                       {currentUser?.accountType === 'admin' && (
                         <>
                           <div className="flex items-center gap-1 bg-[#181818] border border-[#FFD166]/40 px-2.5 py-1 rounded-lg">
@@ -869,7 +884,7 @@ export const BandDetailPage: React.FC = () => {
                 {(() => {
                   const effectiveRating = Number(band.rating ?? band.ratingAverage ?? 0)
                   const verifiedCount = reviews.length > 0 ? reviews.length : Number(band.ratingCount ?? 0)
-                  const tierInfo = getRatingTierBadge(effectiveRating > 0 ? effectiveRating : 4.8)
+                  const tierInfo = getRatingTierBadge(effectiveRating > 0 ? effectiveRating : 2.5)
 
                   if (currentUser?.accountType === 'admin') {
                     return (
@@ -1587,7 +1602,7 @@ export const BandDetailPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             {/* Status Box */}
             {(() => {
-              const currentRating = Number(band.rating || band.ratingAverage || 4.8)
+              const currentRating = Number(band.rating ?? band.ratingAverage ?? 2.5)
               const tierInfo = getRatingTierBadge(currentRating)
               return (
                 <div className="bg-[#121212] border border-[#222222] p-6 rounded-2xl flex flex-col justify-between">

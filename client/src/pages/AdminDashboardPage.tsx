@@ -60,6 +60,19 @@ interface AdminBandRecord {
   userEmail?: string
   isActive?: boolean
   createdAt?: string
+  customTag?: string | null
+  profilePhotoUrl?: string | null
+  coverPhotoUrl?: string | null
+  instagramHandle?: string | null
+  facebookUrl?: string | null
+  youtubeUrl?: string | null
+  spotifyUrl?: string | null
+  tiktokUrl?: string | null
+  riderChannelInputs?: string | null
+  riderSoundSystem?: string | null
+  riderInstruments?: string | null
+  riderHospitality?: string | null
+  riderItems?: any
 }
 
 interface AdminBandAffiliation {
@@ -345,10 +358,26 @@ export const AdminDashboardPage: React.FC = () => {
           bandName: editingBand.bandName,
           genre: editingBand.genre,
           locationCity: editingBand.locationCity,
+          locationRegion: editingBand.locationRegion,
           campus: editingBand.campus,
           budgetMin: editingBand.budgetMin,
           budgetMax: editingBand.budgetMax,
           ratingOverride: editingBand.ratingOverride,
+          ratingAverage: editingBand.ratingAverage,
+          ratingCount: editingBand.ratingCount,
+          customTag: editingBand.customTag,
+          profilePhotoUrl: editingBand.profilePhotoUrl,
+          coverPhotoUrl: editingBand.coverPhotoUrl,
+          instagramHandle: editingBand.instagramHandle,
+          facebookUrl: editingBand.facebookUrl,
+          youtubeUrl: editingBand.youtubeUrl,
+          spotifyUrl: editingBand.spotifyUrl,
+          tiktokUrl: editingBand.tiktokUrl,
+          riderChannelInputs: editingBand.riderChannelInputs,
+          riderSoundSystem: editingBand.riderSoundSystem,
+          riderInstruments: editingBand.riderInstruments,
+          riderHospitality: editingBand.riderHospitality,
+          riderItems: editingBand.riderItems,
           bio: editingBand.bio,
           phone: editingBand.phone,
           isActive: editingBand.isActive,
@@ -1753,7 +1782,15 @@ export const AdminDashboardPage: React.FC = () => {
                         <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-3.5 px-4">
                             <div className="space-y-0.5">
-                              <span className="font-bold text-white text-sm block uppercase">{b.bandName}</span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-white text-sm block uppercase">{b.bandName}</span>
+                                {b.customTag && (
+                                  <span className="font-mono text-[9px] uppercase font-bold text-[#00D9FF] bg-[#00D9FF]/10 px-1.5 py-0.5 rounded border border-[#00D9FF]/30 inline-flex items-center gap-1">
+                                    <span>✨</span>
+                                    <span>{b.customTag}</span>
+                                  </span>
+                                )}
+                              </div>
                               <span className="text-[11px] text-[#777] block">{b.userEmail}</span>
                               <span className="text-[11px] text-[#999] block font-sans">WA: {b.phone || '-'}</span>
                             </div>
@@ -1945,6 +1982,47 @@ export const AdminDashboardPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#00D9FF] block font-bold flex items-center gap-1.5">
+                      <span>✨</span>
+                      <span>TAG / LABEL KHUSUS MUSISI:</span>
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={editingBand.customTag || ''}
+                        onChange={(e) => setEditingBand({ ...editingBand, customTag: e.target.value })}
+                        placeholder="Contoh: Baru Ditambahkan, Terkurasi, Pilihan Editor"
+                        className="flex-1 bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#00D9FF] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                      />
+                      <div className="flex gap-1.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setEditingBand({ ...editingBand, customTag: 'Baru Ditambahkan' })}
+                          className="px-2.5 py-1.5 bg-[#00D9FF]/10 hover:bg-[#00D9FF]/20 text-[#00D9FF] border border-[#00D9FF]/40 text-[10px] font-mono uppercase font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+                        >
+                          + Baru Ditambahkan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingBand({ ...editingBand, customTag: 'Terkurasi' })}
+                          className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/20 text-[10px] font-mono uppercase font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+                        >
+                          Terkurasi
+                        </button>
+                        {editingBand.customTag && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingBand({ ...editingBand, customTag: null })}
+                            className="px-2.5 py-1.5 bg-[#E01E37]/10 hover:bg-[#E01E37]/20 text-[#FF4D6D] border border-[#E01E37]/40 text-[10px] font-mono uppercase font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+                          >
+                            Hapus Tag
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 2. Rating & Tier Override Section */}
@@ -2102,7 +2180,103 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 5. Bio */}
+                {/* 5. Social & Media Channels */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      INSTAGRAM HANDLE:
+                    </label>
+                    <input
+                      type="text"
+                      value={editingBand.instagramHandle || ''}
+                      onChange={(e) => setEditingBand({ ...editingBand, instagramHandle: e.target.value })}
+                      placeholder="@band_official"
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      SPOTIFY URL:
+                    </label>
+                    <input
+                      type="text"
+                      value={editingBand.spotifyUrl || ''}
+                      onChange={(e) => setEditingBand({ ...editingBand, spotifyUrl: e.target.value })}
+                      placeholder="https://open.spotify.com/artist/..."
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      YOUTUBE URL:
+                    </label>
+                    <input
+                      type="text"
+                      value={editingBand.youtubeUrl || ''}
+                      onChange={(e) => setEditingBand({ ...editingBand, youtubeUrl: e.target.value })}
+                      placeholder="https://youtube.com/@band..."
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* 6. Media Photos */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      FOTO PROFIL URL:
+                    </label>
+                    <input
+                      type="text"
+                      value={editingBand.profilePhotoUrl || ''}
+                      onChange={(e) => setEditingBand({ ...editingBand, profilePhotoUrl: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      FOTO SAMPUL / BANNER URL:
+                    </label>
+                    <input
+                      type="text"
+                      value={editingBand.coverPhotoUrl || ''}
+                      onChange={(e) => setEditingBand({ ...editingBand, coverPhotoUrl: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* 7. Technical Rider Specs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      RIDER INPUT AUDIO CHANNEL:
+                    </label>
+                    <input
+                      type="text"
+                      value={editingBand.riderChannelInputs || ''}
+                      onChange={(e) => setEditingBand({ ...editingBand, riderChannelInputs: e.target.value })}
+                      placeholder="Contoh: 12-16 Channel Input FOH"
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                      RIDER SOUND SYSTEM:
+                    </label>
+                    <input
+                      type="text"
+                      value={editingBand.riderSoundSystem || ''}
+                      onChange={(e) => setEditingBand({ ...editingBand, riderSoundSystem: e.target.value })}
+                      placeholder="Contoh: FOH PA System 5000W + 2 Stage Monitor"
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* 8. Bio */}
                 <div className="space-y-1.5">
                   <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
                     DESKRIPSI &amp; BIO MUSISI:

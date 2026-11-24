@@ -55,7 +55,7 @@ const TABLE_COLUMNS = {
     'instagram_handle', 'facebook_url', 'youtube_url', 'profile_views',
     'rider_channel_inputs', 'rider_sound_system', 'rider_instruments', 'rider_hospitality',
     'rider_items', 'spotify_url', 'tiktok_url', 'stage_visual_post_id',
-    'rating_average', 'rating_count', 'rating_override',
+    'rating_average', 'rating_count', 'rating_override', 'custom_tag',
     'created_at', 'updated_at'
   ],
   band_posts: [
@@ -144,9 +144,10 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   spotify_url VARCHAR(500),
   tiktok_url VARCHAR(500),
   stage_visual_post_id INTEGER,
-  rating_average NUMERIC(3, 1) DEFAULT 4.8,
+  rating_average NUMERIC(3, 1) DEFAULT 2.5,
   rating_count INTEGER DEFAULT 0,
   rating_override NUMERIC(3, 1),
+  custom_tag VARCHAR(100) DEFAULT 'Baru Ditambahkan',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -1001,6 +1002,14 @@ async function seedInitialData(pool) {
 
   await saveMemoryDb();
   console.log('✅ Initial database seed completed!');
+}
+
+if (typeof process !== 'undefined' && process.on) {
+  process.on('beforeExit', () => {
+    try {
+      saveMemoryDb();
+    } catch {}
+  });
 }
 
 module.exports = {

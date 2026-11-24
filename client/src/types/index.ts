@@ -55,11 +55,13 @@ export interface Band {
   ratingCount?: number
   ratingOverride?: number | null
   ratingTier?: 'Baik' | 'Sangat Baik' | 'Rekomendasi Favorit' | string
+  customTag?: string | null
   reviews?: BandReview[]
   profilePhotoUrl?: string
   coverPhotoUrl?: string
   phone?: string
   instagramHandle?: string
+  facebookUrl?: string
   youtubeUrl?: string
   spotifyUrl?: string
   tiktokUrl?: string

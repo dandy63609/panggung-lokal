@@ -107,4 +107,94 @@ describe('Band Rating, Reviews, and Super Admin Authority Unit Tests', () => {
     const finalRes = await pool.query("SELECT value FROM platform_settings WHERE key = 'show_campus_affiliation'");
     expect(finalRes.rows[0].value).toBe('false');
   });
+
+  test('Newly created band accounts default to tier Baik and tag Baru Ditambahkan', async () => {
+    // Create new band user
+    const userRes = await pool.query(
+      `INSERT INTO users (email, password_hash, account_type) VALUES ('newband@test.com', 'hash', 'band') RETURNING id`
+    );
+    const userId = userRes.rows[0].id;
+
+    // Create band profile for this new user
+    const newBand = await BandProfile.create({
+      userId,
+      bandName: 'Band Pendatang Baru',
+      genre: 'Indie Rock',
+      locationCity: 'Semarang'
+    });
+
+    expect(newBand).toBeDefined();
+    expect(newBand.bandName).toBe('Band Pendatang Baru');
+    // Rating must be Baik, NOT Rekomendasi Favorit
+    expect(newBand.ratingTier).toBe('Baik');
+    expect(newBand.rating).toBeLessThan(3.0);
+    expect(newBand.rating).toBeGreaterThanOrEqual(1.0);
+    expect(newBand.ratingAverage).toBe(2.5);
+    // Custom Tag must indicate newly added band
+    expect(newBand.customTag).toBe('Baru Ditambahkan');
+
+    // Verify when loaded by ID (e.g. when EO views profile)
+    const fetched = await BandProfile.findById(newBand.id);
+    expect(fetched.ratingTier).toBe('Baik');
+    expect(fetched.customTag).toBe('Baru Ditambahkan');
+  });
+
+  test('Super Admin has full authority to edit and change everything including rating, tag, rider, and contact', async () => {
+    // Create another band for testing admin edits
+    const userRes = await pool.query(
+      `INSERT INTO users (email, password_hash, account_type) VALUES ('adminedit@test.com', 'hash', 'band') RETURNING id`
+    );
+    const userId = userRes.rows[0].id;
+    const band = await BandProfile.create({
+      userId,
+      bandName: 'Band Modifikasi Admin',
+      genre: 'Jazz',
+      locationCity: 'Yogyakarta'
+    });
+
+    expect(band.ratingTier).toBe('Baik');
+    expect(band.customTag).toBe('Baru Ditambahkan');
+
+    // Admin updates all fields: overrides rating to 5.0 (Rekomendasi Favorit), updates tag to 'Terkurasi', updates bio, phone, social, and rider
+    const updated = await BandProfile.update(band.id, {
+      bandName: 'Band Modifikasi Admin Super',
+      genre: 'Modern Fusion Jazz',
+      locationCity: 'Surakarta',
+      locationRegion: 'Jawa Tengah',
+      campus: 'UGM',
+      bio: 'Profil yang telah diperbarui oleh Administrator',
+      budgetMin: 3500000,
+      budgetMax: 7000000,
+      phone: '+6281234567890',
+      ratingOverride: 5.0,
+      customTag: 'Terkurasi',
+      instagramHandle: '@superjazz',
+      spotifyUrl: 'https://spotify.com/artist/jazz',
+      youtubeUrl: 'https://youtube.com/@jazz',
+      tiktokUrl: 'https://tiktok.com/@jazz',
+      riderChannelInputs: '16 Channel Audio Input',
+      riderSoundSystem: '5000 Watt FOH Line Array',
+      riderInstruments: 'Drum Kit Pearl & Bass Amp Gallien-Krueger',
+      riderHospitality: 'Air mineral botol & makanan berat kru'
+    });
+
+    expect(updated.bandName).toBe('Band Modifikasi Admin Super');
+    expect(updated.genre).toBe('Modern Fusion Jazz');
+    expect(updated.locationCity).toBe('Surakarta');
+    expect(updated.campus).toBe('UGM');
+    expect(updated.ratingOverride).toBe(5.0);
+    expect(updated.rating).toBe(5.0);
+    expect(updated.ratingTier).toBe('Rekomendasi Favorit');
+    expect(updated.customTag).toBe('Terkurasi');
+    expect(updated.phone).toBe('+6281234567890');
+    expect(updated.instagramHandle).toBe('@superjazz');
+    expect(updated.riderChannelInputs).toBe('16 Channel Audio Input');
+    expect(updated.riderSoundSystem).toBe('5000 Watt FOH Line Array');
+
+    // Admin can also clear tag entirely
+    const tagCleared = await BandProfile.update(band.id, {
+      customTag: null
+    });
+    expect(tagCleared.customTag).toBeNull();
+  });
 });

@@ -218,7 +218,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 // Start server
 if (require.main === module) {
   const os = require('os');
-  app.listen(PORT, HOST, () => {
+  const server = app.listen(PORT, HOST, () => {
     console.log(`🚀 Reffband server running on port ${PORT}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Local PC: http://localhost:${PORT}`);
@@ -231,6 +231,25 @@ if (require.main === module) {
       }
     }
   });
+
+  // Graceful shutdown handling: auto-save database before process terminates
+  const handleGracefulShutdown = async (signal) => {
+    console.log(`\n🛑 Signal ${signal} diterima. Menyimpan data dan menutup server secara aman...`);
+    try {
+      const { saveMemoryDb } = require('./utils/memoryDb');
+      await saveMemoryDb();
+      console.log('💾 Database snapshot tersimpan di disk.');
+    } catch (err) {
+      console.error('Gagal menyimpan database saat shutdown:', err?.message || err);
+    }
+    server.close(() => {
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 1500).unref();
+  };
+
+  process.on('SIGINT', () => handleGracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => handleGracefulShutdown('SIGTERM'));
 }
 
 module.exports = app;

@@ -254,7 +254,10 @@ router.post('/profile', requireBand, async (req, res) => {
       riderChannelInputs,
       riderSoundSystem,
       riderInstruments,
-      riderHospitality
+      riderHospitality,
+      ratingAverage: 2.5,
+      ratingCount: 0,
+      customTag: req.body.customTag || 'Baru Ditambahkan'
     });
 
     return res.status(201).json({

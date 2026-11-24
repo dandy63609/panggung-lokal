@@ -540,8 +540,8 @@ router.get('/bands', async (req, res) => {
     `);
 
     const bands = result.rows.map(row => {
-      const avg = row.rating_average !== null && row.rating_average !== undefined ? Number(row.rating_average) : 4.8;
-      const count = row.rating_count !== null && row.rating_count !== undefined ? Number(row.rating_count) : 1;
+      const avg = row.rating_average !== null && row.rating_average !== undefined ? Number(row.rating_average) : 2.5;
+      const count = row.rating_count !== null && row.rating_count !== undefined ? Number(row.rating_count) : 0;
       const override = row.rating_override !== null && row.rating_override !== undefined ? Number(row.rating_override) : null;
       const effectiveRating = override !== null ? override : avg;
       const rounded = Number(effectiveRating.toFixed(1));
@@ -561,7 +561,19 @@ router.get('/bands', async (req, res) => {
         budgetMin: row.budget_min,
         budgetMax: row.budget_max,
         profilePhotoUrl: row.profile_photo_url,
+        coverPhotoUrl: row.cover_photo_url,
         phone: row.phone,
+        instagramHandle: row.instagram_handle,
+        facebookUrl: row.facebook_url,
+        youtubeUrl: row.youtube_url,
+        spotifyUrl: row.spotify_url,
+        tiktokUrl: row.tiktok_url,
+        riderChannelInputs: row.rider_channel_inputs,
+        riderSoundSystem: row.rider_sound_system,
+        riderInstruments: row.rider_instruments,
+        riderHospitality: row.rider_hospitality,
+        riderItems: row.rider_items,
+        customTag: row.custom_tag || null,
         profileViews: row.profile_views || 0,
         ratingAverage: avg,
         ratingCount: count,
@@ -613,6 +625,21 @@ router.put('/bands/:id', async (req, res) => {
       budgetMax,
       phone,
       ratingOverride,
+      ratingAverage,
+      ratingCount,
+      customTag,
+      profilePhotoUrl,
+      coverPhotoUrl,
+      instagramHandle,
+      facebookUrl,
+      youtubeUrl,
+      spotifyUrl,
+      tiktokUrl,
+      riderChannelInputs,
+      riderSoundSystem,
+      riderInstruments,
+      riderHospitality,
+      riderItems,
       isActive
     } = req.body;
 
@@ -672,6 +699,67 @@ router.put('/bands/:id', async (req, res) => {
       const rNum = parseFloat(ratingOverride);
       values.push(!isNaN(rNum) && rNum >= 1.0 && rNum <= 5.0 ? Math.round(rNum * 10) / 10 : null);
     }
+    if (ratingAverage !== undefined) {
+      fields.push(`rating_average = $${idx++}`);
+      const aNum = parseFloat(ratingAverage);
+      values.push(!isNaN(aNum) && aNum >= 1.0 && aNum <= 5.0 ? Math.round(aNum * 10) / 10 : 2.5);
+    }
+    if (ratingCount !== undefined) {
+      fields.push(`rating_count = $${idx++}`);
+      values.push(Math.max(0, parseInt(String(ratingCount), 10) || 0));
+    }
+    if (customTag !== undefined) {
+      fields.push(`custom_tag = $${idx++}`);
+      values.push(customTag !== null && String(customTag).trim() ? String(customTag).trim() : null);
+    }
+    if (profilePhotoUrl !== undefined) {
+      fields.push(`profile_photo_url = $${idx++}`);
+      values.push(profilePhotoUrl ? String(profilePhotoUrl).trim() : null);
+    }
+    if (coverPhotoUrl !== undefined) {
+      fields.push(`cover_photo_url = $${idx++}`);
+      values.push(coverPhotoUrl ? String(coverPhotoUrl).trim() : null);
+    }
+    if (instagramHandle !== undefined) {
+      fields.push(`instagram_handle = $${idx++}`);
+      values.push(instagramHandle ? String(instagramHandle).trim() : null);
+    }
+    if (facebookUrl !== undefined) {
+      fields.push(`facebook_url = $${idx++}`);
+      values.push(facebookUrl ? String(facebookUrl).trim() : null);
+    }
+    if (youtubeUrl !== undefined) {
+      fields.push(`youtube_url = $${idx++}`);
+      values.push(youtubeUrl ? String(youtubeUrl).trim() : null);
+    }
+    if (spotifyUrl !== undefined) {
+      fields.push(`spotify_url = $${idx++}`);
+      values.push(spotifyUrl ? String(spotifyUrl).trim() : null);
+    }
+    if (tiktokUrl !== undefined) {
+      fields.push(`tiktok_url = $${idx++}`);
+      values.push(tiktokUrl ? String(tiktokUrl).trim() : null);
+    }
+    if (riderChannelInputs !== undefined) {
+      fields.push(`rider_channel_inputs = $${idx++}`);
+      values.push(riderChannelInputs ? String(riderChannelInputs).trim() : null);
+    }
+    if (riderSoundSystem !== undefined) {
+      fields.push(`rider_sound_system = $${idx++}`);
+      values.push(riderSoundSystem ? String(riderSoundSystem).trim() : null);
+    }
+    if (riderInstruments !== undefined) {
+      fields.push(`rider_instruments = $${idx++}`);
+      values.push(riderInstruments ? String(riderInstruments).trim() : null);
+    }
+    if (riderHospitality !== undefined) {
+      fields.push(`rider_hospitality = $${idx++}`);
+      values.push(riderHospitality ? String(riderHospitality).trim() : null);
+    }
+    if (riderItems !== undefined) {
+      fields.push(`rider_items = $${idx++}`);
+      values.push(typeof riderItems === 'string' ? riderItems : JSON.stringify(riderItems));
+    }
 
     fields.push(`updated_at = CURRENT_TIMESTAMP`);
     values.push(bandId);
@@ -685,7 +773,7 @@ router.put('/bands/:id', async (req, res) => {
       await db.query('UPDATE users SET is_active = $1 WHERE id = $2', [isActive, current.user_id]);
     }
 
-    const avg = updated.rating_average !== null && updated.rating_average !== undefined ? Number(updated.rating_average) : 4.8;
+    const avg = updated.rating_average !== null && updated.rating_average !== undefined ? Number(updated.rating_average) : 2.5;
     const override = updated.rating_override !== null && updated.rating_override !== undefined ? Number(updated.rating_override) : null;
     const effectiveRating = override !== null ? override : avg;
     const rounded = Number(effectiveRating.toFixed(1));
@@ -698,13 +786,32 @@ router.put('/bands/:id', async (req, res) => {
       message: `Profil band ${updated.band_name} berhasil diperbarui oleh Administrator`,
       data: {
         id: updated.id,
+        userId: updated.user_id,
         bandName: updated.band_name,
         genre: updated.genre,
         locationCity: updated.location_city,
+        locationRegion: updated.location_region,
         campus: updated.campus,
+        bio: updated.bio,
         budgetMin: updated.budget_min,
         budgetMax: updated.budget_max,
+        phone: updated.phone,
+        customTag: updated.custom_tag || null,
+        profilePhotoUrl: updated.profile_photo_url || null,
+        coverPhotoUrl: updated.cover_photo_url || null,
+        instagramHandle: updated.instagram_handle || null,
+        facebookUrl: updated.facebook_url || null,
+        youtubeUrl: updated.youtube_url || null,
+        spotifyUrl: updated.spotify_url || null,
+        tiktokUrl: updated.tiktok_url || null,
+        riderChannelInputs: updated.rider_channel_inputs || null,
+        riderSoundSystem: updated.rider_sound_system || null,
+        riderInstruments: updated.rider_instruments || null,
+        riderHospitality: updated.rider_hospitality || null,
+        riderItems: updated.rider_items || null,
         ratingOverride: override,
+        ratingAverage: avg,
+        ratingCount: updated.rating_count,
         rating: rounded,
         ratingTier: tier,
         updatedAt: updated.updated_at

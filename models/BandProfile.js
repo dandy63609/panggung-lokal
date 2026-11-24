@@ -86,8 +86,13 @@ class BandProfile {
     this.profileViews = data.profile_views || 0;
     this.stageVisualPostId = data.stage_visual_post_id ? Number(data.stage_visual_post_id) : null;
     
-    // Rating & Review system
-    this.ratingAverage = data.rating_average !== undefined && data.rating_average !== null ? Number(data.rating_average) : 4.8;
+    // Custom Tag / Badge (Default for new bands is 'Baru Ditambahkan')
+    this.customTag = (data.custom_tag !== undefined && data.custom_tag !== null && String(data.custom_tag).trim())
+      ? String(data.custom_tag).trim()
+      : (data.customTag !== undefined && data.customTag !== null && String(data.customTag).trim() ? String(data.customTag).trim() : null);
+
+    // Rating & Review system (Initial rating for newly created band accounts is Baik / 2.5)
+    this.ratingAverage = data.rating_average !== undefined && data.rating_average !== null ? Number(data.rating_average) : 2.5;
     this.ratingCount = data.rating_count !== undefined && data.rating_count !== null ? Number(data.rating_count) : 0;
     this.ratingOverride = data.rating_override !== undefined && data.rating_override !== null ? Number(data.rating_override) : null;
     const effectiveRating = this.ratingOverride !== null ? this.ratingOverride : this.ratingAverage;
@@ -178,6 +183,9 @@ class BandProfile {
         genre: (overrides.genre && String(overrides.genre).trim()) || 'Indie / Pop',
         locationCity: (overrides.locationCity && String(overrides.locationCity).trim()) || 'Kota Semarang',
         bio: overrides.bio !== undefined ? overrides.bio : 'Profil band baru di Reffband',
+        ratingAverage: 2.5,
+        ratingCount: 0,
+        customTag: overrides.customTag || 'Baru Ditambahkan'
       });
     } catch {
       return this.findByUserId(user.id);
@@ -193,6 +201,12 @@ class BandProfile {
       riderItemsJson = typeof data.riderItems === 'string' ? data.riderItems : JSON.stringify(data.riderItems);
     }
 
+    const ratingAvg = data.ratingAverage !== undefined && data.ratingAverage !== null ? Number(data.ratingAverage) : 2.5;
+    const ratingCount = data.ratingCount !== undefined && data.ratingCount !== null ? Number(data.ratingCount) : 0;
+    const customTag = data.customTag !== undefined
+      ? (data.customTag ? String(data.customTag).trim() : null)
+      : 'Baru Ditambahkan';
+
     const result = await db.query(
       `INSERT INTO band_profiles (
         user_id, band_name, genre, location_city, location_region, 
@@ -200,8 +214,8 @@ class BandProfile {
         phone, instagram_handle, facebook_url, youtube_url,
         spotify_url, tiktok_url,
         rider_channel_inputs, rider_sound_system, rider_instruments, rider_hospitality,
-        rider_items, rating_count
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+        rider_items, rating_average, rating_count, custom_tag
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
       RETURNING *`,
       [
         data.userId,
@@ -225,7 +239,9 @@ class BandProfile {
         data.riderInstruments || null,
         data.riderHospitality || null,
         riderItemsJson,
-        data.ratingCount !== undefined ? Number(data.ratingCount) : 0
+        ratingAvg,
+        ratingCount,
+        customTag
       ]
     );
     return new BandProfile(result.rows[0]);
@@ -291,6 +307,7 @@ class BandProfile {
       ['rating_override', data.ratingOverride !== undefined ? (data.ratingOverride !== null && data.ratingOverride !== '' ? Number(data.ratingOverride) : null) : undefined],
       ['rating_average', data.ratingAverage !== undefined ? (data.ratingAverage !== null && data.ratingAverage !== '' ? Number(data.ratingAverage) : null) : undefined],
       ['rating_count', data.ratingCount !== undefined ? Number(data.ratingCount) : undefined],
+      ['custom_tag', data.customTag !== undefined ? (data.customTag ? String(data.customTag).trim() : null) : undefined],
     ];
 
     for (const [col, val] of map) {
