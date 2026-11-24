@@ -86,7 +86,7 @@ router.post('/register', authLimiter, async (req, res) => {
         bio: 'Profil band baru di Reffband',
         ratingAverage: 2.5,
         ratingCount: 0,
-        customTag: 'Baru Ditambahkan'
+        customTag: 'Band Baru Ditambahkan'
       });
     }
 
@@ -396,7 +396,7 @@ router.post('/google', authLimiter, async (req, res) => {
         bio: 'Profil band baru di Reffband',
         ratingAverage: 2.5,
         ratingCount: 0,
-        customTag: 'Baru Ditambahkan'
+        customTag: 'Band Baru Ditambahkan'
       });
     }
 

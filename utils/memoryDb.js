@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   rating_average NUMERIC(3, 1) DEFAULT 2.5,
   rating_count INTEGER DEFAULT 0,
   rating_override NUMERIC(3, 1),
-  custom_tag VARCHAR(100) DEFAULT 'Baru Ditambahkan',
+  custom_tag VARCHAR(100) DEFAULT 'Band Baru Ditambahkan',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -567,22 +567,22 @@ async function restoreData(pool, data) {
           `);
 
           const initialRatings = [
-            { id: 1, avg: 4.9, count: 14, min: 3500000, max: 7000000 },
-            { id: 2, avg: 4.8, count: 10, min: 2000000, max: 4500000 },
-            { id: 3, avg: 4.6, count: 9, min: 5000000, max: 12000000 },
-            { id: 4, avg: 3.8, count: 6, min: 3000000, max: 6000000 },
-            { id: 5, avg: 4.2, count: 7, min: 2500000, max: 5000000 },
-            { id: 6, avg: 3.5, count: 5, min: 2500000, max: 5500000 },
-            { id: 7, avg: 4.7, count: 8, min: 4000000, max: 9000000 },
-            { id: 8, avg: 2.8, count: 4, min: 4500000, max: 10000000 }
+            { id: 1, avg: 4.9, count: 2, min: 3500000, max: 7000000, tag: null },
+            { id: 2, avg: 4.8, count: 1, min: 2000000, max: 4500000, tag: null },
+            { id: 3, avg: 2.5, count: 0, min: 5000000, max: 12000000, tag: 'Band Baru Ditambahkan' },
+            { id: 4, avg: 3.8, count: 1, min: 3000000, max: 6000000, tag: null },
+            { id: 5, avg: 2.5, count: 0, min: 2500000, max: 5000000, tag: 'Band Baru Ditambahkan' },
+            { id: 6, avg: 2.5, count: 0, min: 2500000, max: 5500000, tag: 'Band Baru Ditambahkan' },
+            { id: 7, avg: 2.5, count: 0, min: 4000000, max: 9000000, tag: 'Band Baru Ditambahkan' },
+            { id: 8, avg: 2.8, count: 1, min: 4500000, max: 10000000, tag: null }
           ];
 
           for (const ir of initialRatings) {
             await pool.query(
               `UPDATE band_profiles 
-               SET rating_average = $1, rating_count = $2, budget_min = $3, budget_max = $4 
-               WHERE id = $5`,
-              [ir.avg, ir.count, ir.min, ir.max, ir.id]
+               SET rating_average = $1, rating_count = $2, budget_min = $3, budget_max = $4, custom_tag = $5 
+               WHERE id = $6`,
+              [ir.avg, ir.count, ir.min, ir.max, ir.tag, ir.id]
             );
           }
         }

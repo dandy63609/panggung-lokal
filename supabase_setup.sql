@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   rating_average NUMERIC(3, 1) DEFAULT 2.5,
   rating_count INTEGER DEFAULT 0,
   rating_override NUMERIC(3, 1),
-  custom_tag VARCHAR(100) DEFAULT 'Baru Ditambahkan',
+  custom_tag VARCHAR(100) DEFAULT 'Band Baru Ditambahkan',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

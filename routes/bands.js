@@ -257,7 +257,7 @@ router.post('/profile', requireBand, async (req, res) => {
       riderHospitality,
       ratingAverage: 2.5,
       ratingCount: 0,
-      customTag: req.body.customTag || 'Baru Ditambahkan'
+      customTag: req.body.customTag || 'Band Baru Ditambahkan'
     });
 
     return res.status(201).json({

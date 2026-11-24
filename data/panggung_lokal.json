@@ -184,9 +184,10 @@
       "tiktok_url": null,
       "rider_items": null,
       "stage_visual_post_id": null,
-      "rating_average": 4.6,
-      "rating_count": 9,
-      "rating_override": null
+      "rating_average": 2.5,
+      "rating_count": 0,
+      "rating_override": null,
+      "custom_tag": "Band Baru Ditambahkan"
     },
     {
       "id": 1,
@@ -312,9 +313,10 @@
       "tiktok_url": null,
       "rider_items": null,
       "stage_visual_post_id": null,
-      "rating_average": 3.5,
-      "rating_count": 5,
-      "rating_override": null
+      "rating_average": 2.5,
+      "rating_count": 0,
+      "rating_override": null,
+      "custom_tag": "Band Baru Ditambahkan"
     },
     {
       "id": 5,
@@ -344,9 +346,10 @@
       "tiktok_url": null,
       "rider_items": null,
       "stage_visual_post_id": null,
-      "rating_average": 4.2,
-      "rating_count": 7,
-      "rating_override": null
+      "rating_average": 2.5,
+      "rating_count": 0,
+      "rating_override": null,
+      "custom_tag": "Band Baru Ditambahkan"
     },
     {
       "id": 7,
@@ -376,9 +379,10 @@
       "tiktok_url": null,
       "rider_items": null,
       "stage_visual_post_id": null,
-      "rating_average": 4.7,
-      "rating_count": 8,
-      "rating_override": null
+      "rating_average": 2.5,
+      "rating_count": 0,
+      "rating_override": null,
+      "custom_tag": "Band Baru Ditambahkan"
     },
     {
       "id": 2,
@@ -440,9 +444,10 @@
       "created_at": "2026-11-18T09:44:08.043Z",
       "updated_at": "2026-11-18T09:44:08.043Z",
       "stage_visual_post_id": null,
-      "rating_average": 4.8,
-      "rating_count": 1,
-      "rating_override": null
+      "rating_average": 2.5,
+      "rating_count": 0,
+      "rating_override": null,
+      "custom_tag": "Band Baru Ditambahkan"
     }
   ],
   "band_posts": [

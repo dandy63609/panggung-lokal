@@ -1999,10 +1999,10 @@ export const AdminDashboardPage: React.FC = () => {
                       <div className="flex gap-1.5 flex-wrap">
                         <button
                           type="button"
-                          onClick={() => setEditingBand({ ...editingBand, customTag: 'Baru Ditambahkan' })}
+                          onClick={() => setEditingBand({ ...editingBand, customTag: 'Band Baru Ditambahkan' })}
                           className="px-2.5 py-1.5 bg-[#00D9FF]/10 hover:bg-[#00D9FF]/20 text-[#00D9FF] border border-[#00D9FF]/40 text-[10px] font-mono uppercase font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
                         >
-                          + Baru Ditambahkan
+                          + Band Baru Ditambahkan
                         </button>
                         <button
                           type="button"

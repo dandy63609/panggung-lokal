@@ -540,9 +540,18 @@ router.get('/bands', async (req, res) => {
     `);
 
     const bands = result.rows.map(row => {
-      const avg = row.rating_average !== null && row.rating_average !== undefined ? Number(row.rating_average) : 2.5;
       const count = row.rating_count !== null && row.rating_count !== undefined ? Number(row.rating_count) : 0;
       const override = row.rating_override !== null && row.rating_override !== undefined ? Number(row.rating_override) : null;
+      let avg = row.rating_average !== null && row.rating_average !== undefined ? Number(row.rating_average) : 2.5;
+      let customTag = row.custom_tag ? String(row.custom_tag).trim() : null;
+
+      if (count === 0 && override === null) {
+        avg = 2.5;
+        if (!customTag) {
+          customTag = 'Band Baru Ditambahkan';
+        }
+      }
+
       const effectiveRating = override !== null ? override : avg;
       const rounded = Number(effectiveRating.toFixed(1));
       let tier = 'Baik';
@@ -573,7 +582,7 @@ router.get('/bands', async (req, res) => {
         riderInstruments: row.rider_instruments,
         riderHospitality: row.rider_hospitality,
         riderItems: row.rider_items,
-        customTag: row.custom_tag || null,
+        customTag: customTag,
         profileViews: row.profile_views || 0,
         ratingAverage: avg,
         ratingCount: count,

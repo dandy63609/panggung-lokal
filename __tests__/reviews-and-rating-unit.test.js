@@ -108,7 +108,7 @@ describe('Band Rating, Reviews, and Super Admin Authority Unit Tests', () => {
     expect(finalRes.rows[0].value).toBe('false');
   });
 
-  test('Newly created band accounts default to tier Baik and tag Baru Ditambahkan', async () => {
+  test('Newly created band accounts default to tier Baik and tag Band Baru Ditambahkan', async () => {
     // Create new band user
     const userRes = await pool.query(
       `INSERT INTO users (email, password_hash, account_type) VALUES ('newband@test.com', 'hash', 'band') RETURNING id`
@@ -131,12 +131,12 @@ describe('Band Rating, Reviews, and Super Admin Authority Unit Tests', () => {
     expect(newBand.rating).toBeGreaterThanOrEqual(1.0);
     expect(newBand.ratingAverage).toBe(2.5);
     // Custom Tag must indicate newly added band
-    expect(newBand.customTag).toBe('Baru Ditambahkan');
+    expect(newBand.customTag).toBe('Band Baru Ditambahkan');
 
     // Verify when loaded by ID (e.g. when EO views profile)
     const fetched = await BandProfile.findById(newBand.id);
     expect(fetched.ratingTier).toBe('Baik');
-    expect(fetched.customTag).toBe('Baru Ditambahkan');
+    expect(fetched.customTag).toBe('Band Baru Ditambahkan');
   });
 
   test('Super Admin has full authority to edit and change everything including rating, tag, rider, and contact', async () => {
@@ -153,7 +153,7 @@ describe('Band Rating, Reviews, and Super Admin Authority Unit Tests', () => {
     });
 
     expect(band.ratingTier).toBe('Baik');
-    expect(band.customTag).toBe('Baru Ditambahkan');
+    expect(band.customTag).toBe('Band Baru Ditambahkan');
 
     // Admin updates all fields: overrides rating to 5.0 (Rekomendasi Favorit), updates tag to 'Terkurasi', updates bio, phone, social, and rider
     const updated = await BandProfile.update(band.id, {

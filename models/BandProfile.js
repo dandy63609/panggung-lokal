@@ -86,15 +86,24 @@ class BandProfile {
     this.profileViews = data.profile_views || 0;
     this.stageVisualPostId = data.stage_visual_post_id ? Number(data.stage_visual_post_id) : null;
     
-    // Custom Tag / Badge (Default for new bands is 'Baru Ditambahkan')
+    // Custom Tag / Badge (Default for new bands or bands without customTag is 'Band Baru Ditambahkan')
     this.customTag = (data.custom_tag !== undefined && data.custom_tag !== null && String(data.custom_tag).trim())
       ? String(data.custom_tag).trim()
       : (data.customTag !== undefined && data.customTag !== null && String(data.customTag).trim() ? String(data.customTag).trim() : null);
 
-    // Rating & Review system (Initial rating for newly created band accounts is Baik / 2.5)
-    this.ratingAverage = data.rating_average !== undefined && data.rating_average !== null ? Number(data.rating_average) : 2.5;
     this.ratingCount = data.rating_count !== undefined && data.rating_count !== null ? Number(data.rating_count) : 0;
     this.ratingOverride = data.rating_override !== undefined && data.rating_override !== null ? Number(data.rating_override) : null;
+
+    // Bands with no reviews from EO/customers (ratingCount === 0) and no admin override default to Tier 'Baik' (2.5) and 'Band Baru Ditambahkan' tag
+    if (this.ratingCount === 0 && this.ratingOverride === null) {
+      this.ratingAverage = 2.5;
+      if (!this.customTag) {
+        this.customTag = 'Band Baru Ditambahkan';
+      }
+    } else {
+      this.ratingAverage = data.rating_average !== undefined && data.rating_average !== null ? Number(data.rating_average) : 2.5;
+    }
+
     const effectiveRating = this.ratingOverride !== null ? this.ratingOverride : this.ratingAverage;
     this.rating = Number(Number(effectiveRating).toFixed(1));
     this.ratingTier = getRatingTier(this.rating);
@@ -185,7 +194,7 @@ class BandProfile {
         bio: overrides.bio !== undefined ? overrides.bio : 'Profil band baru di Reffband',
         ratingAverage: 2.5,
         ratingCount: 0,
-        customTag: overrides.customTag || 'Baru Ditambahkan'
+        customTag: overrides.customTag || 'Band Baru Ditambahkan'
       });
     } catch {
       return this.findByUserId(user.id);
@@ -205,7 +214,7 @@ class BandProfile {
     const ratingCount = data.ratingCount !== undefined && data.ratingCount !== null ? Number(data.ratingCount) : 0;
     const customTag = data.customTag !== undefined
       ? (data.customTag ? String(data.customTag).trim() : null)
-      : 'Baru Ditambahkan';
+      : 'Band Baru Ditambahkan';
 
     const result = await db.query(
       `INSERT INTO band_profiles (
