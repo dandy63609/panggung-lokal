@@ -98,4 +98,43 @@ describe('Platform Settings, Removed Endpoints, and Super Admin Authority Unit T
     expect(updated.riderChannelInputs).toBe('16 Channel Audio Input');
     expect(updated.riderSoundSystem).toBe('5000 Watt FOH Line Array');
   });
+
+  test('Band registration persists selected locationCity and locationRegion to dashboard and public profile', async () => {
+    const suffix = Date.now();
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: `city-connect-${suffix}@example.com`,
+        password: 'Password123!',
+        accountType: 'band',
+        bandName: `Band Bandung ${suffix}`,
+        genre: 'Indie Rock',
+        locationCity: 'Kota Bandung',
+        locationRegion: 'Jawa Barat'
+      })
+      .expect(201);
+
+    expect(regRes.body.success).toBe(true);
+    expect(regRes.body.bandProfile.locationCity).toBe('Kota Bandung');
+    expect(regRes.body.bandProfile.locationRegion).toBe('Jawa Barat');
+
+    const token = regRes.body.token;
+    const bandId = regRes.body.bandProfile.id;
+
+    const dashRes = await request(app)
+      .get('/api/dashboard/band')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(dashRes.body.data.profile.locationCity).toBe('Kota Bandung');
+    expect(dashRes.body.data.profile.locationRegion).toBe('Jawa Barat');
+
+    const profileRes = await request(app)
+      .get(`/api/bands/profile/${bandId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(profileRes.body.data.locationCity).toBe('Kota Bandung');
+    expect(profileRes.body.data.locationRegion).toBe('Jawa Barat');
+  });
 });

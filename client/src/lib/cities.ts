@@ -328,6 +328,53 @@ export function normalizeLegacyCity(city: string): string {
 }
 
 /**
+ * Resolves a user-typed city string (official name, core name like "Bandung",
+ * nickname like "Jogja" / "Solo" / "Jaksel", or close match) to an official record.
+ */
+export function resolveIndonesiaCity(input: string): IndonesiaCityRecord | null {
+  const trimmed = (input || '').trim()
+  if (!trimmed) return null
+
+  const normalized = normalizeQuery(trimmed)
+  if (!normalized) return null
+
+  // 1. Exact official name match
+  const exactOfficial = INDEXED_CITIES.find((c) => c.nameLower === normalized)
+  if (exactOfficial) return exactOfficial.record
+
+  // 2. Exact legacy/nickname alias match (e.g. "jogja" -> Kota Yogyakarta, "jaksel" -> Jakarta Selatan)
+  const aliasMatches = INDEXED_CITIES.filter((c) => c.aliases.includes(normalized))
+  if (aliasMatches.length > 0) {
+    const preferred = aliasMatches.find((c) => c.isKota) || aliasMatches[0]
+    return preferred.record
+  }
+
+  // 3. Exact core name match (e.g. "bandung" -> Kota Bandung, "sleman" -> Kabupaten Sleman)
+  const coreMatches = INDEXED_CITIES.filter((c) => c.coreLower === normalized)
+  if (coreMatches.length > 0) {
+    const preferred = coreMatches.find((c) => c.isKota) || coreMatches[0]
+    return preferred.record
+  }
+
+  // 4. Closest ranked search result (for partial typing or minor typos)
+  const top = searchIndonesiaCities(trimmed, 1)[0]
+  return top || null
+}
+
+/**
+ * Returns the official province name for a given Indonesian Kota/Kabupaten (or legacy alias).
+ */
+export function getProvinceForCity(city: string | undefined | null): string | null {
+  const trimmed = (city || '').trim()
+  if (!trimmed) return null
+  const normalized = normalizeQuery(normalizeLegacyCity(trimmed))
+  const exact = INDEXED_CITIES.find((c) => c.nameLower === normalized)
+  if (exact) return exact.record.province
+  const core = INDEXED_CITIES.find((c) => c.coreLower === normalized)
+  return core ? core.record.province : null
+}
+
+/**
  * Checks whether a band's stored locationCity matches a selected filter city,
  * accounting for legacy short names ("Kota Jogja" <-> "Kota Yogyakarta", "Bandung" <-> "Kota Bandung").
  */

@@ -42,6 +42,7 @@ import {
   getBandProfileUrl,
 } from '../lib/bandHelpers'
 import { formatRupiah } from '../lib/utils'
+import { getProvinceForCity } from '../lib/cities'
 import { authClient, type AuthUser } from '../lib/auth'
 import { usePlatformSettings } from '../lib/platformSettings'
 import type { Band, BandPost, MediaFile, RiderItem } from '../types'
@@ -660,7 +661,13 @@ export const BandDetailPage: React.FC = () => {
                 <div className="flex items-center gap-4 flex-wrap pt-1 font-mono text-xs text-[#A0A0A0]">
                   <div className="flex items-center gap-1.5 text-white">
                     <MapPin className="w-3.5 h-3.5 text-[#E01E37]" />
-                    <span>{band.locationCity}{band.locationRegion ? ` • ${band.locationRegion}` : ''}</span>
+                    <span>
+                      {band.locationCity}
+                      {(() => {
+                        const region = band.locationRegion || getProvinceForCity(band.locationCity)
+                        return region ? ` • ${region}` : ''
+                      })()}
+                    </span>
                   </div>
                   {band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin') && (
                     <>

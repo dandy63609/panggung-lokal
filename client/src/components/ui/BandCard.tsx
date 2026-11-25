@@ -4,6 +4,7 @@ import { Check, ArrowRight } from 'lucide-react'
 import type { Band } from '../../types'
 import { formatRupiah } from '../../lib/utils'
 import { getBandProfileUrl } from '../../lib/bandHelpers'
+import { getProvinceForCity } from '../../lib/cities'
 import { usePlatformSettings } from '../../lib/platformSettings'
 import { authClient } from '../../lib/auth'
 
@@ -190,9 +191,13 @@ export const BandCard: React.FC<BandCardProps> = ({
 
           {/* Location & Status Line */}
           <div className="flex items-center gap-2 text-xs font-mono text-[#00D9FF]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00D9FF] animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00D9FF] animate-pulse shrink-0" />
             <span className="truncate uppercase">
-              {band.locationCity} {band.locationRegion ? `• ${band.locationRegion}` : ''}
+              {band.locationCity}
+              {(() => {
+                const region = band.locationRegion || getProvinceForCity(band.locationCity)
+                return region ? ` • ${region}` : ''
+              })()}
             </span>
           </div>
 

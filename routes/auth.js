@@ -28,7 +28,7 @@ const { authLimiter } = require('../middleware/rateLimiter');
  */
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { email, password, accountType, bandName, genre, locationCity } = req.body;
+    const { email, password, accountType, bandName, genre, locationCity, locationRegion } = req.body;
 
     if (!email || !password || !accountType) {
       return res.status(400).json({
@@ -78,11 +78,14 @@ router.post('/register', authLimiter, async (req, res) => {
 
     let bandProfile = null;
     if (normalizedType === 'band') {
+      const cleanCity = (locationCity && String(locationCity).trim()) || 'Kota Semarang';
+      const cleanRegion = (locationRegion && String(locationRegion).trim()) || null;
       bandProfile = await BandProfile.create({
         userId: newUser.id,
         bandName: bandName || email.split('@')[0],
         genre: genre || 'Indie / Pop',
-        locationCity: locationCity || 'Kota Semarang',
+        locationCity: cleanCity,
+        locationRegion: cleanRegion,
         bio: 'Profil band baru di Reffband'
       });
     }
@@ -104,7 +107,8 @@ router.post('/register', authLimiter, async (req, res) => {
         id: bandProfile.id,
         bandName: bandProfile.bandName,
         genre: bandProfile.genre,
-        locationCity: bandProfile.locationCity
+        locationCity: bandProfile.locationCity,
+        locationRegion: bandProfile.locationRegion || null
       } : null
     });
   } catch (error) {
@@ -242,7 +246,7 @@ router.post('/logout', (req, res) => {
  */
 router.post('/google', authLimiter, async (req, res) => {
   try {
-    const { credential, accountType, bandName, genre, locationCity } = req.body;
+    const { credential, accountType, bandName, genre, locationCity, locationRegion } = req.body;
     const clientId = process.env.GOOGLE_CLIENT_ID;
 
     if (!clientId) {
@@ -381,11 +385,14 @@ router.post('/google', authLimiter, async (req, res) => {
 
     let bandProfile = null;
     if (normalizedType === 'band') {
+      const cleanCity = (locationCity && String(locationCity).trim()) || 'Kota Semarang';
+      const cleanRegion = (locationRegion && String(locationRegion).trim()) || null;
       bandProfile = await BandProfile.create({
         userId: newUser.id,
         bandName: (bandName && bandName.trim()) || payload.name || normalizedEmail.split('@')[0],
         genre: genre || 'Indie / Alternative',
-        locationCity: (locationCity && locationCity.trim()) || 'Kota Semarang',
+        locationCity: cleanCity,
+        locationRegion: cleanRegion,
         profilePhotoUrl: payload.picture || null,
         bio: 'Profil band baru di Reffband'
       });
@@ -408,7 +415,8 @@ router.post('/google', authLimiter, async (req, res) => {
         id: bandProfile.id,
         bandName: bandProfile.bandName,
         genre: bandProfile.genre,
-        locationCity: bandProfile.locationCity
+        locationCity: bandProfile.locationCity,
+        locationRegion: bandProfile.locationRegion || null
       } : null
     });
   } catch (error) {

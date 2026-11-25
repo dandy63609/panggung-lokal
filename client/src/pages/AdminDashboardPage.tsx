@@ -26,7 +26,7 @@ import {
 import { authClient, type AuthUser } from '../lib/auth'
 import { formatRupiah } from '../lib/utils'
 import { setLocalShowCampus } from '../lib/platformSettings'
-import { DEFAULT_CITY } from '../lib/cities'
+import { DEFAULT_CITY, getProvinceForCity } from '../lib/cities'
 import { CityCombobox } from '../components/ui/CityCombobox'
 
 interface AdminCampus {
@@ -1607,7 +1607,7 @@ export const AdminDashboardPage: React.FC = () => {
                           <div className="text-[11px] text-[#777] font-mono">{b.email || `ID #${b.id}`}</div>
                         </td>
                         <td className="py-3 px-4 text-[#C0C0C0] font-mono text-[11px]">
-                          {b.location_city || 'Semarang'}
+                          {b.location_city || 'Belum diatur'}
                         </td>
                         <td className="py-3 px-4 text-[#A0A0A0]">
                           {b.genre}
@@ -1889,7 +1889,13 @@ export const AdminDashboardPage: React.FC = () => {
                     <CityCombobox
                       id="admin-edit-band-city"
                       value={editingBand.locationCity}
-                      onChange={(city) => setEditingBand({ ...editingBand, locationCity: city })}
+                      onChange={(city) =>
+                        setEditingBand({
+                          ...editingBand,
+                          locationCity: city,
+                          locationRegion: getProvinceForCity(city) || editingBand.locationRegion || '',
+                        })
+                      }
                       required
                       showIcon={false}
                       placeholder="Ketik kota / kabupaten..."

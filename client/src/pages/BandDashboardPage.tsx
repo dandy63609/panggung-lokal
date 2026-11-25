@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { authClient } from '../lib/auth'
 import { BAND_GENRE_OPTIONS, normalizeBandGenreSelection } from '../lib/genres'
+import { getProvinceForCity } from '../lib/cities'
 import {
   buildDashboardRiderItems,
   parsePostSlides,
@@ -458,12 +459,19 @@ export const BandDashboardPage: React.FC = () => {
       return
     }
 
+    const cleanCity = editForm.locationCity.trim()
+    if (!cleanCity) {
+      showToast('Kota / Kabupaten domisili wajib dipilih.', 'error')
+      return
+    }
+
     setEditSubmitting(true)
 
     const res = await authClient.updateBandProfile({
       bandName: cleanName,
       genre: editForm.genre.trim(),
-      locationCity: editForm.locationCity.trim(),
+      locationCity: cleanCity,
+      locationRegion: getProvinceForCity(cleanCity) || undefined,
       phone: cleanPhone,
       bio: editForm.bio.trim(),
       budgetMin: parsedBudgetMin,
@@ -759,7 +767,10 @@ export const BandDashboardPage: React.FC = () => {
                   <span className="flex items-center gap-1.5 text-[#D4D4D4]">
                     <MapPin className="w-3.5 h-3.5 text-[#E01E37]" />
                     {profile?.locationCity || 'Kota belum diatur'}
-                    {profile?.locationRegion ? `, ${profile.locationRegion}` : ''}
+                    {(() => {
+                      const region = profile?.locationRegion || getProvinceForCity(profile?.locationCity)
+                      return region ? `, ${region}` : ''
+                    })()}
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1.5 text-[#D4D4D4]">
