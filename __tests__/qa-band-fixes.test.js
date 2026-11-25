@@ -14,7 +14,6 @@ describe('QA Band Audit Regression Fixes', () => {
   const createdProfileIds = [];
 
   async function deleteProfileAndChildren(profileId) {
-    await db.query('DELETE FROM reviews WHERE band_profile_id = $1', [profileId]).catch(() => {});
     await db.query('DELETE FROM connections WHERE band_profile_id = $1', [profileId]).catch(() => {});
     await db.query('DELETE FROM media_files WHERE band_profile_id = $1', [profileId]).catch(() => {});
     await db.query('DELETE FROM band_posts WHERE band_profile_id = $1', [profileId]).catch(() => {});
@@ -35,75 +34,15 @@ describe('QA Band Audit Regression Fixes', () => {
     }
   });
 
-  describe('1. GET /api/reviews/pending & pg-mem TRIM()', () => {
-    let bandUser;
-    let bandProfile;
-    let eoUser;
-    let bandToken;
-    let eoToken;
-
-    beforeAll(async () => {
-      const passwordHash = await hashPassword('Password123!');
-      const ts = Date.now();
-
-      bandUser = await User.create(`qa-review-band-${ts}@example.com`, passwordHash, 'band');
-      createdUserIds.push(bandUser.id);
-      bandToken = generateToken(bandUser);
-
-      bandProfile = await BandProfile.create({
-        userId: bandUser.id,
-        bandName: `QA Review Band ${ts}`,
-        genre: 'Indie Rock',
-        locationCity: 'Kota Semarang',
-      });
-      createdProfileIds.push(bandProfile.id);
-
-      eoUser = await User.create(`qa-review-eo-${ts}@example.com`, passwordHash, 'general');
-      createdUserIds.push(eoUser.id);
-      eoToken = generateToken(eoUser);
-
-      await db.query(
-        `INSERT INTO connections (organizer_user_id, band_profile_id, connection_type, event_date, event_name, status, is_reviewed, notes)
-         VALUES ($1, $2, 'direct_booking', '2024-01-15', 'Pentas Kampus Past', 'confirmed', FALSE, 'Test past booking')`,
-        [eoUser.id, bandProfile.id]
-      );
-      await db.query(
-        `INSERT INTO connections (organizer_user_id, band_profile_id, connection_type, event_date, event_name, status, is_reviewed, notes)
-         VALUES ($1, $2, 'direct_booking', '   ', 'Blank Date Row', 'confirmed', FALSE, 'Should be filtered out')`,
-        [eoUser.id, bandProfile.id]
-      );
-    });
-
+  describe('1. pg-mem TRIM() registration & removed /api/reviews endpoint', () => {
     it('registers TRIM() cleanly in pg-mem', async () => {
       const res = await db.query("SELECT TRIM('  reffband  ') AS trimmed");
       expect(res.rows[0].trimmed).toBe('reffband');
     });
 
-    it('returns empty pending state immediately for band accounts', async () => {
-      const res = await request(app)
-        .get('/api/reviews/pending')
-        .set('Authorization', `Bearer ${bandToken}`);
-
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual({
-        success: true,
-        pendingCount: 0,
-        isGated: false,
-        data: [],
-      });
-    });
-
-    it('returns 200 with valid past unreviewed bookings for organizer accounts', async () => {
-      const res = await request(app)
-        .get('/api/reviews/pending')
-        .set('Authorization', `Bearer ${eoToken}`);
-
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.isGated).toBe(true);
-      expect(res.body.pendingCount).toBeGreaterThanOrEqual(1);
-      expect(res.body.data.some((item) => item.eventName === 'Pentas Kampus Past')).toBe(true);
-      expect(res.body.data.some((item) => item.eventName === 'Blank Date Row')).toBe(false);
+    it('returns 404 for removed /api/reviews/pending endpoint', async () => {
+      const res = await request(app).get('/api/reviews/pending');
+      expect(res.status).toBe(404);
     });
   });
 
@@ -401,8 +340,8 @@ describe('QA Band Audit Regression Fixes', () => {
     });
   });
 
-  describe('7. Band dashboard recentConnections fields & zero-review ratingCount default', () => {
-    it('returns real organizerEmail, eventName, eventDate, and createdAt in GET /api/dashboard/band and defaults ratingCount to 0', async () => {
+  describe('7. Band dashboard recentConnections fields without event_date or rating fields', () => {
+    it('returns real organizerEmail, eventName, and createdAt in GET /api/dashboard/band', async () => {
       const passwordHash = await hashPassword('Password123!');
       const ts = Date.now();
       const bUser = await User.create(`qa-conn-band-${ts}@example.com`, passwordHash, 'band');
@@ -416,11 +355,11 @@ describe('QA Band Audit Regression Fixes', () => {
         locationCity: 'Kota Semarang',
       });
       createdProfileIds.push(profile.id);
-      expect(profile.ratingCount).toBe(0);
+      expect(profile.customTag).toBe('Band Baru Ditambahkan');
 
       await db.query(
-        `INSERT INTO connections (organizer_user_id, band_profile_id, connection_type, event_date, event_name, status, is_reviewed, notes)
-         VALUES ($1, $2, 'direct_booking', '2026-11-22', 'QA Direct Booking Event', 'confirmed', FALSE, 'Soundcheck jam 16:00')`,
+        `INSERT INTO connections (organizer_user_id, band_profile_id, connection_type, event_name, status, notes)
+         VALUES ($1, $2, 'whatsapp_direct', 'QA Direct Inquiry Event', 'inquiry', 'Soundcheck jam 16:00')`,
         [eUser.id, profile.id]
       );
 
@@ -431,14 +370,14 @@ describe('QA Band Audit Regression Fixes', () => {
 
       expect(dashRes.status).toBe(200);
       expect(dashRes.body.success).toBe(true);
-      expect(dashRes.body.data.profile.ratingCount).toBe(0);
+      expect(dashRes.body.data.profile.rating).toBeUndefined();
+      expect(dashRes.body.data.schedules).toBeUndefined();
       expect(dashRes.body.data.recentConnections).toHaveLength(1);
       const conn = dashRes.body.data.recentConnections[0];
       expect(conn.organizerEmail).toBe(eUser.email);
-      expect(conn.eventName).toBe('QA Direct Booking Event');
-      expect(conn.eventDate).toBe('2026-11-22');
+      expect(conn.eventName).toBe('QA Direct Inquiry Event');
       expect(conn.createdAt).toBeTruthy();
-      expect(conn.status).toBe('confirmed');
+      expect(conn.status).toBe('inquiry');
     });
   });
 });

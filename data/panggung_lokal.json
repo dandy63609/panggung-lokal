@@ -184,9 +184,6 @@
       "tiktok_url": null,
       "rider_items": null,
       "stage_visual_post_id": null,
-      "rating_average": 2.5,
-      "rating_count": 0,
-      "rating_override": null,
       "custom_tag": "Band Baru Ditambahkan"
     },
     {
@@ -216,10 +213,7 @@
       "created_at": "2026-10-16T13:36:20.034Z",
       "updated_at": "2026-11-21T12:31:13.367Z",
       "rider_items": null,
-      "stage_visual_post_id": null,
-      "rating_average": 4.9,
-      "rating_count": 14,
-      "rating_override": null
+      "stage_visual_post_id": null
     },
     {
       "id": 4,
@@ -248,10 +242,7 @@
       "spotify_url": null,
       "tiktok_url": null,
       "rider_items": null,
-      "stage_visual_post_id": null,
-      "rating_average": 3.8,
-      "rating_count": 6,
-      "rating_override": null
+      "stage_visual_post_id": null
     },
     {
       "id": 8,
@@ -280,10 +271,7 @@
       "spotify_url": null,
       "tiktok_url": null,
       "rider_items": null,
-      "stage_visual_post_id": null,
-      "rating_average": 2.8,
-      "rating_count": 4,
-      "rating_override": null
+      "stage_visual_post_id": null
     },
     {
       "id": 6,
@@ -313,9 +301,6 @@
       "tiktok_url": null,
       "rider_items": null,
       "stage_visual_post_id": null,
-      "rating_average": 2.5,
-      "rating_count": 0,
-      "rating_override": null,
       "custom_tag": "Band Baru Ditambahkan"
     },
     {
@@ -346,9 +331,6 @@
       "tiktok_url": null,
       "rider_items": null,
       "stage_visual_post_id": null,
-      "rating_average": 2.5,
-      "rating_count": 0,
-      "rating_override": null,
       "custom_tag": "Band Baru Ditambahkan"
     },
     {
@@ -379,9 +361,6 @@
       "tiktok_url": null,
       "rider_items": null,
       "stage_visual_post_id": null,
-      "rating_average": 2.5,
-      "rating_count": 0,
-      "rating_override": null,
       "custom_tag": "Band Baru Ditambahkan"
     },
     {
@@ -411,10 +390,7 @@
       "created_at": "2026-10-16T13:36:20.034Z",
       "updated_at": "2026-11-18T01:16:51.304Z",
       "rider_items": "[{\"title\":\"Sound System & PA FOH\",\"description\":\"6 Channel Input (2 Voc, 2 DI Box Akustik, 1 Cello, 1 Cajon)\"},{\"title\":\"Kebutuhan Sound System\",\"description\":\"PA System min 2.500 Watt, 2 Active Monitor, 2 Mic Vokal Berkualitas\"},{\"title\":\"Hospitality & Konsumsi\",\"description\":\"Ruang rias/tunggu tenang, teh hangat, air mineral, konsumsi 4 pax\"},{\"title\":\"Tata Cahaya & Lighting\",\"description\":\"Minimal 8 unit PAR LED RGBW terkalibrasi dan 4 moving head beam.\"}]",
-      "stage_visual_post_id": null,
-      "rating_average": 4.8,
-      "rating_count": 10,
-      "rating_override": null
+      "stage_visual_post_id": null
     },
     {
       "user_id": 13,
@@ -444,9 +420,6 @@
       "created_at": "2026-11-18T09:44:08.043Z",
       "updated_at": "2026-11-18T09:44:08.043Z",
       "stage_visual_post_id": null,
-      "rating_average": 2.5,
-      "rating_count": 0,
-      "rating_override": null,
       "custom_tag": "Band Baru Ditambahkan"
     }
   ],
@@ -662,10 +635,8 @@
       "connection_type": "contact_view",
       "notes": "Tanya jadwal untuk live music Jumat malam di Kafe Selatan",
       "created_at": "2026-10-16T13:36:20.035Z",
-      "event_date": null,
       "event_name": null,
-      "status": "confirmed",
-      "is_reviewed": false
+      "status": "confirmed"
     },
     {
       "id": 2,
@@ -674,10 +645,8 @@
       "connection_type": "contact_view",
       "notes": "Undangan pentas seni Jogja Creative Festival 2026",
       "created_at": "2026-10-16T13:36:20.035Z",
-      "event_date": null,
       "event_name": null,
-      "status": "confirmed",
-      "is_reviewed": false
+      "status": "confirmed"
     },
     {
       "id": 3,
@@ -686,10 +655,8 @@
       "connection_type": "contact_view",
       "notes": "Rencana panggung utama Pasar Malam Digital Surabaya",
       "created_at": "2026-10-16T13:36:20.035Z",
-      "event_date": null,
       "event_name": null,
-      "status": "confirmed",
-      "is_reviewed": false
+      "status": "confirmed"
     },
     {
       "id": 4,
@@ -698,10 +665,8 @@
       "connection_type": "contact_view",
       "notes": "Showcase musik alternatif Jakarta",
       "created_at": "2026-10-16T13:36:20.035Z",
-      "event_date": null,
       "event_name": null,
-      "status": "confirmed",
-      "is_reviewed": false
+      "status": "confirmed"
     }
   ],
   "password_reset_tokens": [],
@@ -779,155 +744,11 @@
       "created_at": "2026-11-21T12:07:09.293Z"
     }
   ],
-  "reviews": [
-    {
-      "id": 1,
-      "band_profile_id": 1,
-      "organizer_user_id": 9,
-      "rating": 5,
-      "review_text": "Penampilan Kelana Ombak di Pensi Kampus luar biasa! Sound vintage surf rock mereka bikin seluruh penonton bergoyang.",
-      "event_date": "2026-11-10",
-      "connection_id": null,
-      "created_at": "2026-11-21T12:07:09.294Z"
-    },
-    {
-      "id": 2,
-      "band_profile_id": 1,
-      "organizer_user_id": 10,
-      "rating": 4.8,
-      "review_text": "Komunikasi technical rider audio sangat kooperatif, tepat waktu saat soundcheck dan aksi panggung profesional.",
-      "event_date": "2026-11-15",
-      "connection_id": null,
-      "created_at": "2026-11-21T12:07:09.294Z"
-    },
-    {
-      "id": 3,
-      "band_profile_id": 2,
-      "organizer_user_id": 9,
-      "rating": 4.8,
-      "review_text": "Suasana kafe sangat hidup dengan harmoni vokal dan cello Senja Bersuara. Sangat direkomendasikan untuk event intim!",
-      "event_date": "2026-11-08",
-      "connection_id": null,
-      "created_at": "2026-11-21T12:07:09.294Z"
-    },
-    {
-      "id": 4,
-      "band_profile_id": 4,
-      "organizer_user_id": 10,
-      "rating": 3.8,
-      "review_text": "Energi rock alternatif mereka mantap untuk crowd muda kampus, riff distorsi solid.",
-      "event_date": "2026-11-05",
-      "connection_id": null,
-      "created_at": "2026-11-21T12:07:09.294Z"
-    },
-    {
-      "id": 5,
-      "band_profile_id": 8,
-      "organizer_user_id": 9,
-      "rating": 2.8,
-      "review_text": "Kualitas aransemen funk sangat bagus, namun waktu mulai perform sedikit terlambat dari rundown.",
-      "event_date": "2026-11-02",
-      "connection_id": null,
-      "created_at": "2026-11-21T12:07:09.294Z"
-    }
-  ],
   "platform_settings": [
     {
       "key": "show_campus_affiliation",
       "value": "false",
       "updated_at": "2026-11-21T12:31:13.030Z"
-    }
-  ],
-  "band_schedules": [
-    {
-      "id": 1,
-      "band_profile_id": 1,
-      "organizer_user_id": 9,
-      "event_date": "2026-11-28",
-      "start_time": "19:30",
-      "end_time": "21:00",
-      "event_name": "Semarang Indie Stage Wave 2026",
-      "venue": "Taman Budaya Raden Saleh",
-      "location_city": "Kota Semarang",
-      "organizer_name": "Kolektif Indie Semarang",
-      "notes": "Main stage guest star, 2 set perform vintage surf rock",
-      "status": "confirmed",
-      "created_at": "2026-11-23T10:00:00.000Z"
-    },
-    {
-      "id": 2,
-      "band_profile_id": 1,
-      "organizer_user_id": 10,
-      "event_date": "2026-12-05",
-      "start_time": "20:00",
-      "end_time": "22:00",
-      "event_name": "Dies Natalis UNNES Music Fest",
-      "venue": "Auditorium UNNES Sekaran",
-      "location_city": "Kota Semarang",
-      "organizer_name": "BEM KM UNNES",
-      "notes": "Soundcheck rundown jam 16:00 WIB, FOH monitor stereo",
-      "status": "confirmed",
-      "created_at": "2026-11-23T10:00:00.000Z"
-    },
-    {
-      "id": 3,
-      "band_profile_id": 1,
-      "organizer_user_id": null,
-      "event_date": "2026-12-19",
-      "start_time": "19:00",
-      "end_time": "21:30",
-      "event_name": "Festival Akhir Tahun Jawa Tengah",
-      "venue": "PRPP Convention Hall",
-      "location_city": "Kota Semarang",
-      "organizer_name": "Dinas Kebudayaan & Pariwisata",
-      "notes": "Panggung utama indoor",
-      "status": "confirmed",
-      "created_at": "2026-11-23T10:00:00.000Z"
-    },
-    {
-      "id": 4,
-      "band_profile_id": 2,
-      "organizer_user_id": 9,
-      "event_date": "2026-11-29",
-      "start_time": "18:30",
-      "end_time": "20:30",
-      "event_name": "Sunset Acoustic Night",
-      "venue": "Kafe Selasar Kaliurang",
-      "location_city": "Kota Jogja",
-      "organizer_name": "Selasar Community",
-      "notes": "Akustik folk cello intim",
-      "status": "confirmed",
-      "created_at": "2026-11-23T10:00:00.000Z"
-    },
-    {
-      "id": 5,
-      "band_profile_id": 2,
-      "organizer_user_id": 10,
-      "event_date": "2026-12-12",
-      "start_time": "19:30",
-      "end_time": "21:30",
-      "event_name": "Jogja Art & Music Gathering",
-      "venue": "Bentara Budaya Yogyakarta",
-      "location_city": "Kota Jogja",
-      "organizer_name": "Panitia Seni Jogja",
-      "notes": "Format full orchestra akustik",
-      "status": "confirmed",
-      "created_at": "2026-11-23T10:00:00.000Z"
-    },
-    {
-      "id": 6,
-      "band_profile_id": 4,
-      "organizer_user_id": 10,
-      "event_date": "2026-12-02",
-      "start_time": "20:00",
-      "end_time": "22:00",
-      "event_name": "Campus Rock Arena 2026",
-      "venue": "Stadion Diponegoro",
-      "location_city": "Kota Semarang",
-      "organizer_name": "UKM Musik Undip",
-      "notes": "Rock alternatif panggung luar",
-      "status": "confirmed",
-      "created_at": "2026-11-23T10:00:00.000Z"
     }
   ]
 }

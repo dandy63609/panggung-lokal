@@ -123,7 +123,7 @@ export const AboutSection: React.FC = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#00D9FF] font-bold">✓</span>
-                    <span>Komunikasi instan untuk konfirmasi tanggal manggung dan kesepakatan acara.</span>
+                    <span>Komunikasi instan untuk diskusi penampilan dan kesepakatan acara.</span>
                   </li>
                 </ul>
               </div>

@@ -193,7 +193,6 @@ const DUMMY_ACCOUNT_EMAILS = [
 ];
 
 async function deleteBandProfileRecords(client, bandProfileId) {
-  await client.query('DELETE FROM reviews WHERE band_profile_id = $1', [bandProfileId]);
   await client.query('DELETE FROM connections WHERE band_profile_id = $1', [bandProfileId]);
   await client.query('DELETE FROM media_files WHERE band_profile_id = $1', [bandProfileId]);
   await client.query('DELETE FROM band_posts WHERE band_profile_id = $1', [bandProfileId]);
@@ -219,7 +218,6 @@ async function deleteUserCascade(client, userId) {
     await deleteBandProfileRecords(client, bandProfileId);
   }
 
-  await client.query('DELETE FROM reviews WHERE organizer_user_id = $1', [userId]);
   await client.query('DELETE FROM connections WHERE organizer_user_id = $1', [userId]);
   await client.query('DELETE FROM job_broadcasts WHERE organizer_user_id = $1', [userId]);
   await client.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [userId]);
@@ -540,23 +538,7 @@ router.get('/bands', async (req, res) => {
     `);
 
     const bands = result.rows.map(row => {
-      const count = row.rating_count !== null && row.rating_count !== undefined ? Number(row.rating_count) : 0;
-      const override = row.rating_override !== null && row.rating_override !== undefined ? Number(row.rating_override) : null;
-      let avg = row.rating_average !== null && row.rating_average !== undefined ? Number(row.rating_average) : 2.5;
-      let customTag = row.custom_tag ? String(row.custom_tag).trim() : null;
-
-      if (count === 0 && override === null) {
-        avg = 2.5;
-        if (!customTag) {
-          customTag = 'Band Baru Ditambahkan';
-        }
-      }
-
-      const effectiveRating = override !== null ? override : avg;
-      const rounded = Number(effectiveRating.toFixed(1));
-      let tier = 'Baik';
-      if (rounded >= 4.5) tier = 'Rekomendasi Favorit';
-      else if (rounded >= 3.0) tier = 'Sangat Baik';
+      const customTag = row.custom_tag ? String(row.custom_tag).trim() : null;
 
       return {
         id: row.id,
@@ -584,11 +566,6 @@ router.get('/bands', async (req, res) => {
         riderItems: row.rider_items,
         customTag: customTag,
         profileViews: row.profile_views || 0,
-        ratingAverage: avg,
-        ratingCount: count,
-        ratingOverride: override,
-        rating: rounded,
-        ratingTier: tier,
         userEmail: row.user_email,
         isActive: Boolean(row.user_is_active),
         createdAt: row.created_at
@@ -611,7 +588,7 @@ router.get('/bands', async (req, res) => {
 /**
  * PUT /api/admin/bands/:id
  * Super Admin Full Authority: Update ANY aspect of a band profile:
- * rating override, pricing, campus, verification/active status, name, genre, city, bio
+ * custom tag, pricing, campus, verification/active status, name, genre, city, bio, rider, socials
  */
 router.put('/bands/:id', async (req, res) => {
   try {
@@ -633,9 +610,6 @@ router.put('/bands/:id', async (req, res) => {
       budgetMin,
       budgetMax,
       phone,
-      ratingOverride,
-      ratingAverage,
-      ratingCount,
       customTag,
       profilePhotoUrl,
       coverPhotoUrl,
@@ -703,20 +677,6 @@ router.put('/bands/:id', async (req, res) => {
       fields.push(`phone = $${idx++}`);
       values.push(phone ? String(phone).trim() : null);
     }
-    if (ratingOverride !== undefined) {
-      fields.push(`rating_override = $${idx++}`);
-      const rNum = parseFloat(ratingOverride);
-      values.push(!isNaN(rNum) && rNum >= 1.0 && rNum <= 5.0 ? Math.round(rNum * 10) / 10 : null);
-    }
-    if (ratingAverage !== undefined) {
-      fields.push(`rating_average = $${idx++}`);
-      const aNum = parseFloat(ratingAverage);
-      values.push(!isNaN(aNum) && aNum >= 1.0 && aNum <= 5.0 ? Math.round(aNum * 10) / 10 : 2.5);
-    }
-    if (ratingCount !== undefined) {
-      fields.push(`rating_count = $${idx++}`);
-      values.push(Math.max(0, parseInt(String(ratingCount), 10) || 0));
-    }
     if (customTag !== undefined) {
       fields.push(`custom_tag = $${idx++}`);
       values.push(customTag !== null && String(customTag).trim() ? String(customTag).trim() : null);
@@ -782,14 +742,6 @@ router.put('/bands/:id', async (req, res) => {
       await db.query('UPDATE users SET is_active = $1 WHERE id = $2', [isActive, current.user_id]);
     }
 
-    const avg = updated.rating_average !== null && updated.rating_average !== undefined ? Number(updated.rating_average) : 2.5;
-    const override = updated.rating_override !== null && updated.rating_override !== undefined ? Number(updated.rating_override) : null;
-    const effectiveRating = override !== null ? override : avg;
-    const rounded = Number(effectiveRating.toFixed(1));
-    let tier = 'Baik';
-    if (rounded >= 4.5) tier = 'Rekomendasi Favorit';
-    else if (rounded >= 3.0) tier = 'Sangat Baik';
-
     return res.json({
       success: true,
       message: `Profil band ${updated.band_name} berhasil diperbarui oleh Administrator`,
@@ -818,11 +770,6 @@ router.put('/bands/:id', async (req, res) => {
         riderInstruments: updated.rider_instruments || null,
         riderHospitality: updated.rider_hospitality || null,
         riderItems: updated.rider_items || null,
-        ratingOverride: override,
-        ratingAverage: avg,
-        ratingCount: updated.rating_count,
-        rating: rounded,
-        ratingTier: tier,
         updatedAt: updated.updated_at
       }
     });

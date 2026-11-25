@@ -268,7 +268,7 @@ export const RegisterPage: React.FC = () => {
                   )}
                 </div>
                 <div className="text-[11px] text-[#A0A0A0] font-sans mt-0.5 leading-snug">
-                  Kurasi musisi, ajukan jadwal & penawaran panggung.
+                  Kurasi musisi, kirim broadcast lowongan & penawaran panggung.
                 </div>
               </div>
             </button>

@@ -38,7 +38,7 @@ export const EcosystemDashboardSection: React.FC<EcosystemDashboardProps> = ({ t
   }, [totalBands])
 
   const metrics: MetricColumn[] = [
-    { id: 'gigs', label: 'GIGS TERJADWAL', targetValue: 128, suffix: '+', sublabel: 'Sepanjang Musim', totalSegments: 10, activeSegments: 8, color: '#E01E37' },
+    { id: 'gigs', label: 'PANGGUNG TERHUBUNG', targetValue: 128, suffix: '+', sublabel: 'Sepanjang Musim', totalSegments: 10, activeSegments: 8, color: '#E01E37' },
     { id: 'rider', label: 'SOUNDCHECK PASS', targetValue: 100, suffix: '%', sublabel: 'Bebas Miskomunikasi', totalSegments: 10, activeSegments: 10, color: '#25D366' },
     { id: 'chat', label: 'DIRECT INQUIRIES', targetValue: 350, suffix: '+', sublabel: 'Percakapan WA', totalSegments: 10, activeSegments: 7, color: '#FFB627' },
     { id: 'cities', label: 'KOTA TERJANGKAU', targetValue: 7, suffix: ' Kota', sublabel: 'Jawa & Bali', totalSegments: 10, activeSegments: 5, color: '#FF6B35' },

@@ -35,15 +35,12 @@ const CLOUD_SYNC_TABLES = [
   'reports',
   'job_broadcasts',
   'campuses',
-  'reviews',
-  'platform_settings',
-  'band_schedules'
+  'platform_settings'
 ];
 
 const OPTIONAL_CLOUD_TABLES = new Set([
   'password_reset_tokens',
   'campuses',
-  'reviews',
   'platform_settings'
 ]);
 
@@ -55,7 +52,7 @@ const TABLE_COLUMNS = {
     'instagram_handle', 'facebook_url', 'youtube_url', 'profile_views',
     'rider_channel_inputs', 'rider_sound_system', 'rider_instruments', 'rider_hospitality',
     'rider_items', 'spotify_url', 'tiktok_url', 'stage_visual_post_id',
-    'rating_average', 'rating_count', 'rating_override', 'custom_tag',
+    'custom_tag',
     'created_at', 'updated_at'
   ],
   band_posts: [
@@ -68,7 +65,7 @@ const TABLE_COLUMNS = {
   ],
   connections: [
     'id', 'organizer_user_id', 'band_profile_id', 'connection_type',
-    'event_date', 'event_name', 'status', 'is_reviewed',
+    'event_name', 'status',
     'created_at', 'notes'
   ],
   password_reset_tokens: ['id', 'user_id', 'token', 'expires_at', 'used', 'created_at'],
@@ -83,13 +80,7 @@ const TABLE_COLUMNS = {
     'attachments', 'recipient_band_count', 'created_at'
   ],
   campuses: ['id', 'name', 'short_name', 'city', 'created_at'],
-  reviews: ['id', 'band_profile_id', 'organizer_user_id', 'connection_id', 'rating', 'review_text', 'event_date', 'created_at'],
-  platform_settings: ['key', 'value', 'updated_at'],
-  band_schedules: [
-    'id', 'band_profile_id', 'organizer_user_id', 'event_date',
-    'start_time', 'end_time', 'event_name', 'venue', 'location_city',
-    'organizer_name', 'notes', 'status', 'created_at'
-  ]
+  platform_settings: ['key', 'value', 'updated_at']
 };
 
 let memDbInstance = null;
@@ -144,9 +135,6 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   spotify_url VARCHAR(500),
   tiktok_url VARCHAR(500),
   stage_visual_post_id INTEGER,
-  rating_average NUMERIC(3, 1) DEFAULT 2.5,
-  rating_count INTEGER DEFAULT 0,
-  rating_override NUMERIC(3, 1),
   custom_tag VARCHAR(100) DEFAULT 'Band Baru Ditambahkan',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -181,10 +169,8 @@ CREATE TABLE IF NOT EXISTS connections (
   organizer_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   band_profile_id INTEGER NOT NULL REFERENCES band_profiles(id) ON DELETE CASCADE,
   connection_type VARCHAR(50) DEFAULT 'contact_view',
-  event_date VARCHAR(50),
   event_name VARCHAR(255),
-  status VARCHAR(50) DEFAULT 'confirmed',
-  is_reviewed BOOLEAN DEFAULT FALSE,
+  status VARCHAR(50) DEFAULT 'inquiry',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   notes TEXT
 );
@@ -236,37 +222,10 @@ CREATE TABLE IF NOT EXISTS campuses (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS reviews (
-  id SERIAL PRIMARY KEY,
-  band_profile_id INTEGER NOT NULL REFERENCES band_profiles(id) ON DELETE CASCADE,
-  organizer_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  connection_id INTEGER,
-  rating NUMERIC(3, 1) NOT NULL,
-  review_text TEXT,
-  event_date VARCHAR(50),
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE IF NOT EXISTS platform_settings (
   key VARCHAR(100) PRIMARY KEY,
   value VARCHAR(255) NOT NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS band_schedules (
-  id SERIAL PRIMARY KEY,
-  band_profile_id INTEGER NOT NULL REFERENCES band_profiles(id) ON DELETE CASCADE,
-  organizer_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  event_date VARCHAR(50) NOT NULL,
-  start_time VARCHAR(20) NOT NULL,
-  end_time VARCHAR(20) NOT NULL,
-  event_name VARCHAR(255) NOT NULL,
-  venue VARCHAR(255),
-  location_city VARCHAR(100),
-  organizer_name VARCHAR(255),
-  notes TEXT,
-  status VARCHAR(50) DEFAULT 'confirmed',
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 `;
 
@@ -491,7 +450,7 @@ async function syncAllToCloud(options = {}) {
 }
 
 async function syncSerialSequences(db, pool) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'reviews'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses'];
   for (const tableName of tables) {
     try {
       const res = await pool.query(`SELECT COALESCE(MAX(id), 0) AS max_id FROM ${tableName}`);
@@ -510,7 +469,7 @@ async function syncSerialSequences(db, pool) {
 }
 
 async function restoreData(pool, data) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'reviews', 'platform_settings'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'platform_settings'];
   for (const table of tables) {
     if (Array.isArray(data[table])) {
       const allowedCols = new Set(TABLE_COLUMNS[table] || []);
@@ -533,73 +492,12 @@ async function restoreData(pool, data) {
         INSERT INTO campuses (id, name, short_name, city) VALUES 
         (1, 'Universitas Negeri Semarang', 'UNNES', 'Kota Semarang'),
         (2, 'Universitas Diponegoro', 'UNDIP', 'Kota Semarang'),
-        (3, 'Universitas Gadjah Mada', 'UGM', 'Kota Jogja'),
-        (4, 'Universitas Negeri Yogyakarta', 'UNY', 'Kota Jogja')
+        (3, 'Universitas Gadjah Mada', 'UGM', 'Kota Yogyakarta'),
+        (4, 'Universitas Negeri Yogyakarta', 'UNY', 'Kota Yogyakarta')
       `);
     }
   } catch {
     // ignore
-  }
-
-  // Ensure sample ratings/reviews and booking only auto-seed in non-cloud test/local fixture data
-  if (!getCloudSyncConfig().enabled && !isServerlessRuntime()) {
-    try {
-      const seededDummyCheck = await pool.query(
-        'SELECT COUNT(*) as count FROM band_profiles WHERE id IN (1, 2, 4, 8)'
-      );
-      const seededOrganizerCheck = await pool.query(
-        'SELECT COUNT(*) as count FROM users WHERE id IN (9, 10)'
-      );
-      const hasDummyFixtures =
-        parseInt(seededDummyCheck.rows[0].count, 10) === 4 &&
-        parseInt(seededOrganizerCheck.rows[0].count, 10) === 2;
-
-      if (hasDummyFixtures) {
-        const reviewCountRes = await pool.query('SELECT COUNT(*) as count FROM reviews');
-        if (parseInt(reviewCountRes.rows[0].count, 10) === 0) {
-          await pool.query(`
-            INSERT INTO reviews (id, band_profile_id, organizer_user_id, rating, review_text, event_date) VALUES
-            (1, 1, 9, 5.0, 'Penampilan Kelana Ombak di Pensi Kampus luar biasa! Sound vintage surf rock mereka bikin seluruh penonton bergoyang.', '2026-11-10'),
-            (2, 1, 10, 4.8, 'Komunikasi technical rider audio sangat kooperatif, tepat waktu saat soundcheck dan aksi panggung profesional.', '2026-11-15'),
-            (3, 2, 9, 4.8, 'Suasana kafe sangat hidup dengan harmoni vokal dan cello Senja Bersuara. Sangat direkomendasikan untuk event intim!', '2026-11-08'),
-            (4, 4, 10, 3.8, 'Energi rock alternatif mereka mantap untuk crowd muda kampus, riff distorsi solid.', '2026-11-05'),
-            (5, 8, 9, 2.8, 'Kualitas aransemen funk sangat bagus, namun waktu mulai perform sedikit terlambat dari rundown.', '2026-11-02')
-          `);
-
-          const initialRatings = [
-            { id: 1, avg: 4.9, count: 2, min: 3500000, max: 7000000, tag: null },
-            { id: 2, avg: 4.8, count: 1, min: 2000000, max: 4500000, tag: null },
-            { id: 3, avg: 2.5, count: 0, min: 5000000, max: 12000000, tag: 'Band Baru Ditambahkan' },
-            { id: 4, avg: 3.8, count: 1, min: 3000000, max: 6000000, tag: null },
-            { id: 5, avg: 2.5, count: 0, min: 2500000, max: 5000000, tag: 'Band Baru Ditambahkan' },
-            { id: 6, avg: 2.5, count: 0, min: 2500000, max: 5500000, tag: 'Band Baru Ditambahkan' },
-            { id: 7, avg: 2.5, count: 0, min: 4000000, max: 9000000, tag: 'Band Baru Ditambahkan' },
-            { id: 8, avg: 2.8, count: 1, min: 4500000, max: 10000000, tag: null }
-          ];
-
-          for (const ir of initialRatings) {
-            await pool.query(
-              `UPDATE band_profiles 
-               SET rating_average = $1, rating_count = $2, budget_min = $3, budget_max = $4, custom_tag = $5 
-               WHERE id = $6`,
-              [ir.avg, ir.count, ir.min, ir.max, ir.tag, ir.id]
-            );
-          }
-        }
-
-        const pastBookingRes = await pool.query(
-          "SELECT COUNT(*) as count FROM connections WHERE event_date IS NOT NULL AND is_reviewed = FALSE"
-        );
-        if (parseInt(pastBookingRes.rows[0].count, 10) === 0) {
-          await pool.query(`
-            INSERT INTO connections (organizer_user_id, band_profile_id, connection_type, event_date, event_name, status, is_reviewed, notes)
-            VALUES (9, 1, 'direct_booking', '2026-11-19', 'Pensi Akbar Mahasiswa Kampus', 'confirmed', FALSE, '2 Set Performa Live')
-          `);
-        }
-      }
-    } catch {
-      // ignore
-    }
   }
 
   // Ensure default platform settings exist (campus affiliation hidden by default)
@@ -614,7 +512,7 @@ async function restoreData(pool, data) {
 }
 
 function dumpData(db) {
-  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'reviews', 'platform_settings'];
+  const tables = ['users', 'band_profiles', 'band_posts', 'media_files', 'connections', 'password_reset_tokens', 'reports', 'job_broadcasts', 'campuses', 'platform_settings'];
   const dump = {};
   for (const table of tables) {
     try {
@@ -966,7 +864,7 @@ async function seedInitialData(pool) {
 
   // 4. Seed Connections
   const connections = [
-    { id: 1, organizer_user_id: 9, band_profile_id: 1, connection_type: 'contact_view', notes: 'Tanya jadwal untuk live music Jumat malam di Kafe Selatan' },
+    { id: 1, organizer_user_id: 9, band_profile_id: 1, connection_type: 'contact_view', notes: 'Tanya informasi penampilan live music di Kafe Selatan' },
     { id: 2, organizer_user_id: 10, band_profile_id: 2, connection_type: 'contact_view', notes: 'Undangan pentas seni Jogja Creative Festival 2026' },
     { id: 3, organizer_user_id: 11, band_profile_id: 3, connection_type: 'contact_view', notes: 'Rencana panggung utama Pasar Malam Digital Surabaya' },
     { id: 4, organizer_user_id: 9, band_profile_id: 4, connection_type: 'contact_view', notes: 'Showcase musik alternatif Jakarta' }

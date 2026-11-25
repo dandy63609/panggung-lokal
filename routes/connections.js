@@ -10,7 +10,7 @@ const { verifyToken, requireBand } = require('../middleware/auth');
  */
 router.post('/', verifyToken, async (req, res) => {
   try {
-    const { bandProfileId, notes, connectionType, eventDate, eventName } = req.body;
+    const { bandProfileId, notes, connectionType, eventName } = req.body;
 
     if (!bandProfileId) {
       return res.status(400).json({
@@ -35,16 +35,14 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
-    // Record connection (inquiry stage - not yet a confirmed booking)
-    const initialStatus = connectionType === 'confirmed_booking' ? 'confirmed' : 'inquiry';
+    // Record connection (direct inquiry stage)
     const connection = await Connection.create({
       organizerUserId: req.user.id,
       bandProfileId: band.id,
       connectionType: connectionType || 'contact_view',
       notes: notes || null,
-      eventDate: eventDate || null,
       eventName: eventName || null,
-      status: initialStatus
+      status: 'inquiry'
     });
 
     // Format WhatsApp link if phone is present

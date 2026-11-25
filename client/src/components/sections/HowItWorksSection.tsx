@@ -30,7 +30,7 @@ export const HowItWorksSection: React.FC = () => {
     {
       step: '04',
       title: 'BOOKING VIA WHATSAPP',
-      desc: 'Hubungi manajer band secara langsung melalui tautan WhatsApp terenkripsi untuk negosiasi tanggal, rundown, dan pembayaran.',
+      desc: 'Hubungi manajer band secara langsung melalui tautan WhatsApp terenkripsi untuk negosiasi penampilan, rundown, dan pembayaran.',
       icon: MessageSquare,
       color: '#25D366',
     },

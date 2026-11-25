@@ -12,7 +12,6 @@ import { RegisterPage } from './pages/RegisterPage'
 import { BandDashboardPage } from './pages/BandDashboardPage'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
-import { ReviewGatingModal } from './components/ReviewGatingModal'
 import { authClient } from './lib/auth'
 import type { PlatformStats } from './types'
 
@@ -100,9 +99,6 @@ export default function App() {
       <BrowserRouter>
         <ScrollToTop />
         <div className="min-h-screen bg-[#0D0D0D] text-[#F5F5F5] selection:bg-[#E01E37] selection:text-white flex flex-col font-sans overflow-x-clip w-full max-w-full">
-          {/* Review Gating Modal: Mandatory Rating for EOs after event date passes */}
-          <ReviewGatingModal />
-
           {/* Top Navigation Bar */}
           <Navbar />
 

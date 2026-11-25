@@ -63,9 +63,6 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   spotify_url VARCHAR(500),
   tiktok_url VARCHAR(500),
   stage_visual_post_id INTEGER,
-  rating_average NUMERIC(3, 1) DEFAULT 2.5,
-  rating_count INTEGER DEFAULT 0,
-  rating_override NUMERIC(3, 1),
   custom_tag VARCHAR(100) DEFAULT 'Band Baru Ditambahkan',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -110,10 +107,8 @@ CREATE TABLE IF NOT EXISTS connections (
   organizer_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   band_profile_id INTEGER NOT NULL REFERENCES band_profiles(id) ON DELETE CASCADE,
   connection_type VARCHAR(50) DEFAULT 'contact_view',
-  event_date VARCHAR(50),
   event_name VARCHAR(255),
-  status VARCHAR(50) DEFAULT 'confirmed',
-  is_reviewed BOOLEAN DEFAULT FALSE,
+  status VARCHAR(50) DEFAULT 'inquiry',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   notes TEXT
 );
@@ -172,27 +167,14 @@ CREATE TABLE IF NOT EXISTS campuses (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 10. REVIEWS TABLE
-CREATE TABLE IF NOT EXISTS reviews (
-  id SERIAL PRIMARY KEY,
-  band_profile_id INTEGER NOT NULL REFERENCES band_profiles(id) ON DELETE CASCADE,
-  organizer_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  connection_id INTEGER,
-  rating NUMERIC(3, 1) NOT NULL,
-  review_text TEXT,
-  event_date VARCHAR(50),
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS idx_reviews_band ON reviews(band_profile_id);
-
--- 11. PLATFORM SETTINGS TABLE
+-- 10. PLATFORM SETTINGS TABLE
 CREATE TABLE IF NOT EXISTS platform_settings (
   key VARCHAR(100) PRIMARY KEY,
   value VARCHAR(255) NOT NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 12. PGMIGRATIONS TABLE
+-- 11. PGMIGRATIONS TABLE
 CREATE TABLE IF NOT EXISTS pgmigrations (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
@@ -214,7 +196,6 @@ CREATE TABLE IF NOT EXISTS pgmigrations (
     'reports',
     'job_broadcasts',
     'campuses',
-    'reviews',
     'platform_settings'
   ];
 
@@ -245,7 +226,6 @@ SELECT setval('password_reset_tokens_id_seq', (SELECT COALESCE(MAX(id), 1) FROM 
 SELECT setval('reports_id_seq', (SELECT COALESCE(MAX(id), 1) FROM reports));
 SELECT setval('job_broadcasts_id_seq', (SELECT COALESCE(MAX(id), 1) FROM job_broadcasts));
 SELECT setval('campuses_id_seq', (SELECT COALESCE(MAX(id), 1) FROM campuses));
-SELECT setval('reviews_id_seq', (SELECT COALESCE(MAX(id), 1) FROM reviews));
 
 -- ========================================================
 -- MARK MIGRATIONS AS APPLIED
@@ -260,7 +240,8 @@ INSERT INTO pgmigrations (name, run_on) VALUES
   ('1701000000007_create-reports-table', NOW()),
   ('1701000000008_add-rider-and-socials-to-band-profiles', NOW()),
   ('1701000000009_create-job-broadcasts-table', NOW()),
-  ('1701000000010_create_reviews_campuses_and_add_band_profile_fields', NOW())
+  ('1701000000010_create_reviews_campuses_and_add_band_profile_fields', NOW()),
+  ('1701000000011_drop-reviews-ratings-and-schedules', NOW())
 ON CONFLICT DO NOTHING;
 
 -- ========================================================

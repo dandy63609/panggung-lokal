@@ -50,13 +50,7 @@ export interface Band {
   bio?: string
   budgetMin?: number | null
   budgetMax?: number | null
-  rating?: number
-  ratingAverage?: number
-  ratingCount?: number
-  ratingOverride?: number | null
-  ratingTier?: 'Baik' | 'Sangat Baik' | 'Rekomendasi Favorit' | string
   customTag?: string | null
-  reviews?: BandReview[]
   profilePhotoUrl?: string
   coverPhotoUrl?: string
   phone?: string
@@ -74,7 +68,6 @@ export interface Band {
   stageVisualPostId?: number | null
   posts?: BandPost[]
   mediaFiles?: MediaFile[]
-  schedules?: BandSchedule[]
   isOwner?: boolean
 }
 
@@ -102,17 +95,14 @@ export interface RecentConnection {
   organizerUserId?: number
   bandProfileId?: number
   connectionType?: string
-  eventDate?: string | null
   eventName?: string | null
   notes?: string | null
   status?: string
-  isReviewed?: boolean
   createdAt?: string
   organizerEmail?: string
   organizer_email?: string
   event_type?: string
   event_name?: string
-  event_date?: string
   created_at?: string
 }
 
@@ -155,26 +145,7 @@ export interface BandDashboardData {
   posts: BandPost[]
   mediaFiles?: MediaFile[]
   recentConnections: RecentConnection[]
-  schedules?: BandSchedule[]
   jobBroadcasts?: JobBroadcast[]
-}
-
-export interface BandSchedule {
-  id: number
-  bandProfileId: number
-  organizerUserId?: number | null
-  eventDate: string
-  startTime: string
-  endTime: string
-  eventName: string
-  venue?: string | null
-  locationCity?: string | null
-  organizerName?: string | null
-  notes?: string | null
-  status: 'confirmed' | 'completed' | 'cancelled' | string
-  createdAt?: string
-  organizerEmail?: string
-  bandName?: string
 }
 
 export interface CampusRecord {
@@ -183,31 +154,5 @@ export interface CampusRecord {
   short_name: string
   city: string
   created_at?: string
-}
-
-export interface BandReview {
-  id: number
-  bandProfileId: number
-  rating: number
-  ratingTier: 'Baik' | 'Sangat Baik' | 'Rekomendasi Favorit' | string
-  reviewText: string
-  eventDate?: string
-  organizerEmail?: string
-  createdAt: string
-}
-
-export interface PendingReviewBooking {
-  connectionId: number
-  bandProfileId: number
-  bandName: string
-  profilePhotoUrl?: string
-  locationCity?: string
-  genre?: string
-  eventDate: string
-  eventName: string
-  notes?: string
-  emailNotificationSent?: boolean
-  notificationSubject?: string
-  notificationTimestamp?: string
 }
 

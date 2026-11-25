@@ -84,8 +84,6 @@ router.post('/register', authLimiter, async (req, res) => {
         genre: genre || 'Indie / Pop',
         locationCity: locationCity || 'Kota Semarang',
         bio: 'Profil band baru di Reffband',
-        ratingAverage: 2.5,
-        ratingCount: 0,
         customTag: 'Band Baru Ditambahkan'
       });
     }
@@ -108,8 +106,6 @@ router.post('/register', authLimiter, async (req, res) => {
         bandName: bandProfile.bandName,
         genre: bandProfile.genre,
         locationCity: bandProfile.locationCity,
-        rating: bandProfile.rating,
-        ratingTier: bandProfile.ratingTier,
         customTag: bandProfile.customTag
       } : null
     });
@@ -394,8 +390,6 @@ router.post('/google', authLimiter, async (req, res) => {
         locationCity: (locationCity && locationCity.trim()) || 'Kota Semarang',
         profilePhotoUrl: payload.picture || null,
         bio: 'Profil band baru di Reffband',
-        ratingAverage: 2.5,
-        ratingCount: 0,
         customTag: 'Band Baru Ditambahkan'
       });
     }
@@ -418,8 +412,6 @@ router.post('/google', authLimiter, async (req, res) => {
         bandName: bandProfile.bandName,
         genre: bandProfile.genre,
         locationCity: bandProfile.locationCity,
-        rating: bandProfile.rating,
-        ratingTier: bandProfile.ratingTier,
         customTag: bandProfile.customTag
       } : null
     });

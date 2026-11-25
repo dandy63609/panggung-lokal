@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ArrowRight, Star } from 'lucide-react'
+import { Check, ArrowRight } from 'lucide-react'
 import type { Band } from '../../types'
 import { formatRupiah } from '../../lib/utils'
 import { getBandProfileUrl } from '../../lib/bandHelpers'
-import { getRatingTierBadge } from '../../lib/ratingHelpers'
 import { usePlatformSettings } from '../../lib/platformSettings'
 import { authClient } from '../../lib/auth'
 
@@ -81,8 +80,6 @@ export const BandCard: React.FC<BandCardProps> = ({
   }, [band.bandName])
 
   const photo = band.profilePhotoUrl || band.coverPhotoUrl || null
-  const currentRating = Number(band.rating ?? band.ratingAverage ?? 2.5)
-  const ratingTierInfo = getRatingTierBadge(currentRating)
 
   const budgetText = band.budgetMin && band.budgetMax && band.budgetMin !== band.budgetMax
     ? `${formatRupiah(band.budgetMin)} - ${formatRupiah(band.budgetMax)}`
@@ -179,30 +176,26 @@ export const BandCard: React.FC<BandCardProps> = ({
         className="flex-1 flex flex-col justify-between p-5 text-inherit no-underline space-y-4"
       >
         <div className="space-y-2">
-          {/* Tier Representation Badge (Stars & numbers removed for public, only status words shown) */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={`font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 font-bold border rounded ${ratingTierInfo.bgClass}`}
-              title={ratingTierInfo.description}
-            >
-              {ratingTierInfo.label}
-            </span>
-            {band.customTag && (
-              <span className="font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 font-bold rounded bg-[#00D9FF]/15 border border-[#00D9FF]/40 text-[#00D9FF] flex items-center gap-1">
-                <span>✨</span>
-                <span>{band.customTag}</span>
-              </span>
-            )}
-            {band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin') && (
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[#FFD166] bg-black/70 border border-[#FFD166]/40 px-2 py-0.5 font-bold rounded flex items-center gap-1">
-                <span>🎓</span>
-                <span>{band.campus}</span>
-                {!showCampusAffiliation && currentUser?.accountType === 'admin' && (
-                  <span className="text-[9px] text-[#888] font-mono">(Admin Only)</span>
-                )}
-              </span>
-            )}
-          </div>
+          {/* Custom Tag & Campus Badges */}
+          {(band.customTag || (band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin'))) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {band.customTag && (
+                <span className="font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 font-bold rounded bg-[#00D9FF]/15 border border-[#00D9FF]/40 text-[#00D9FF] flex items-center gap-1">
+                  <span>✨</span>
+                  <span>{band.customTag}</span>
+                </span>
+              )}
+              {band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin') && (
+                <span className="font-mono text-[10px] uppercase tracking-wider text-[#FFD166] bg-black/70 border border-[#FFD166]/40 px-2 py-0.5 font-bold rounded flex items-center gap-1">
+                  <span>🎓</span>
+                  <span>{band.campus}</span>
+                  {!showCampusAffiliation && currentUser?.accountType === 'admin' && (
+                    <span className="text-[9px] text-[#888] font-mono">(Admin Only)</span>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Band Title with Cipher text scramble */}
           <h3 className="font-mono font-bold text-lg text-white uppercase tracking-tight group-hover:text-[#E01E37] transition-colors truncate">

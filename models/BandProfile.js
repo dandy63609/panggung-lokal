@@ -11,13 +11,6 @@ function slugify(text) {
     .replace(/^-+|-+$/g, '');
 }
 
-function getRatingTier(rating) {
-  const r = Number(rating) || 0;
-  if (r >= 4.5) return 'Rekomendasi Favorit';
-  if (r >= 3.0) return 'Sangat Baik';
-  return 'Baik';
-}
-
 /**
  * BandProfile Model
  * Handles database operations for band profiles
@@ -85,28 +78,11 @@ class BandProfile {
 
     this.profileViews = data.profile_views || 0;
     this.stageVisualPostId = data.stage_visual_post_id ? Number(data.stage_visual_post_id) : null;
-    
-    // Custom Tag / Badge (Default for new bands or bands without customTag is 'Band Baru Ditambahkan')
+
+    // Custom Tag / Badge (manually managed by Admin, defaults to 'Band Baru Ditambahkan' on create)
     this.customTag = (data.custom_tag !== undefined && data.custom_tag !== null && String(data.custom_tag).trim())
       ? String(data.custom_tag).trim()
       : (data.customTag !== undefined && data.customTag !== null && String(data.customTag).trim() ? String(data.customTag).trim() : null);
-
-    this.ratingCount = data.rating_count !== undefined && data.rating_count !== null ? Number(data.rating_count) : 0;
-    this.ratingOverride = data.rating_override !== undefined && data.rating_override !== null ? Number(data.rating_override) : null;
-
-    // Bands with no reviews from EO/customers (ratingCount === 0) and no admin override default to Tier 'Baik' (2.5) and 'Band Baru Ditambahkan' tag
-    if (this.ratingCount === 0 && this.ratingOverride === null) {
-      this.ratingAverage = 2.5;
-      if (!this.customTag) {
-        this.customTag = 'Band Baru Ditambahkan';
-      }
-    } else {
-      this.ratingAverage = data.rating_average !== undefined && data.rating_average !== null ? Number(data.rating_average) : 2.5;
-    }
-
-    const effectiveRating = this.ratingOverride !== null ? this.ratingOverride : this.ratingAverage;
-    this.rating = Number(Number(effectiveRating).toFixed(1));
-    this.ratingTier = getRatingTier(this.rating);
 
     this.createdAt = data.created_at;
     this.updatedAt = data.updated_at;
@@ -210,8 +186,6 @@ class BandProfile {
       riderItemsJson = typeof data.riderItems === 'string' ? data.riderItems : JSON.stringify(data.riderItems);
     }
 
-    const ratingAvg = data.ratingAverage !== undefined && data.ratingAverage !== null ? Number(data.ratingAverage) : 2.5;
-    const ratingCount = data.ratingCount !== undefined && data.ratingCount !== null ? Number(data.ratingCount) : 0;
     const customTag = data.customTag !== undefined
       ? (data.customTag ? String(data.customTag).trim() : null)
       : 'Band Baru Ditambahkan';
@@ -223,8 +197,8 @@ class BandProfile {
         phone, instagram_handle, facebook_url, youtube_url,
         spotify_url, tiktok_url,
         rider_channel_inputs, rider_sound_system, rider_instruments, rider_hospitality,
-        rider_items, rating_average, rating_count, custom_tag
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+        rider_items, custom_tag
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
       RETURNING *`,
       [
         data.userId,
@@ -248,8 +222,6 @@ class BandProfile {
         data.riderInstruments || null,
         data.riderHospitality || null,
         riderItemsJson,
-        ratingAvg,
-        ratingCount,
         customTag
       ]
     );
@@ -313,9 +285,6 @@ class BandProfile {
       ['rider_hospitality', riderHosp],
       ['rider_items', riderItemsJson],
       ['stage_visual_post_id', data.stageVisualPostId !== undefined ? (data.stageVisualPostId ? Number(data.stageVisualPostId) : null) : undefined],
-      ['rating_override', data.ratingOverride !== undefined ? (data.ratingOverride !== null && data.ratingOverride !== '' ? Number(data.ratingOverride) : null) : undefined],
-      ['rating_average', data.ratingAverage !== undefined ? (data.ratingAverage !== null && data.ratingAverage !== '' ? Number(data.ratingAverage) : null) : undefined],
-      ['rating_count', data.ratingCount !== undefined ? Number(data.ratingCount) : undefined],
       ['custom_tag', data.customTag !== undefined ? (data.customTag ? String(data.customTag).trim() : null) : undefined],
     ];
 
@@ -385,13 +354,6 @@ class BandProfile {
   async getPosts() {
     const BandPost = require('./BandPost');
     return await BandPost.findByBandProfileId(this.id);
-  }
-
-  /**
-   * Get active availability posts (deprecated, returns empty array)
-   */
-  async getAvailabilityPosts() {
-    return [];
   }
 
   /**
@@ -577,7 +539,5 @@ class BandProfile {
     return result.rows.map(row => new BandProfile(row));
   }
 }
-
-BandProfile.getRatingTier = getRatingTier;
 
 module.exports = BandProfile;
