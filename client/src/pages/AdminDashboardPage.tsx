@@ -53,7 +53,6 @@ interface AdminBandRecord {
   userEmail?: string
   isActive?: boolean
   createdAt?: string
-  customTag?: string | null
   profilePhotoUrl?: string | null
   coverPhotoUrl?: string | null
   instagramHandle?: string | null
@@ -333,7 +332,6 @@ export const AdminDashboardPage: React.FC = () => {
           campus: editingBand.campus,
           budgetMin: editingBand.budgetMin,
           budgetMax: editingBand.budgetMax,
-          customTag: editingBand.customTag,
           profilePhotoUrl: editingBand.profilePhotoUrl,
           coverPhotoUrl: editingBand.coverPhotoUrl,
           instagramHandle: editingBand.instagramHandle,
@@ -1212,7 +1210,7 @@ export const AdminDashboardPage: React.FC = () => {
                                     }
                                   }}
                                   className="px-2.5 py-1.5 rounded-lg bg-[#FFD166]/10 text-[#FFD166] border border-[#FFD166]/40 hover:bg-[#FFD166] hover:text-black font-mono text-[11px] uppercase transition-all min-h-[44px] whitespace-nowrap cursor-pointer inline-flex items-center gap-1 font-bold"
-                                  title="Super Admin: Ubah status, tag, harga dan profil band"
+                                  title="Super Admin: Ubah status akun, harga dan profil band"
                                 >
                                   <Edit3 className="w-3 h-3" />
                                   <span>Kontrol Band</span>
@@ -1683,7 +1681,7 @@ export const AdminDashboardPage: React.FC = () => {
                   KONTROL LENGKAP MUSISI &amp; HARGA
                 </h2>
                 <p className="text-xs text-[#808080] font-sans">
-                  Akun Administrator memiliki kuasa penuh mengubah nama, genre, label tag, status keaktifan, afiliasi kampus, rider, dan tarif panggung musisi.
+                  Akun Administrator memiliki kuasa penuh mengubah nama, genre, status keaktifan, afiliasi kampus, rider, dan tarif panggung musisi.
                 </p>
               </div>
 
@@ -1726,7 +1724,6 @@ export const AdminDashboardPage: React.FC = () => {
                     <th className="py-3 px-4">Musisi &amp; Kontak</th>
                     <th className="py-3 px-4">Genre &amp; Domisili</th>
                     <th className="py-3 px-4">Afiliasi Kampus</th>
-                    <th className="py-3 px-4">Tag / Label</th>
                     <th className="py-3 px-4">Estimasi Tarif</th>
                     <th className="py-3 px-4">Status Akun</th>
                     <th className="py-3 px-4 text-right">Otoritas Admin</th>
@@ -1770,16 +1767,6 @@ export const AdminDashboardPage: React.FC = () => {
                               </span>
                             ) : (
                               <span className="text-[#555] font-mono text-[11px]">Bebas Kampus</span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            {b.customTag ? (
-                              <span className="font-mono text-[10px] uppercase font-bold text-[#00D9FF] bg-[#00D9FF]/10 px-2.5 py-1 rounded border border-[#00D9FF]/30 inline-flex items-center gap-1">
-                                <span>✨</span>
-                                <span>{b.customTag}</span>
-                              </span>
-                            ) : (
-                              <span className="text-[#666] font-mono text-[11px]">-</span>
                             )}
                           </td>
                           <td className="py-3.5 px-4">
@@ -1926,47 +1913,6 @@ export const AdminDashboardPage: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                  </div>
-
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <label className="font-mono text-xs uppercase tracking-wider text-[#00D9FF] block font-bold flex items-center gap-1.5">
-                      <span>✨</span>
-                      <span>TAG / LABEL KHUSUS MUSISI:</span>
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        value={editingBand.customTag || ''}
-                        onChange={(e) => setEditingBand({ ...editingBand, customTag: e.target.value })}
-                        placeholder="Contoh: Baru Ditambahkan, Terkurasi, Pilihan Editor"
-                        className="flex-1 bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#00D9FF] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
-                      />
-                      <div className="flex gap-1.5 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => setEditingBand({ ...editingBand, customTag: 'Band Baru Ditambahkan' })}
-                          className="px-2.5 py-1.5 bg-[#00D9FF]/10 hover:bg-[#00D9FF]/20 text-[#00D9FF] border border-[#00D9FF]/40 text-[10px] font-mono uppercase font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
-                        >
-                          + Band Baru Ditambahkan
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingBand({ ...editingBand, customTag: 'Terkurasi' })}
-                          className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/20 text-[10px] font-mono uppercase font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
-                        >
-                          Terkurasi
-                        </button>
-                        {editingBand.customTag && (
-                          <button
-                            type="button"
-                            onClick={() => setEditingBand({ ...editingBand, customTag: null })}
-                            className="px-2.5 py-1.5 bg-[#E01E37]/10 hover:bg-[#E01E37]/20 text-[#FF4D6D] border border-[#E01E37]/40 text-[10px] font-mono uppercase font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
-                          >
-                            Hapus Tag
-                          </button>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </div>
 

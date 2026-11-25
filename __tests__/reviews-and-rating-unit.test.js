@@ -3,7 +3,7 @@ const app = require('../app');
 const { getMemoryDb } = require('../utils/memoryDb');
 const BandProfile = require('../models/BandProfile');
 
-describe('Band Custom Tag, Platform Settings, and Super Admin Authority Unit Tests', () => {
+describe('Platform Settings, Removed Endpoints, and Super Admin Authority Unit Tests', () => {
   let pool;
 
   beforeAll(async () => {
@@ -20,12 +20,13 @@ describe('Band Custom Tag, Platform Settings, and Super Admin Authority Unit Tes
     expect(schedulesRes.status).toBe(404);
   });
 
-  test('Band profile loads without deprecated rating fields', async () => {
+  test('Band profile loads without deprecated rating or customTag fields', async () => {
     const band = await BandProfile.findById(1);
     expect(band).not.toBeNull();
     expect(band.rating).toBeUndefined();
     expect(band.ratingTier).toBeUndefined();
     expect(band.ratingOverride).toBeUndefined();
+    expect(band.customTag).toBeUndefined();
     expect(band.budgetMin).toBeDefined();
     expect(band.budgetMax).toBeDefined();
   });
@@ -51,30 +52,7 @@ describe('Band Custom Tag, Platform Settings, and Super Admin Authority Unit Tes
     expect(finalRes.rows[0].value).toBe('false');
   });
 
-  test('Newly created band accounts default to tag Band Baru Ditambahkan', async () => {
-    const userRes = await pool.query(
-      `INSERT INTO users (email, password_hash, account_type) VALUES ('newband@test.com', 'hash', 'band') RETURNING id`
-    );
-    const userId = userRes.rows[0].id;
-
-    const newBand = await BandProfile.create({
-      userId,
-      bandName: 'Band Pendatang Baru',
-      genre: 'Indie Rock',
-      locationCity: 'Semarang'
-    });
-
-    expect(newBand).toBeDefined();
-    expect(newBand.bandName).toBe('Band Pendatang Baru');
-    expect(newBand.customTag).toBe('Band Baru Ditambahkan');
-    expect(newBand.rating).toBeUndefined();
-    expect(newBand.ratingTier).toBeUndefined();
-
-    const fetched = await BandProfile.findById(newBand.id);
-    expect(fetched.customTag).toBe('Band Baru Ditambahkan');
-  });
-
-  test('Super Admin has full authority to edit tag, budget, rider, and contact without rating fields', async () => {
+  test('Super Admin has full authority to edit band budget, campus, rider, and contact', async () => {
     const userRes = await pool.query(
       `INSERT INTO users (email, password_hash, account_type) VALUES ('adminedit@test.com', 'hash', 'band') RETURNING id`
     );
@@ -86,7 +64,7 @@ describe('Band Custom Tag, Platform Settings, and Super Admin Authority Unit Tes
       locationCity: 'Yogyakarta'
     });
 
-    expect(band.customTag).toBe('Band Baru Ditambahkan');
+    expect(band.customTag).toBeUndefined();
 
     const updated = await BandProfile.update(band.id, {
       bandName: 'Band Modifikasi Admin Super',
@@ -98,7 +76,6 @@ describe('Band Custom Tag, Platform Settings, and Super Admin Authority Unit Tes
       budgetMin: 3500000,
       budgetMax: 7000000,
       phone: '+6281234567890',
-      customTag: 'Terkurasi',
       instagramHandle: '@superjazz',
       spotifyUrl: 'https://spotify.com/artist/jazz',
       youtubeUrl: 'https://youtube.com/@jazz',
@@ -113,17 +90,12 @@ describe('Band Custom Tag, Platform Settings, and Super Admin Authority Unit Tes
     expect(updated.genre).toBe('Modern Fusion Jazz');
     expect(updated.locationCity).toBe('Surakarta');
     expect(updated.campus).toBe('UGM');
-    expect(updated.customTag).toBe('Terkurasi');
+    expect(updated.customTag).toBeUndefined();
     expect(updated.budgetMin).toBe(3500000);
     expect(updated.budgetMax).toBe(7000000);
     expect(updated.phone).toBe('+6281234567890');
     expect(updated.instagramHandle).toBe('@superjazz');
     expect(updated.riderChannelInputs).toBe('16 Channel Audio Input');
     expect(updated.riderSoundSystem).toBe('5000 Watt FOH Line Array');
-
-    const tagCleared = await BandProfile.update(band.id, {
-      customTag: null
-    });
-    expect(tagCleared.customTag).toBeNull();
   });
 });

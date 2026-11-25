@@ -49,7 +49,6 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   spotify_url VARCHAR(500),
   tiktok_url VARCHAR(500),
   stage_visual_post_id INTEGER,
-  custom_tag VARCHAR(100) DEFAULT 'Band Baru Ditambahkan',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -199,7 +198,8 @@ INSERT INTO pgmigrations (name, run_on) VALUES
   ('1701000000008_add-rider-and-socials-to-band-profiles', NOW()),
   ('1701000000009_create-job-broadcasts-table', NOW()),
   ('1701000000010_create_reviews_campuses_and_add_band_profile_fields', NOW()),
-  ('1701000000011_drop-reviews-ratings-and-schedules', NOW())
+  ('1701000000011_drop-reviews-ratings-and-schedules', NOW()),
+  ('1701000000012_drop-custom-tag-from-band-profiles', NOW())
 ON CONFLICT DO NOTHING;
 
 -- ========================================================

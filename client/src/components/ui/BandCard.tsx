@@ -114,14 +114,8 @@ export const BandCard: React.FC<BandCardProps> = ({
         {/* Subtle Vignette Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-black/50 pointer-events-none" />
 
-        {/* Floating Top Badges (Tag Baru, Genre, City, and Campus Label) */}
+        {/* Floating Top Badges (Genre, City, and Campus Label) */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10 pointer-events-none flex-wrap max-w-[80%]">
-          {band.customTag && (
-            <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-black bg-[#00D9FF] px-2.5 py-1 font-bold select-none shadow-md flex items-center gap-1">
-              <span>✨</span>
-              <span>{band.customTag}</span>
-            </span>
-          )}
           <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-white bg-[#E01E37] px-2.5 py-1 font-bold select-none shadow-md">
             {resolvedAccentTag}
           </span>
@@ -176,24 +170,16 @@ export const BandCard: React.FC<BandCardProps> = ({
         className="flex-1 flex flex-col justify-between p-5 text-inherit no-underline space-y-4"
       >
         <div className="space-y-2">
-          {/* Custom Tag & Campus Badges */}
-          {(band.customTag || (band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin'))) && (
+          {/* Campus Badge (Admin-controlled visibility) */}
+          {band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin') && (
             <div className="flex items-center gap-2 flex-wrap">
-              {band.customTag && (
-                <span className="font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 font-bold rounded bg-[#00D9FF]/15 border border-[#00D9FF]/40 text-[#00D9FF] flex items-center gap-1">
-                  <span>✨</span>
-                  <span>{band.customTag}</span>
-                </span>
-              )}
-              {band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin') && (
-                <span className="font-mono text-[10px] uppercase tracking-wider text-[#FFD166] bg-black/70 border border-[#FFD166]/40 px-2 py-0.5 font-bold rounded flex items-center gap-1">
-                  <span>🎓</span>
-                  <span>{band.campus}</span>
-                  {!showCampusAffiliation && currentUser?.accountType === 'admin' && (
-                    <span className="text-[9px] text-[#888] font-mono">(Admin Only)</span>
-                  )}
-                </span>
-              )}
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[#FFD166] bg-black/70 border border-[#FFD166]/40 px-2 py-0.5 font-bold rounded flex items-center gap-1">
+                <span>🎓</span>
+                <span>{band.campus}</span>
+                {!showCampusAffiliation && currentUser?.accountType === 'admin' && (
+                  <span className="text-[9px] text-[#888] font-mono">(Admin Only)</span>
+                )}
+              </span>
             </div>
           )}
 

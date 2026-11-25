@@ -355,7 +355,7 @@ describe('QA Band Audit Regression Fixes', () => {
         locationCity: 'Kota Semarang',
       });
       createdProfileIds.push(profile.id);
-      expect(profile.customTag).toBe('Band Baru Ditambahkan');
+      expect(profile.customTag).toBeUndefined();
 
       await db.query(
         `INSERT INTO connections (organizer_user_id, band_profile_id, connection_type, event_name, status, notes)

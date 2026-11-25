@@ -876,24 +876,9 @@ export const BandDashboardPage: React.FC = () => {
 
             {/* Bottom Bar: 3 Metrics Columns & Pill Buttons */}
             <div className="border-t border-[#222222] mt-6 pt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-              {/* Left: 3 Metrics separated by vertical line dividers */}
+              {/* Left: Metrics separated by vertical line divider */}
               <div className="flex items-center gap-5 sm:gap-8 flex-wrap">
-                {/* Metric 1: Status Profil & Tag */}
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs sm:text-sm font-bold uppercase tracking-wider px-3 py-1 rounded border bg-[#00D9FF]/15 border-[#00D9FF] text-[#00D9FF] flex items-center gap-1">
-                      <span>✨</span>
-                      <span>{profile?.customTag || 'Profil Aktif'}</span>
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#9E9E9E] block mt-1">
-                    status profil
-                  </span>
-                </div>
-
-                <div className="w-px h-8 bg-[#2A2A2A] hidden sm:block" />
-
-                {/* Metric 2: Profil Views */}
+                {/* Metric 1: Profil Views */}
                 <div>
                   <div className="text-white font-display text-xl sm:text-2xl tracking-wide">
                     {(stats?.totalViews ?? 0).toLocaleString('id-ID')}

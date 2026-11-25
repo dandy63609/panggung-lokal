@@ -251,8 +251,7 @@ router.post('/profile', requireBand, async (req, res) => {
       riderChannelInputs,
       riderSoundSystem,
       riderInstruments,
-      riderHospitality,
-      customTag: req.body.customTag || 'Band Baru Ditambahkan'
+      riderHospitality
     });
 
     return res.status(201).json({

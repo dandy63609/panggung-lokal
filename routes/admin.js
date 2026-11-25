@@ -538,8 +538,6 @@ router.get('/bands', async (req, res) => {
     `);
 
     const bands = result.rows.map(row => {
-      const customTag = row.custom_tag ? String(row.custom_tag).trim() : null;
-
       return {
         id: row.id,
         userId: row.user_id,
@@ -564,7 +562,6 @@ router.get('/bands', async (req, res) => {
         riderInstruments: row.rider_instruments,
         riderHospitality: row.rider_hospitality,
         riderItems: row.rider_items,
-        customTag: customTag,
         profileViews: row.profile_views || 0,
         userEmail: row.user_email,
         isActive: Boolean(row.user_is_active),
@@ -610,7 +607,6 @@ router.put('/bands/:id', async (req, res) => {
       budgetMin,
       budgetMax,
       phone,
-      customTag,
       profilePhotoUrl,
       coverPhotoUrl,
       instagramHandle,
@@ -676,10 +672,6 @@ router.put('/bands/:id', async (req, res) => {
     if (phone !== undefined) {
       fields.push(`phone = $${idx++}`);
       values.push(phone ? String(phone).trim() : null);
-    }
-    if (customTag !== undefined) {
-      fields.push(`custom_tag = $${idx++}`);
-      values.push(customTag !== null && String(customTag).trim() ? String(customTag).trim() : null);
     }
     if (profilePhotoUrl !== undefined) {
       fields.push(`profile_photo_url = $${idx++}`);
@@ -757,7 +749,6 @@ router.put('/bands/:id', async (req, res) => {
         budgetMin: updated.budget_min,
         budgetMax: updated.budget_max,
         phone: updated.phone,
-        customTag: updated.custom_tag || null,
         profilePhotoUrl: updated.profile_photo_url || null,
         coverPhotoUrl: updated.cover_photo_url || null,
         instagramHandle: updated.instagram_handle || null,

@@ -79,11 +79,6 @@ class BandProfile {
     this.profileViews = data.profile_views || 0;
     this.stageVisualPostId = data.stage_visual_post_id ? Number(data.stage_visual_post_id) : null;
 
-    // Custom Tag / Badge (manually managed by Admin, defaults to 'Band Baru Ditambahkan' on create)
-    this.customTag = (data.custom_tag !== undefined && data.custom_tag !== null && String(data.custom_tag).trim())
-      ? String(data.custom_tag).trim()
-      : (data.customTag !== undefined && data.customTag !== null && String(data.customTag).trim() ? String(data.customTag).trim() : null);
-
     this.createdAt = data.created_at;
     this.updatedAt = data.updated_at;
   }
@@ -167,10 +162,7 @@ class BandProfile {
         bandName: (overrides.bandName && String(overrides.bandName).trim()) || fallbackName,
         genre: (overrides.genre && String(overrides.genre).trim()) || 'Indie / Pop',
         locationCity: (overrides.locationCity && String(overrides.locationCity).trim()) || 'Kota Semarang',
-        bio: overrides.bio !== undefined ? overrides.bio : 'Profil band baru di Reffband',
-        ratingAverage: 2.5,
-        ratingCount: 0,
-        customTag: overrides.customTag || 'Band Baru Ditambahkan'
+        bio: overrides.bio !== undefined ? overrides.bio : 'Profil band baru di Reffband'
       });
     } catch {
       return this.findByUserId(user.id);
@@ -186,10 +178,6 @@ class BandProfile {
       riderItemsJson = typeof data.riderItems === 'string' ? data.riderItems : JSON.stringify(data.riderItems);
     }
 
-    const customTag = data.customTag !== undefined
-      ? (data.customTag ? String(data.customTag).trim() : null)
-      : 'Band Baru Ditambahkan';
-
     const result = await db.query(
       `INSERT INTO band_profiles (
         user_id, band_name, genre, location_city, location_region, 
@@ -197,8 +185,8 @@ class BandProfile {
         phone, instagram_handle, facebook_url, youtube_url,
         spotify_url, tiktok_url,
         rider_channel_inputs, rider_sound_system, rider_instruments, rider_hospitality,
-        rider_items, custom_tag
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+        rider_items
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
       RETURNING *`,
       [
         data.userId,
@@ -221,8 +209,7 @@ class BandProfile {
         data.riderSoundSystem || null,
         data.riderInstruments || null,
         data.riderHospitality || null,
-        riderItemsJson,
-        customTag
+        riderItemsJson
       ]
     );
     return new BandProfile(result.rows[0]);
@@ -285,7 +272,6 @@ class BandProfile {
       ['rider_hospitality', riderHosp],
       ['rider_items', riderItemsJson],
       ['stage_visual_post_id', data.stageVisualPostId !== undefined ? (data.stageVisualPostId ? Number(data.stageVisualPostId) : null) : undefined],
-      ['custom_tag', data.customTag !== undefined ? (data.customTag ? String(data.customTag).trim() : null) : undefined],
     ];
 
     for (const [col, val] of map) {

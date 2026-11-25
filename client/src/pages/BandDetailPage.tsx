@@ -635,12 +635,6 @@ export const BandDetailPage: React.FC = () => {
 
               {/* Status Badges */}
               <div className="flex items-center gap-2 flex-wrap">
-                {band.customTag && (
-                  <span className="font-mono text-[11px] uppercase tracking-wider text-black bg-[#00D9FF] px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full shadow-sm">
-                    <span>✨</span>
-                    <span>{band.customTag}</span>
-                  </span>
-                )}
                 <span className="font-mono text-[11px] uppercase tracking-wider text-white bg-[#E01E37] px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                   TOP BAND TERKURASI
@@ -658,14 +652,6 @@ export const BandDetailPage: React.FC = () => {
                   {band.bandName}
                 </h1>
 
-                {band.customTag && (
-                  <div className="flex items-center gap-3 flex-wrap pt-0.5">
-                    <span className="font-mono text-xs font-bold px-3 py-1 rounded border uppercase tracking-wider bg-[#00D9FF]/15 border-[#00D9FF] text-[#00D9FF] flex items-center gap-1">
-                      <span>✨</span>
-                      <span>{band.customTag}</span>
-                    </span>
-                  </div>
-                )}
                 <p className="text-sm text-[#CCCCCC] font-sans leading-relaxed">
                   {band.bio || 'Unit musisi terverifikasi siap tampil untuk panggung live festival, gig intim, dan pementasan kampus.'}
                 </p>
@@ -796,21 +782,9 @@ export const BandDetailPage: React.FC = () => {
 
             {/* Bottom Bar: 3 Metrics Columns & Pill Action Buttons */}
             <div className="border-t border-[#222222] mt-6 pt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-              {/* 3 Metrics separated by vertical line dividers */}
+              {/* Metrics separated by vertical line divider */}
               <div className="flex items-center gap-5 sm:gap-8 flex-wrap">
-                {/* Metric 1: Profile Tag / Curation Status */}
-                <div>
-                  <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide uppercase">
-                    <span>{band.customTag || 'TERKURASI'}</span>
-                  </div>
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#9E9E9E] block mt-0.5">
-                    STATUS PROFIL
-                  </span>
-                </div>
-
-                <div className="w-px h-8 bg-[#2A2A2A] hidden sm:block" />
-
-                {/* Metric 2: Live Set Duration */}
+                {/* Metric 1: Live Set Duration */}
                 <div>
                   <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
                     <Clock className="w-4 h-4 text-white/80" />
