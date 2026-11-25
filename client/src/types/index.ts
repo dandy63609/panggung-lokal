@@ -50,6 +50,7 @@ export interface Band {
   bio?: string
   budgetMin?: number | null
   budgetMax?: number | null
+  setDuration?: string | null
   profilePhotoUrl?: string
   coverPhotoUrl?: string
   phone?: string

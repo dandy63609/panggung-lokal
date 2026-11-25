@@ -549,6 +549,7 @@ router.get('/bands', async (req, res) => {
         bio: row.bio,
         budgetMin: row.budget_min,
         budgetMax: row.budget_max,
+        setDuration: row.set_duration || null,
         profilePhotoUrl: row.profile_photo_url,
         coverPhotoUrl: row.cover_photo_url,
         phone: row.phone,
@@ -606,6 +607,7 @@ router.put('/bands/:id', async (req, res) => {
       bio,
       budgetMin,
       budgetMax,
+      setDuration,
       phone,
       profilePhotoUrl,
       coverPhotoUrl,
@@ -668,6 +670,10 @@ router.put('/bands/:id', async (req, res) => {
     if (budgetMax !== undefined) {
       fields.push(`budget_max = $${idx++}`);
       values.push(budgetMax ? parseInt(String(budgetMax), 10) : 0);
+    }
+    if (setDuration !== undefined) {
+      fields.push(`set_duration = $${idx++}`);
+      values.push(setDuration && String(setDuration).trim() ? String(setDuration).trim().slice(0, 100) : null);
     }
     if (phone !== undefined) {
       fields.push(`phone = $${idx++}`);
@@ -748,6 +754,7 @@ router.put('/bands/:id', async (req, res) => {
         bio: updated.bio,
         budgetMin: updated.budget_min,
         budgetMax: updated.budget_max,
+        setDuration: updated.set_duration || null,
         phone: updated.phone,
         profilePhotoUrl: updated.profile_photo_url || null,
         coverPhotoUrl: updated.cover_photo_url || null,

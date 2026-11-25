@@ -48,6 +48,7 @@ interface AdminBandRecord {
   bio?: string
   budgetMin?: number
   budgetMax?: number
+  setDuration?: string | null
   phone?: string
   profileViews?: number
   userEmail?: string
@@ -332,6 +333,7 @@ export const AdminDashboardPage: React.FC = () => {
           campus: editingBand.campus,
           budgetMin: editingBand.budgetMin,
           budgetMax: editingBand.budgetMax,
+          setDuration: editingBand.setDuration,
           profilePhotoUrl: editingBand.profilePhotoUrl,
           coverPhotoUrl: editingBand.coverPhotoUrl,
           instagramHandle: editingBand.instagramHandle,
@@ -1969,6 +1971,21 @@ export const AdminDashboardPage: React.FC = () => {
                       {editingBand.budgetMax ? formatRupiah(editingBand.budgetMax) : 'Rp 0'}
                     </span>
                   </div>
+                </div>
+
+                {/* Durasi Live Set */}
+                <div className="space-y-1.5">
+                  <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                    DURASI LIVE SET (PER SET):
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={100}
+                    value={editingBand.setDuration || ''}
+                    onChange={(e) => setEditingBand({ ...editingBand, setDuration: e.target.value })}
+                    placeholder="Contoh: 45 - 60 Menit"
+                    className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                  />
                 </div>
 
                 {/* 4. Phone & Active Status */}

@@ -48,7 +48,7 @@ const TABLE_COLUMNS = {
   users: ['id', 'email', 'password_hash', 'account_type', 'google_id', 'auth_provider', 'created_at', 'last_login', 'is_active'],
   band_profiles: [
     'id', 'user_id', 'band_name', 'genre', 'location_city', 'location_region', 'campus', 'bio',
-    'budget_min', 'budget_max', 'profile_photo_url', 'cover_photo_url', 'phone',
+    'budget_min', 'budget_max', 'set_duration', 'profile_photo_url', 'cover_photo_url', 'phone',
     'instagram_handle', 'facebook_url', 'youtube_url', 'profile_views',
     'rider_channel_inputs', 'rider_sound_system', 'rider_instruments', 'rider_hospitality',
     'rider_items', 'spotify_url', 'tiktok_url', 'stage_visual_post_id',
@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS band_profiles (
   bio TEXT,
   budget_min INTEGER,
   budget_max INTEGER,
+  set_duration VARCHAR(100),
   profile_photo_url VARCHAR(500),
   cover_photo_url VARCHAR(500),
   phone VARCHAR(50),

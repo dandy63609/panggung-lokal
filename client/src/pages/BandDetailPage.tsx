@@ -58,7 +58,6 @@ export const BandDetailPage: React.FC = () => {
   const { id: routeId } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
 
-  const [activeAccordion, setActiveAccordion] = useState<'specs' | 'kit' | 'hospitality'>('kit')
   const [setQuantity, setSetQuantity] = useState<number>(1)
   const [activeSlide, setActiveSlide] = useState<number>(0)
   const [isOrderModalOpen, setIsOrderModalOpen] = useState<boolean>(false)
@@ -400,10 +399,11 @@ export const BandDetailPage: React.FC = () => {
     }
     const rateLabel = hasFixedRate ? formatRupiah(totalPrice) : 'Negosiasi'
     const eventLabel = eventName ? `- Acara: ${eventName}\n` : ''
+    const durationSuffix = band.setDuration?.trim() ? ` (${band.setDuration.trim()} / set)` : ''
     const message = encodeURIComponent(
       `Halo Management ${band.bandName}, kami dari Event Organizer ingin mengajukan penawaran penampilan panggung melalui Reffband:\n` +
       eventLabel +
-      `- Durasi: ${setQuantity} Set Performance\n` +
+      `- Durasi: ${setQuantity} Set Performance${durationSuffix}\n` +
       `- Estimasi Rate: ${rateLabel}\n` +
       `Mohon informasi ketersediaan serta konfirmasi spesifikasi technical rider panggung Anda. Terima kasih!`
     )
@@ -420,29 +420,15 @@ export const BandDetailPage: React.FC = () => {
     }
   }
 
-  // Fallback / Customizable Rider items
+  // Only display technical rider items explicitly set by the band
   const displayRiderItems: RiderItem[] = useMemo(() => {
-    if (band?.riderItems && band.riderItems.length > 0) {
-      return band.riderItems
+    if (!band) return []
+    if (Array.isArray(band.riderItems)) {
+      return band.riderItems.filter(
+        (item) => item && (item.title?.trim() || item.description?.trim())
+      )
     }
-    return [
-      {
-        title: 'FOH Mixer & Audio Console',
-        description: 'Digital console min 16-channel (Yamaha QL/CL series, Behringer X32, or Allen & Heath)',
-      },
-      {
-        title: 'Monitor Panggung & IEM System',
-        description: '4 Independent AUX Wedge mixes + 2 Wireless IEM transmitter feeds',
-      },
-      {
-        title: 'Mikrofon & Wireless Transmitters',
-        description: 'Shure SM58 wireless untuk vokal utama, Shure SM57 untuk cabinet & perkusi',
-      },
-      {
-        title: 'Kelistrikan & Power Distribution',
-        description: 'Dedicated isolated power 220V dengan grounded stabilizer khusus panggung audio',
-      },
-    ]
+    return []
   }, [band])
 
   if (loadingBand && !band) {
@@ -793,9 +779,9 @@ export const BandDetailPage: React.FC = () => {
               <div className="flex items-center gap-5 sm:gap-8 flex-wrap">
                 {/* Metric 1: Live Set Duration */}
                 <div>
-                  <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
+                  <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide uppercase">
                     <Clock className="w-4 h-4 text-white/80" />
-                    <span>45 - 60 MENIT</span>
+                    <span>{band.setDuration?.trim() || 'Belum diatur'}</span>
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
                     DURASI LIVE SET
@@ -1004,99 +990,55 @@ export const BandDetailPage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Technical Rider Items (Customizable list from band dashboard) */}
+              {/* Technical Rider Items (Only items explicitly configured by the band) */}
               <div className="space-y-3">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-[#777] block font-bold">
                   KEBUTUHAN PERALATAN & RIDER RESMI
                 </span>
-                <div className="space-y-2.5">
-                  {displayRiderItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-[#0C0C0C] border border-[#222222] p-3.5 rounded-xl space-y-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs text-white font-bold uppercase flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#E01E37]" />
-                          {item.title}
-                        </span>
-                        <span className="font-mono text-[10px] text-[#666]">#0{idx + 1}</span>
+                {displayRiderItems.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {displayRiderItems.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-[#0C0C0C] border border-[#222222] p-3.5 rounded-xl space-y-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-xs text-white font-bold uppercase flex items-center gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#E01E37] shrink-0" />
+                            {item.title}
+                          </span>
+                          <span className="font-mono text-[10px] text-[#666]">#{String(idx + 1).padStart(2, '0')}</span>
+                        </div>
+                        {item.description?.trim() && (
+                          <p className="text-xs text-[#A8A8A8] font-sans pl-5.5 leading-relaxed whitespace-pre-wrap">
+                            {item.description}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-xs text-[#A8A8A8] font-sans pl-5.5 leading-relaxed">
-                        {item.description}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-[#0C0C0C] border border-[#222222] rounded-xl p-6 text-center space-y-3">
+                    <Sliders className="w-7 h-7 text-[#555555] mx-auto" aria-hidden="true" />
+                    <div className="space-y-1">
+                      <p className="font-mono text-xs font-bold uppercase text-white">
+                        Rider Teknis Belum Diatur Band
+                      </p>
+                      <p className="text-xs text-[#8A8A8A] font-sans leading-relaxed max-w-sm mx-auto">
+                        Band belum menuliskan daftar kebutuhan peralatan panggung. Diskusikan kebutuhan teknis langsung bersama manajemen band saat booking.
                       </p>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Accordion: Specs Tambahan & Hospitality */}
-              <div className="space-y-2 border-t border-[#1E1E1E] pt-4">
-
-                {/* ACCORDION 1: KONSOL & CHANNEL FOH */}
-                <div className="border border-[#202020] bg-[#0C0C0C] rounded-xl overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setActiveAccordion(activeAccordion === 'specs' ? 'kit' : 'specs')}
-                    className="w-full min-h-[44px] px-4 py-3 flex items-center justify-between text-left font-mono text-xs uppercase tracking-widest text-white hover:text-[#E01E37] transition-colors"
-                  >
-                    <span>DETAIL TEKNIS INPUT CHANNEL & SOUND SYSTEM</span>
-                    <span className="text-[#E01E37]">
-                      {activeAccordion === 'specs' ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                    </span>
-                  </button>
-                  {activeAccordion === 'specs' && (
-                    <div className="px-4 pb-4 pt-1 border-t border-[#1C1C1C] space-y-2.5 font-mono text-xs">
-                      <div className="flex justify-between py-1 border-b border-[#181818]">
-                        <span className="text-[#757575] uppercase">INPUT CHANNELS FOH</span>
-                        <span className="text-white font-medium uppercase">{band.riderChannelInputs || '16 Channels Analog/Digital'}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-[#181818]">
-                        <span className="text-[#757575] uppercase">KAPASITAS SOUND SYSTEM FOH</span>
-                        <span className="text-white font-medium uppercase">{band.riderSoundSystem || 'MIN. 10.000 WATT'}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-[#181818]">
-                        <span className="text-[#757575] uppercase">DURASI SOUNDCHECK</span>
-                        <span className="text-white font-medium uppercase">30 - 45 MENIT SEBELUM OPEN GATE</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-[#757575] uppercase">KABEL & DIRECT BOX (DI)</span>
-                        <span className="text-white font-medium uppercase">SEDIAKAN MINIMAL 4 UNIT PASSIVE/ACTIVE DI BOX</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* ACCORDION 2: HOSPITALITY & RUANG TUNGGU */}
-                <div className="border border-[#202020] bg-[#0C0C0C] rounded-xl overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setActiveAccordion(activeAccordion === 'hospitality' ? 'kit' : 'hospitality')}
-                    className="w-full min-h-[44px] px-4 py-3 flex items-center justify-between text-left font-mono text-xs uppercase tracking-widest text-white hover:text-[#E01E37] transition-colors"
-                  >
-                    <span>HOSPITALITY, RUANG TRANSIT & LOGISTIK</span>
-                    <span className="text-[#E01E37]">
-                      {activeAccordion === 'hospitality' ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                    </span>
-                  </button>
-                  {activeAccordion === 'hospitality' && (
-                    <div className="px-4 pb-4 pt-1 border-t border-[#1C1C1C] space-y-2.5 font-mono text-xs">
-                      <div className="flex flex-col sm:flex-row sm:justify-between py-1 border-b border-[#181818] gap-1">
-                        <span className="text-[#757575] uppercase">RUANG TRANSIT PRIVAT</span>
-                        <span className="text-white font-medium uppercase text-right">Ruangan privat ber-AC dengan cermin & stopkontak aman</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:justify-between py-1 border-b border-[#181818] gap-1">
-                        <span className="text-[#757575] uppercase">KONSUMSI & REFRESHMENT</span>
-                        <span className="text-white font-medium uppercase text-right">Air mineral botol, kopi/teh hangat, & snack kru</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:justify-between py-1 gap-1">
-                        <span className="text-[#757575] uppercase">TRANSPORTASI LUAR KOTA</span>
-                        <span className="text-white font-medium uppercase text-right">Akomodasi hotel min. bintang 3 & transportasi darat resmi</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
+                    {canManage && (
+                      <Link
+                        to="/dashboard-band?tab=rider"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1C1C1C] hover:bg-[#282828] border border-[#333333] hover:border-[#E01E37] text-white font-mono text-[11px] uppercase font-bold tracking-wider min-h-[40px] transition-colors"
+                      >
+                        <Sliders className="w-3.5 h-3.5 text-[#E01E37]" />
+                        <span>Atur Technical Rider</span>
+                      </Link>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

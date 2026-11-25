@@ -136,5 +136,48 @@ describe('Platform Settings, Removed Endpoints, and Super Admin Authority Unit T
 
     expect(profileRes.body.data.locationCity).toBe('Kota Bandung');
     expect(profileRes.body.data.locationRegion).toBe('Jawa Barat');
+    expect(profileRes.body.data.riderItems).toEqual([]);
+    expect(profileRes.body.data.setDuration).toBeNull();
+
+    // Update setDuration via Edit Profil without touching riderItems
+    const updateDurRes = await request(app)
+      .put('/api/bands/profile')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        bandName: `Band Bandung ${suffix}`,
+        genre: 'Indie Rock',
+        locationCity: 'Kota Bandung',
+        setDuration: '60 Menit (12 Lagu)'
+      })
+      .expect(200);
+
+    expect(updateDurRes.body.data.setDuration).toBe('60 Menit (12 Lagu)');
+    expect(updateDurRes.body.data.riderItems).toEqual([]);
+
+    // Set explicit rider items and verify subsequent Edit Profil preserves them
+    const updateRiderRes = await request(app)
+      .put('/api/bands/profile')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        riderItems: [
+          { title: 'Drum Kit', description: 'Yamaha Stage Custom + double pedal' }
+        ]
+      })
+      .expect(200);
+
+    expect(updateRiderRes.body.data.riderItems).toEqual([
+      { title: 'Drum Kit', description: 'Yamaha Stage Custom + double pedal' }
+    ]);
+
+    const editAgainRes = await request(app)
+      .put('/api/bands/profile')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ setDuration: '90 Menit' })
+      .expect(200);
+
+    expect(editAgainRes.body.data.setDuration).toBe('90 Menit');
+    expect(editAgainRes.body.data.riderItems).toEqual([
+      { title: 'Drum Kit', description: 'Yamaha Stage Custom + double pedal' }
+    ]);
   });
 });

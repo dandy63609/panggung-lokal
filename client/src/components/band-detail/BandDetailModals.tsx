@@ -229,7 +229,7 @@ export const PostViewerModal: React.FC<PostViewerModalProps> = ({
 
 interface DirectBookingModalProps {
   isOpen: boolean
-  band: Pick<Band, 'bandName' | 'locationCity' | 'phone'>
+  band: Pick<Band, 'bandName' | 'locationCity' | 'phone' | 'setDuration'>
   setQuantity: number
   totalPrice: number
   currentUser?: AuthUser | null
@@ -313,7 +313,10 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
           </div>
           <div className="flex justify-between py-1 border-b border-[#181818]">
             <span className="text-[#888] uppercase">DURASI PENAMPILAN</span>
-            <span className="text-white font-bold uppercase">{setQuantity} SET PERFORMA</span>
+            <span className="text-white font-bold uppercase">
+              {setQuantity} SET PERFORMA
+              {band.setDuration?.trim() ? ` (${band.setDuration.trim()} / SET)` : ''}
+            </span>
           </div>
           <div className="flex justify-between py-1 border-b border-[#181818]">
             <span className="text-[#888] uppercase">KOTA VENUE</span>

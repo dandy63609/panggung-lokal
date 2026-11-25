@@ -16,6 +16,7 @@ import {
   Sliders,
   DollarSign,
   Globe,
+  Clock,
 } from 'lucide-react'
 import { BAND_GENRE_OPTIONS } from '../../lib/genres'
 import { CityCombobox } from '../ui/CityCombobox'
@@ -49,6 +50,7 @@ export interface EditProfileFormState {
   bio: string
   budgetMin: number
   budgetMax: number
+  setDuration: string
   spotifyUrl: string
   instagramHandle: string
   youtubeUrl: string
@@ -56,6 +58,15 @@ export interface EditProfileFormState {
   profilePhotoUrl?: string
   coverPhotoUrl?: string
 }
+
+const SET_DURATION_PRESETS = [
+  '30 Menit',
+  '45 Menit',
+  '45 - 60 Menit',
+  '60 Menit',
+  '90 Menit',
+  '2 x 45 Menit',
+]
 
 interface UploadMediaModalProps {
   isOpen: boolean
@@ -970,6 +981,48 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     {editForm.budgetMax ? formatRupiah(editForm.budgetMax) : 'Rp 0'}
                   </span>
                 </div>
+              </div>
+
+              {/* Durasi Live Set */}
+              <div className="pt-2 space-y-2.5">
+                <label
+                  htmlFor="edit-set-duration"
+                  className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] font-bold flex items-center gap-1.5"
+                >
+                  <Clock className="w-3.5 h-3.5 text-[#E01E37]" aria-hidden="true" />
+                  <span>Durasi Live Set (Per Set)</span>
+                </label>
+                <input
+                  id="edit-set-duration"
+                  type="text"
+                  maxLength={100}
+                  value={editForm.setDuration}
+                  onChange={(e) => onChange({ ...editForm, setDuration: e.target.value })}
+                  placeholder="Contoh: 45 - 60 Menit atau 60 Menit (10-12 Lagu)"
+                  className="w-full bg-[#181818] border border-[#2E2E2E] focus:border-[#E01E37] text-white text-xs p-3 min-h-[44px] outline-none font-mono"
+                />
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pilihan cepat durasi set">
+                  {SET_DURATION_PRESETS.map((preset) => {
+                    const isSelected = editForm.setDuration.trim().toLowerCase() === preset.toLowerCase()
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => onChange({ ...editForm, setDuration: preset })}
+                        className={`px-3 py-1.5 min-h-[36px] text-[11px] font-mono uppercase tracking-wider border transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#E01E37] border-[#E01E37] text-white font-bold'
+                            : 'bg-[#181818] border-[#2E2E2E] text-[#B0B0B0] hover:border-[#E01E37] hover:text-white'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    )
+                  })}
+                </div>
+                <span className="text-[10px] font-mono text-[#737373] block">
+                  Pilih preset atau ketik durasi tampil band Anda per set. Ditampilkan langsung pada halaman profil publik band.
+                </span>
               </div>
             </div>
 

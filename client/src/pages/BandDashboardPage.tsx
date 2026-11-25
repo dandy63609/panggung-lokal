@@ -21,6 +21,7 @@ import {
   Phone,
   Megaphone,
   Camera,
+  Clock,
   LogOut,
 } from 'lucide-react'
 import { authClient } from '../lib/auth'
@@ -96,6 +97,7 @@ export const BandDashboardPage: React.FC = () => {
     bio: '',
     budgetMin: 0,
     budgetMax: 0,
+    setDuration: '',
     spotifyUrl: '',
     instagramHandle: '',
     youtubeUrl: '',
@@ -125,6 +127,7 @@ export const BandDashboardPage: React.FC = () => {
           bio: res.data.profile.bio || '',
           budgetMin: res.data.profile.budgetMin || 0,
           budgetMax: res.data.profile.budgetMax || 0,
+          setDuration: res.data.profile.setDuration || '',
           spotifyUrl: res.data.profile.spotifyUrl || '',
           instagramHandle: res.data.profile.instagramHandle || '',
           youtubeUrl: res.data.profile.youtubeUrl || '',
@@ -424,6 +427,7 @@ export const BandDashboardPage: React.FC = () => {
       bio: profile?.bio || '',
       budgetMin: profile?.budgetMin || 0,
       budgetMax: profile?.budgetMax || 0,
+      setDuration: profile?.setDuration || '',
       spotifyUrl: profile?.spotifyUrl || '',
       instagramHandle: profile?.instagramHandle || '',
       youtubeUrl: profile?.youtubeUrl || '',
@@ -476,6 +480,7 @@ export const BandDashboardPage: React.FC = () => {
       bio: editForm.bio.trim(),
       budgetMin: parsedBudgetMin,
       budgetMax: parsedBudgetMax,
+      setDuration: editForm.setDuration.trim(),
       spotifyUrl: editForm.spotifyUrl?.trim(),
       instagramHandle: editForm.instagramHandle?.trim(),
       youtubeUrl: editForm.youtubeUrl?.trim(),
@@ -896,6 +901,19 @@ export const BandDashboardPage: React.FC = () => {
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
                     tayangan
+                  </span>
+                </div>
+
+                <div className="w-px h-8 bg-[#2A2A2A] hidden sm:block" />
+
+                {/* Metric 2: Live Set Duration */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
+                    <Clock className="w-4 h-4 text-[#E01E37]" aria-hidden="true" />
+                    <span>{profile?.setDuration?.trim() || 'Belum diatur'}</span>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
+                    durasi live set
                   </span>
                 </div>
 

@@ -28,6 +28,7 @@ class BandProfile {
     this.bio = data.bio;
     this.budgetMin = data.budget_min;
     this.budgetMax = data.budget_max;
+    this.setDuration = data.set_duration || null;
     this.profilePhotoUrl = data.profile_photo_url;
     this.coverPhotoUrl = data.cover_photo_url;
     this.phone = data.phone;
@@ -57,23 +58,23 @@ class BandProfile {
       this.riderItems = parsedRiderItems
         .filter(item => item && typeof item === 'object')
         .map(item => ({
+          title: String(item.title || '').trim(),
+          description: String(item.description || '').trim()
+        }))
+        .filter(item => item.title !== '' || item.description !== '')
+        .map(item => ({
           title: item.title || 'Kebutuhan Panggung',
-          description: item.description || ''
+          description: item.description
         }));
     } else {
       const legacyList = [
-        { title: 'Input Audio Channel', description: this.riderChannelInputs || '' },
-        { title: 'Kebutuhan Sound System', description: this.riderSoundSystem || '' },
-        { title: 'Peralatan & Backline', description: this.riderInstruments || '' },
-        { title: 'Hospitality & Konsumsi', description: this.riderHospitality || '' }
-      ].filter(item => item.description.trim() !== '');
+        { title: 'Input Audio Channel', description: String(this.riderChannelInputs || '').trim() },
+        { title: 'Kebutuhan Sound System', description: String(this.riderSoundSystem || '').trim() },
+        { title: 'Peralatan & Backline', description: String(this.riderInstruments || '').trim() },
+        { title: 'Hospitality & Konsumsi', description: String(this.riderHospitality || '').trim() }
+      ].filter(item => item.description !== '');
 
-      this.riderItems = legacyList.length > 0 ? legacyList : [
-        { title: 'Input Audio Channel', description: 'Dapat dinegosiasikan (Standar 8-16 Channel)' },
-        { title: 'Kebutuhan Sound System', description: 'FOH PA System & Active Stage Monitor standar venue' },
-        { title: 'Peralatan & Backline', description: 'Musisi membawa instrumen utama. Venue menyediakan drum kit dan amplifier.' },
-        { title: 'Hospitality & Konsumsi', description: 'Ruang tunggu bersih, air mineral botol, konsumsi tim/kru.' }
-      ];
+      this.riderItems = legacyList;
     }
 
     this.profileViews = data.profile_views || 0;
@@ -181,12 +182,12 @@ class BandProfile {
     const result = await db.query(
       `INSERT INTO band_profiles (
         user_id, band_name, genre, location_city, location_region, 
-        bio, budget_min, budget_max, profile_photo_url, cover_photo_url, 
+        bio, budget_min, budget_max, set_duration, profile_photo_url, cover_photo_url, 
         phone, instagram_handle, facebook_url, youtube_url,
         spotify_url, tiktok_url,
         rider_channel_inputs, rider_sound_system, rider_instruments, rider_hospitality,
         rider_items
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
       RETURNING *`,
       [
         data.userId,
@@ -197,6 +198,7 @@ class BandProfile {
         data.bio || null,
         data.budgetMin || null,
         data.budgetMax || null,
+        data.setDuration ? String(data.setDuration).trim().slice(0, 100) : null,
         data.profilePhotoUrl || null,
         data.coverPhotoUrl || null,
         data.phone || null,
@@ -219,7 +221,7 @@ class BandProfile {
    * Update band profile
    */
   static async update(id, data) {
-    let riderItemsJson = null;
+    let riderItemsJson = undefined;
     let riderChannel = data.riderChannelInputs;
     let riderSound = data.riderSoundSystem;
     let riderInst = data.riderInstruments;
@@ -234,8 +236,13 @@ class BandProfile {
         const sanitizedItems = items
           .filter(it => it && typeof it === 'object')
           .map(it => ({
-            title: String(it.title || 'Kebutuhan Panggung').trim(),
+            title: String(it.title || '').trim(),
             description: String(it.description || '').trim()
+          }))
+          .filter(it => it.title !== '' || it.description !== '')
+          .map(it => ({
+            title: it.title || 'Kebutuhan Panggung',
+            description: it.description
           }));
         riderItemsJson = JSON.stringify(sanitizedItems);
         if (riderChannel === undefined) riderChannel = sanitizedItems[0] ? sanitizedItems[0].description : '';
@@ -258,6 +265,7 @@ class BandProfile {
       ['bio', data.bio],
       ['budget_min', data.budgetMin],
       ['budget_max', data.budgetMax],
+      ['set_duration', data.setDuration !== undefined ? (data.setDuration ? String(data.setDuration).trim().slice(0, 100) : '') : undefined],
       ['profile_photo_url', data.profilePhotoUrl],
       ['cover_photo_url', data.coverPhotoUrl],
       ['phone', data.phone],

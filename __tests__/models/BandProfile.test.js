@@ -36,6 +36,19 @@ describe('BandProfile Model (Evaluation & Improvement Changes)', () => {
       expect(band.riderInstruments).toBe('Bawa gitar sendiri');
       expect(band.riderHospitality).toBe('Air mineral 2 dus');
     });
+
+    it('should return empty riderItems and null setDuration when band has not configured them', () => {
+      const band = new BandProfile({
+        id: 2,
+        user_id: 11,
+        band_name: 'Minimal Band',
+        genre: 'Pop',
+        location_city: 'Kota Bandung'
+      });
+
+      expect(band.riderItems).toEqual([]);
+      expect(band.setDuration).toBeNull();
+    });
   });
 
   describe('getPlatformStats', () => {
