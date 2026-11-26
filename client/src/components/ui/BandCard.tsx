@@ -203,7 +203,7 @@ export const BandCard: React.FC<BandCardProps> = ({
 
           {/* Bio / Description Snippet */}
           <p className="text-xs text-[#A0A0A0] line-clamp-2 leading-relaxed min-h-[32px]">
-            {band.bio || 'Unit musisi terverifikasi siap tampil untuk panggung live festival, gig intim, dan pementasan kampus.'}
+            {band.bio?.trim() || ''}
           </p>
         </div>
 
