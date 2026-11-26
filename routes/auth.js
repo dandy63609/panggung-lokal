@@ -86,7 +86,7 @@ router.post('/register', authLimiter, async (req, res) => {
         genre: genre || 'Indie / Pop',
         locationCity: cleanCity,
         locationRegion: cleanRegion,
-        bio: 'Profil band baru di Reffband'
+        bio: null
       });
     }
 
@@ -394,7 +394,7 @@ router.post('/google', authLimiter, async (req, res) => {
         locationCity: cleanCity,
         locationRegion: cleanRegion,
         profilePhotoUrl: payload.picture || null,
-        bio: 'Profil band baru di Reffband'
+        bio: null
       });
     }
 

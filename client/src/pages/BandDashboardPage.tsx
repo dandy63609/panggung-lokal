@@ -722,14 +722,20 @@ export const BandDashboardPage: React.FC = () => {
             {/* Overlapping Avatar */}
             <div className="-mt-14 sm:-mt-16 mb-4 flex items-end justify-between relative z-10">
               <div className="relative inline-block group/avatar">
-                <img
-                  src={
-                    profile?.profilePhotoUrl ||
-                    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80'
-                  }
-                  alt={profile?.bandName || 'Band Avatar'}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-[#121212] shadow-2xl bg-[#1A1A1A]"
-                />
+                {profile?.profilePhotoUrl?.trim() ? (
+                  <img
+                    src={profile.profilePhotoUrl}
+                    alt={profile?.bandName || 'Band Avatar'}
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-[#121212] shadow-2xl bg-[#1A1A1A]"
+                  />
+                ) : (
+                  <div
+                    aria-label={profile?.bandName || 'Band Avatar'}
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-[#121212] shadow-2xl bg-[#1C1C1C] flex items-center justify-center font-display text-3xl sm:text-4xl text-white uppercase tracking-wider select-none"
+                  >
+                    {(profile?.bandName || 'RB').slice(0, 2)}
+                  </div>
+                )}
                 <label
                   className="absolute inset-0 rounded-full bg-black/65 flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer text-white"
                   title="Klik untuk ganti foto profil band"

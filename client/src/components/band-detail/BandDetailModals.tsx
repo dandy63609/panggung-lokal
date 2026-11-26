@@ -85,11 +85,20 @@ export const PostViewerModal: React.FC<PostViewerModalProps> = ({
       >
         <div className="shrink-0 p-4 sm:p-5 border-b border-[#202020] flex items-center justify-between gap-3 bg-[#0C0C0C]">
           <div className="flex items-center gap-3 min-w-0">
-            <img
-              src={band.profilePhotoUrl || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=200'}
-              alt={band.bandName}
-              className="w-10 h-10 object-cover rounded-full border border-[#333] shrink-0"
-            />
+            {band.profilePhotoUrl?.trim() ? (
+              <img
+                src={band.profilePhotoUrl}
+                alt={band.bandName}
+                className="w-10 h-10 object-cover rounded-full border border-[#333] shrink-0"
+              />
+            ) : (
+              <div
+                aria-label={band.bandName}
+                className="w-10 h-10 rounded-full border border-[#333] bg-[#1C1C1C] shrink-0 flex items-center justify-center font-display text-sm text-white uppercase tracking-wider select-none"
+              >
+                {(band.bandName || 'RB').slice(0, 2)}
+              </div>
+            )}
             <div className="min-w-0">
               <div className="font-mono font-bold text-white text-sm uppercase truncate">
                 {band.bandName}

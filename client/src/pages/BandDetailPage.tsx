@@ -208,24 +208,12 @@ export const BandDetailPage: React.FC = () => {
     }
   }, [isValidIdentifier, rawIdentifier])
 
-  // Extract Audio tracks from mediaFiles
+  // Extract Audio tracks strictly from uploaded band mediaFiles (no fake demo fallback)
   const audioTracks: MediaFile[] = useMemo(() => {
     if (!band) return []
-    const files = (band.mediaFiles || []).filter((m) => m.file_type === 'audio')
-    if (files.length > 0) {
-      return files.map((f) => ({
-        ...f,
-        file_url: f.file_url?.includes('google.com') || !f.file_url ? '/sample-audio.wav' : f.file_url,
-      }))
-    }
-    return [
-      {
-        id: band.id * 1000 + 1,
-        file_type: 'audio',
-        file_url: '/sample-audio.wav',
-        title: `Single Demo Track - ${band.bandName} (Live Master)`,
-      },
-    ]
+    return (band.mediaFiles || []).filter(
+      (m) => m.file_type === 'audio' && Boolean(m.file_url?.trim()) && !m.file_url.includes('google.com')
+    )
   }, [band])
 
   useEffect(() => {
@@ -234,17 +222,17 @@ export const BandDetailPage: React.FC = () => {
     }
   }, [audioTracks.length, activeTrackIndex])
 
-  const currentAudioTrack = audioTracks[activeTrackIndex] || audioTracks[0]
+  const currentAudioTrack = audioTracks.length > 0 ? (audioTracks[activeTrackIndex] || audioTracks[0]) : null
 
   // Audio Playback Handlers
   const handleTogglePlayAudio = () => {
-    if (!audioRef.current) return
+    if (!audioRef.current || !currentAudioTrack?.file_url) return
     if (isPlayingAudio) {
       audioRef.current.pause()
       setIsPlayingAudio(false)
     } else {
       if (!audioRef.current.src || audioRef.current.src === '' || audioRef.current.src.endsWith('/')) {
-        audioRef.current.src = currentAudioTrack?.file_url || '/sample-audio.wav'
+        audioRef.current.src = currentAudioTrack.file_url
       }
       const playPromise = audioRef.current.play()
       if (playPromise !== undefined) {
@@ -581,23 +569,29 @@ export const BandDetailPage: React.FC = () => {
 
         {/* 2. HERO PROFILE CARD (MATCHING REFERENCE UI & 2/3 COLORS PALETTE) */}
         <div className="bg-[#121212] border border-[#262626] rounded-3xl overflow-hidden shadow-2xl mb-8 relative group">
-          {/* Cover Photo Banner with Ambient Blur Backdrop & Uncropped Full View */}
-          <div className="h-64 sm:h-80 md:h-96 lg:h-[420px] w-full relative overflow-hidden bg-[#121212]">
-            {/* Ambient Blurred Backdrop to fill wide container without cropping */}
-            <img
-              src={band.coverPhotoUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop'}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-50 brightness-50 saturate-125 pointer-events-none select-none"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#121212]/70 via-transparent to-[#121212]/70 pointer-events-none" />
+          {/* Cover Photo Banner (only renders image when band uploaded a cover photo) */}
+          <div className={`w-full relative overflow-hidden bg-[#121212] ${band.coverPhotoUrl?.trim() ? 'h-64 sm:h-80 md:h-96 lg:h-[420px]' : 'h-44 sm:h-52'}`}>
+            {band.coverPhotoUrl?.trim() ? (
+              <>
+                {/* Ambient Blurred Backdrop to fill wide container without cropping */}
+                <img
+                  src={band.coverPhotoUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-50 brightness-50 saturate-125 pointer-events-none select-none"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#121212]/70 via-transparent to-[#121212]/70 pointer-events-none" />
 
-            {/* Full Uncropped Cover Image */}
-            <img
-              src={band.coverPhotoUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop'}
-              alt={`${band.bandName} Cover Banner`}
-              className="relative z-[1] w-full h-full object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.65)]"
-            />
+                {/* Full Uncropped Cover Image */}
+                <img
+                  src={band.coverPhotoUrl}
+                  alt={`${band.bandName} Cover Banner`}
+                  className="relative z-[1] w-full h-full object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.65)]"
+                />
+              </>
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#1A1A1A] via-[#111111] to-[#1C1214]" />
+            )}
 
             {/* Smooth Mist / Gradient Dissolve into Card Background */}
             <div className="absolute inset-x-0 bottom-0 h-24 sm:h-28 z-[2] bg-gradient-to-t from-[#121212] via-[#121212]/55 to-transparent pointer-events-none" />
@@ -619,11 +613,20 @@ export const BandDetailPage: React.FC = () => {
             {/* Overlapping Avatar Row */}
             <div className="-mt-14 sm:-mt-16 mb-4 flex items-end justify-between relative z-10 flex-wrap gap-4">
               <div className="relative">
-                <img
-                  src={band.profilePhotoUrl || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=400&auto=format&fit=crop'}
-                  alt={band.bandName}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-[#121212] object-cover bg-[#181818] shadow-xl"
-                />
+                {band.profilePhotoUrl?.trim() ? (
+                  <img
+                    src={band.profilePhotoUrl}
+                    alt={band.bandName}
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-[#121212] object-cover bg-[#181818] shadow-xl"
+                  />
+                ) : (
+                  <div
+                    aria-label={band.bandName}
+                    className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-[#121212] bg-[#1C1C1C] shadow-xl flex items-center justify-center font-display text-3xl sm:text-4xl text-white uppercase tracking-wider select-none"
+                  >
+                    {(band.bandName || 'RB').slice(0, 2)}
+                  </div>
+                )}
                 <div
                   className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-[#E01E37] border-2 border-[#121212] flex items-center justify-center text-white text-[11px] font-bold"
                   title="Musisi Terverifikasi Reffband"
@@ -651,9 +654,11 @@ export const BandDetailPage: React.FC = () => {
                   {band.bandName}
                 </h1>
 
-                <p className="text-sm text-[#CCCCCC] font-sans leading-relaxed">
-                  {band.bio || 'Unit musisi terverifikasi siap tampil untuk panggung live festival, gig intim, dan pementasan kampus.'}
-                </p>
+                {band.bio?.trim() && (
+                  <p className="text-sm text-[#CCCCCC] font-sans leading-relaxed whitespace-pre-wrap">
+                    {band.bio.trim()}
+                  </p>
+                )}
 
                 {/* Metadata Chips */}
                 <div className="flex items-center gap-4 flex-wrap pt-1 font-mono text-xs text-[#A0A0A0]">
@@ -815,29 +820,31 @@ export const BandDetailPage: React.FC = () => {
 
               {/* Right: Rounded Pill Action Buttons for EO & Visitors */}
               <div className="flex items-center gap-3 flex-wrap">
-                {/* 1. Tombol Tunggal Sampel Audio / Demo Lagu */}
-                <button
-                  type="button"
-                  onClick={handleTogglePlayAudio}
-                  className={`px-5 py-2.5 rounded-full font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer ${
-                    isPlayingAudio
-                      ? 'bg-[#E01E37] text-white shadow-[0_0_20px_rgba(224,30,55,0.6)] animate-pulse'
-                      : 'bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333]'
-                  }`}
-                  aria-label={isPlayingAudio ? 'Jeda sampel audio' : 'Putar sampel audio'}
-                >
-                  {isPlayingAudio ? (
-                    <>
-                      <Pause className="w-3.5 h-3.5 fill-white" />
-                      <span>Jeda Demo ({formatAudioTime(audioCurrentTime)})</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
-                      <span>Dengar Sampel Lagu</span>
-                    </>
-                  )}
-                </button>
+                {/* 1. Tombol Tunggal Sampel Audio / Demo Lagu (hanya tampil jika band mengunggah sampel audio) */}
+                {audioTracks.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleTogglePlayAudio}
+                    className={`px-5 py-2.5 rounded-full font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer ${
+                      isPlayingAudio
+                        ? 'bg-[#E01E37] text-white shadow-[0_0_20px_rgba(224,30,55,0.6)] animate-pulse'
+                        : 'bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333]'
+                    }`}
+                    aria-label={isPlayingAudio ? 'Jeda sampel audio' : 'Putar sampel audio'}
+                  >
+                    {isPlayingAudio ? (
+                      <>
+                        <Pause className="w-3.5 h-3.5 fill-white" />
+                        <span>Jeda Demo ({formatAudioTime(audioCurrentTime)})</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
+                        <span>Dengar Sampel Lagu</span>
+                      </>
+                    )}
+                  </button>
+                )}
 
                 {/* Indikator / Pilihan Track jika memiliki lebih dari 1 sampel lagu */}
                 {audioTracks.length > 1 && (
@@ -893,7 +900,7 @@ export const BandDetailPage: React.FC = () => {
         </div>
 
         {/* Floating Mini Player (Aktif ketika audio sedang diputar tanpa memakan tempat di halaman) */}
-        {isPlayingAudio && (
+        {isPlayingAudio && currentAudioTrack && (
           <aside
             aria-label="Pemutar Audio Demo Melayang"
             className="fixed bottom-5 right-5 left-5 sm:left-auto sm:w-[420px] z-50 bg-[#121212]/95 backdrop-blur-md border border-[#E01E37]/60 rounded-2xl p-4 shadow-[0_10px_35px_rgba(0,0,0,0.85)] flex flex-col gap-2.5 animate-in slide-in-from-bottom-5"
@@ -970,17 +977,19 @@ export const BandDetailPage: React.FC = () => {
           </aside>
         )}
 
-        {/* Hidden Audio Element */}
-        <audio
-          ref={audioRef}
-          src={currentAudioTrack?.file_url || '/sample-audio.wav'}
-          onPlay={() => setIsPlayingAudio(true)}
-          onPause={() => setIsPlayingAudio(false)}
-          onTimeUpdate={handleAudioTimeUpdate}
-          onLoadedMetadata={handleAudioLoadedMetadata}
-          onEnded={handleAudioEnded}
-          preload="auto"
-        />
+        {/* Hidden Audio Element (only mounted when band uploaded audio) */}
+        {currentAudioTrack?.file_url && (
+          <audio
+            ref={audioRef}
+            src={currentAudioTrack.file_url}
+            onPlay={() => setIsPlayingAudio(true)}
+            onPause={() => setIsPlayingAudio(false)}
+            onTimeUpdate={handleAudioTimeUpdate}
+            onLoadedMetadata={handleAudioLoadedMetadata}
+            onEnded={handleAudioEnded}
+            preload="auto"
+          />
+        )}
 
         {/* 4. DUAL COLUMN: TECHNICAL RIDER (LEFT) & 8-SLIDE STAGE VISUAL (RIGHT) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mb-12">

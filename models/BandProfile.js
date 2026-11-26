@@ -163,7 +163,7 @@ class BandProfile {
         bandName: (overrides.bandName && String(overrides.bandName).trim()) || fallbackName,
         genre: (overrides.genre && String(overrides.genre).trim()) || 'Indie / Pop',
         locationCity: (overrides.locationCity && String(overrides.locationCity).trim()) || 'Kota Semarang',
-        bio: overrides.bio !== undefined ? overrides.bio : 'Profil band baru di Reffband'
+        bio: overrides.bio !== undefined ? overrides.bio : null
       });
     } catch {
       return this.findByUserId(user.id);
