@@ -204,13 +204,13 @@ export const BroadcastInquirySection: React.FC<BroadcastInquirySectionProps> = (
               </div>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <Link
-                  to="/masuk"
+                  to={`/masuk?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`}
                   className="min-h-[44px] px-6 py-2.5 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest flex items-center justify-center rounded-xl transition-colors"
                 >
                   Masuk Akun EO
                 </Link>
                 <Link
-                  to="/daftar?role=general"
+                  to={`/daftar?role=general&redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`}
                   className="min-h-[44px] px-6 py-2.5 bg-[#181818] hover:bg-[#222222] border border-[#333333] text-white font-mono font-bold text-xs uppercase tracking-widest flex items-center justify-center rounded-xl transition-colors"
                 >
                   Daftar Penyelenggara / EO

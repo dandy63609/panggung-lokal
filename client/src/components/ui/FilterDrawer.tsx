@@ -18,6 +18,7 @@ interface FilterDrawerProps {
 
 const BUDGET_OPTIONS = [
   { id: 'all', label: 'Semua Rate' },
+  { id: '100kto1m', label: '100rb - 1 Juta' },
   { id: 'under3m', label: '< 3 Juta' },
   { id: '3to6m', label: '3 - 6 Juta' },
   { id: '6to10m', label: '6 - 10 Juta' },

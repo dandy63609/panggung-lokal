@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   ShieldCheck,
   Eye,
@@ -56,6 +56,7 @@ import { formatRupiah } from '../lib/utils'
 
 export const BandDashboardPage: React.FC = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [loading, setLoading] = useState(true)
@@ -69,6 +70,14 @@ export const BandDashboardPage: React.FC = () => {
     }
     return 'feed'
   })
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const tabParam = params.get('tab')
+    if (tabParam === 'feed' || tabParam === 'rider' || tabParam === 'analytics' || tabParam === 'broadcasts' || tabParam === 'jadwal') {
+      setActiveTab(tabParam)
+    }
+  }, [location.search])
 
   // Modals state
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
@@ -646,20 +655,29 @@ export const BandDashboardPage: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Profile Card */}
         <div className="bg-[#121212] border border-[#262626] rounded-3xl overflow-hidden shadow-2xl mb-8 relative group">
-          {/* Cover Photo Banner with Vertical Gradient Dissolve */}
-          <div className="h-52 sm:h-64 w-full relative overflow-hidden bg-[#181818]">
+          {/* Cover Photo Banner with Ambient Blur Backdrop & Uncropped Full View */}
+          <div className="h-60 sm:h-72 md:h-80 lg:h-[380px] w-full relative overflow-hidden bg-[#121212]">
             {profile?.coverPhotoUrl ? (
-              <img
-                src={profile.coverPhotoUrl}
-                alt="Stage Cover"
-                className="w-full h-full object-cover opacity-60 brightness-90 filter"
-              />
+              <>
+                <img
+                  src={profile.coverPhotoUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-50 brightness-50 saturate-125 pointer-events-none select-none"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#121212]/70 via-transparent to-[#121212]/70 pointer-events-none" />
+                <img
+                  src={profile.coverPhotoUrl}
+                  alt="Stage Cover"
+                  className="relative z-[1] w-full h-full object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.65)]"
+                />
+              </>
             ) : (
               <div className="w-full h-full bg-gradient-to-r from-[#181818] via-[#111111] to-[#1C1214]" />
             )}
 
             {/* Smooth Mist / Gradient Dissolve into Card Background */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/50 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-24 sm:h-28 z-[2] bg-gradient-to-t from-[#121212] via-[#121212]/55 to-transparent pointer-events-none" />
 
             {/* Top-Right Floating Bookmark / Action Button */}
             {profile?.id && (
@@ -667,7 +685,7 @@ export const BandDashboardPage: React.FC = () => {
                 to={getBandProfileUrl(profile)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="absolute top-4 right-4 sm:top-5 sm:right-6 px-4 py-2 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 hover:border-[#E01E37] text-white flex items-center gap-2 transition-all shadow-lg hover:scale-105 cursor-pointer min-h-[44px] font-mono text-xs font-bold uppercase tracking-wider"
+                className="absolute top-4 right-4 sm:top-5 sm:right-6 z-10 px-4 py-2 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 hover:border-[#E01E37] text-white flex items-center gap-2 transition-all shadow-lg hover:scale-105 cursor-pointer min-h-[44px] font-mono text-xs font-bold uppercase tracking-wider"
                 title="Lihat Pratinjau Publik Profil Band"
                 aria-label="Lihat pratinjau publik profil band"
               >

@@ -3,6 +3,7 @@ const router = express.Router();
 const BandProfile = require('../models/BandProfile');
 const BandPost = require('../models/BandPost');
 const BandSchedule = require('../models/BandSchedule');
+const Notification = require('../models/Notification');
 const db = require('../utils/db');
 const { validatePhone } = require('../utils/validation');
 const { requireBand, extractOptionalUser } = require('../middleware/auth');
@@ -27,30 +28,30 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+const maskPhoneForGuest = (phone) => {
+  if (!phone) return null;
+  const trimmed = String(phone).trim();
+  if (trimmed.length <= 4) return 'xxxx';
+  return `${trimmed.substring(0, 4)}xxxx`;
+};
+
+const sanitizeBandForVisitor = (band, isAuthenticated) => {
+  if (isAuthenticated || !band) return band;
+  return {
+    ...band,
+    phone: maskPhoneForGuest(band.phone)
+  };
+};
+
 /**
  * GET /api/bands/search
- * Search bands with filters and sneak peek gating for guests
+ * Search bands with filters (public guest preview supported; phone is masked for guests)
  */
 router.get('/search', async (req, res) => {
   try {
     const { genre, location, budgetMin, budgetMax, search, page, limit } = req.query;
     const user = extractOptionalUser(req);
     const isAuthenticated = !!user;
-
-    if (!isAuthenticated) {
-      return res.json({
-        success: true,
-        data: [],
-        isSneakPeek: true,
-        message: 'Katalog band terkunci. Silakan daftar akun atau login untuk melihat daftar musisi.',
-        pagination: {
-          total: 0,
-          page: 1,
-          totalPages: 0,
-          limit: 0
-        }
-      });
-    }
 
     const result = await BandProfile.search({
       genre,
@@ -62,10 +63,12 @@ router.get('/search', async (req, res) => {
       limit: limit || 50
     });
 
+    const bands = result.bands.map((band) => sanitizeBandForVisitor(band, isAuthenticated));
+
     return res.json({
       success: true,
-      data: result.bands,
-      isSneakPeek: false,
+      data: bands,
+      isSneakPeek: !isAuthenticated,
       message: null,
       pagination: {
         total: result.total,
@@ -85,28 +88,21 @@ router.get('/search', async (req, res) => {
 
 /**
  * GET /api/bands/recent
- * Get recent bands for homepage (requires authentication)
+ * Get recent bands for homepage & related bands (public guest preview supported; phone masked for guests)
  */
 router.get('/recent', async (req, res) => {
   try {
     const user = extractOptionalUser(req);
     const isAuthenticated = !!user;
-    if (!isAuthenticated) {
-      return res.json({
-        success: true,
-        data: [],
-        isSneakPeek: true,
-        message: 'Daftar musisi terkunci. Silakan daftar akun atau login.'
-      });
-    }
 
     const requestedLimit = parseInt(req.query.limit, 10) || 6;
     const bands = await BandProfile.getRecent(requestedLimit);
+    const safeBands = bands.map((band) => sanitizeBandForVisitor(band, isAuthenticated));
 
     return res.json({
       success: true,
-      data: bands,
-      isSneakPeek: false
+      data: safeBands,
+      isSneakPeek: !isAuthenticated
     });
   } catch (error) {
     console.error('Get recent bands error:', error);
@@ -164,8 +160,8 @@ router.get('/profile/:id', async (req, res) => {
     const mediaFiles = await band.getMediaFiles();
     const schedules = await BandSchedule.findByBandProfileId(band.id);
 
-    const displayPhone = isSneakPeek && band.phone
-      ? (band.phone.substring(0, 8) + 'xxxx')
+    const displayPhone = isSneakPeek
+      ? maskPhoneForGuest(band.phone)
       : band.phone;
 
     return res.json({
@@ -676,6 +672,18 @@ router.post('/schedules', requireBand, async (req, res) => {
       status: 'confirmed'
     });
 
+    if (schedule.organizerUserId) {
+      Notification.create({
+        userId: schedule.organizerUserId,
+        notificationKey: `sched:${schedule.id}`,
+        type: 'schedule_confirmed',
+        title: `Jadwal Dikonfirmasi · ${profile.bandName}`,
+        message: `${schedule.eventName} pada ${schedule.eventDate} (${schedule.startTime} - ${schedule.endTime} WIB)${schedule.venue ? ` di ${schedule.venue}` : ''}.`,
+        link: `/band/${profile.slug || profile.id}#jadwal-manggung`,
+        badge: 'TERKONFIRMASI',
+      }).catch((err) => console.warn('Notice: Failed creating schedule confirmed notification:', err.message));
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Jadwal panggung berhasil dikonfirmasi dan dipublikasikan di kalender profil',
@@ -712,12 +720,25 @@ router.delete('/schedules/:id', requireBand, async (req, res) => {
       });
     }
 
+    const existingSchedule = await BandSchedule.findById(scheduleId);
     const deleted = await BandSchedule.delete(scheduleId, profile.id);
     if (!deleted) {
       return res.status(404).json({
         success: false,
         message: 'Jadwal tidak ditemukan atau bukan milik band Anda'
       });
+    }
+
+    if (existingSchedule && existingSchedule.organizerUserId) {
+      Notification.create({
+        userId: existingSchedule.organizerUserId,
+        notificationKey: `sched_cancel:${scheduleId}`,
+        type: 'schedule_cancelled',
+        title: `Jadwal Dibatalkan · ${profile.bandName}`,
+        message: `Jadwal "${existingSchedule.eventName}" pada ${existingSchedule.eventDate} dibatalkan/dihapus oleh pihak band.`,
+        link: `/band/${profile.slug || profile.id}#jadwal-manggung`,
+        badge: 'DIBATALKAN',
+      }).catch((err) => console.warn('Notice: Failed creating schedule cancelled notification:', err.message));
     }
 
     return res.json({

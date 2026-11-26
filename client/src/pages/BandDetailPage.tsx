@@ -135,24 +135,17 @@ export const BandDetailPage: React.FC = () => {
       .catch(() => {})
   }, [band?.id])
 
-  // Sync fetched live band details when route target or auth session changes
+  // Sync fetched live band details when route target or auth session changes (public guest preview supported)
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-    if (!isValidIdentifier || !currentUser) {
-      if (!currentUser) {
-        setBand(null)
-        setLoadingBand(false)
-      }
+    if (!isValidIdentifier) {
+      setBand(null)
+      setLoadingBand(false)
       return
     }
     let cancelled = false
 
     async function fetchBandProfile() {
-      if (!authClient.getUser()) {
-        setBand(null)
-        setLoadingBand(false)
-        return
-      }
       try {
         const [profileRes, recentRes] = await Promise.all([
           fetch(`/api/bands/profile/${encodeURIComponent(rawIdentifier)}`, {
@@ -392,7 +385,8 @@ export const BandDetailPage: React.FC = () => {
   const totalPrice = hasFixedRate ? Math.round(baseRate * setQuantity) : 0
 
   const handleDirectWhatsApp = (eventDate?: string, eventName?: string) => {
-    if (!band?.phone) return
+    if (!currentUser) return
+    if (!band?.phone || band.phone.includes('x')) return
     const cleanPhone = formatWhatsAppPhone(band.phone, '')
     if (!cleanPhone) return
 
@@ -501,44 +495,7 @@ export const BandDetailPage: React.FC = () => {
     )
   }
 
-  if (!currentUser) {
-    return (
-      <div className="w-full min-h-[80vh] flex items-center justify-center bg-black px-4 py-20">
-        <div className="max-w-md w-full bg-[#141414] border border-[#E01E37]/50 p-8 sm:p-10 rounded-2xl text-center space-y-6 shadow-2xl">
-          <div className="w-16 h-16 rounded-full bg-[#E01E37]/15 border border-[#E01E37]/50 text-[#E01E37] mx-auto flex items-center justify-center">
-            <Lock className="w-8 h-8" />
-          </div>
-          <div className="space-y-2">
-            <span className="font-mono text-[11px] text-[#E01E37] font-bold tracking-widest uppercase bg-[#E01E37]/10 px-3 py-1 rounded-full border border-[#E01E37]/20">
-              Akses Terproteksi
-            </span>
-            <h1 className="font-mono text-xl sm:text-2xl font-bold uppercase text-white tracking-wider">
-              Profil Musisi Terkunci
-            </h1>
-            <p className="text-[#A0A0A0] text-xs font-sans leading-relaxed">
-              Untuk melihat portofolio live, audio rekaman demo, dan technical rider band ini, silakan daftar akun baru atau masuk ke akun Anda.
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 pt-2">
-            <Link
-              to={`/daftar?redirect=${encodeURIComponent(window.location.pathname)}`}
-              className="w-full min-h-[46px] bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)]"
-            >
-              <span>Daftar Akun Baru</span>
-              <span className="text-white text-sm">▶</span>
-            </Link>
-            <Link
-              to={`/masuk?redirect=${encodeURIComponent(window.location.pathname)}`}
-              className="w-full min-h-[46px] bg-[#202020] hover:bg-[#2A2A2A] border border-[#3A3A3A] text-white font-mono font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-colors"
-            >
-              <Lock className="w-4 h-4 text-[#E01E37]" />
-              <span>Masuk ke Akun</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const redirectTarget = encodeURIComponent(window.location.pathname + window.location.search)
 
   return (
     <div className="w-full bg-[#000000] text-white min-h-screen">
@@ -571,6 +528,44 @@ export const BandDetailPage: React.FC = () => {
 
       {/* MAIN CONTENT WRAPPER */}
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+        {/* GUEST PREVIEW BANNER (Public Shareable Profile Mode) */}
+        {!currentUser && (
+          <div className="mb-6 p-4 rounded-2xl bg-[#141113] border border-[#E01E37]/40 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#E01E37]/15 border border-[#E01E37]/40 flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5 text-[#E01E37]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-xs uppercase font-bold text-white tracking-wider">
+                    Mode Pratinjau Publik
+                  </span>
+                  <span className="bg-[#E01E37]/20 text-[#FF6B7F] border border-[#E01E37]/40 text-[9px] font-mono font-bold px-2 py-0.5 rounded uppercase">
+                    Akses Tamu
+                  </span>
+                </div>
+                <p className="text-xs text-[#A0A0A0] mt-0.5 font-sans">
+                  Anda dapat melihat profil, sampel audio, jadwal, dan technical rider band ini. Masuk atau daftar gratis untuk membuka nomor WhatsApp, booking, dan kirim broadcast acara.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
+              <Link
+                to={`/masuk?redirect=${redirectTarget}`}
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(224,30,55,0.35)] min-h-[44px]"
+              >
+                <span>Masuk</span>
+              </Link>
+              <Link
+                to={`/daftar?redirect=${redirectTarget}`}
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-[#1F1F1F] hover:bg-[#282828] text-white border border-white/15 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all min-h-[44px]"
+              >
+                <span>Daftar Gratis</span>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* OWNER MODE NOTIFICATION BANNER */}
         {canManage && (
@@ -615,21 +610,32 @@ export const BandDetailPage: React.FC = () => {
 
         {/* 2. HERO PROFILE CARD (MATCHING REFERENCE UI & 2/3 COLORS PALETTE) */}
         <div className="bg-[#121212] border border-[#262626] rounded-3xl overflow-hidden shadow-2xl mb-8 relative group">
-          {/* Cover Photo Banner with Vertical Gradient Dissolve */}
-          <div className="h-56 sm:h-72 w-full relative overflow-hidden bg-[#181818]">
+          {/* Cover Photo Banner with Ambient Blur Backdrop & Uncropped Full View */}
+          <div className="h-64 sm:h-80 md:h-96 lg:h-[420px] w-full relative overflow-hidden bg-[#121212]">
+            {/* Ambient Blurred Backdrop to fill wide container without cropping */}
+            <img
+              src={band.coverPhotoUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop'}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-50 brightness-50 saturate-125 pointer-events-none select-none"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#121212]/70 via-transparent to-[#121212]/70 pointer-events-none" />
+
+            {/* Full Uncropped Cover Image */}
             <img
               src={band.coverPhotoUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop'}
               alt={`${band.bandName} Cover Banner`}
-              className="w-full h-full object-cover opacity-65 brightness-90 filter"
+              className="relative z-[1] w-full h-full object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.65)]"
             />
+
             {/* Smooth Mist / Gradient Dissolve into Card Background */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/50 to-transparent pointer-events-none" />
+            <div className="absolute inset-x-0 bottom-0 h-24 sm:h-28 z-[2] bg-gradient-to-t from-[#121212] via-[#121212]/55 to-transparent pointer-events-none" />
 
             {/* Top-Right Floating Share / Bookmark Button */}
             <button
               type="button"
               onClick={handleShare}
-              className="absolute top-4 right-4 sm:top-5 sm:right-6 w-11 h-11 rounded-full bg-black/60 hover:bg-[#E01E37] text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all shadow-lg hover:scale-105 min-h-[44px] min-w-[44px] cursor-pointer"
+              className="absolute top-4 right-4 sm:top-5 sm:right-6 z-10 w-11 h-11 rounded-full bg-black/60 hover:bg-[#E01E37] text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all shadow-lg hover:scale-105 min-h-[44px] min-w-[44px] cursor-pointer"
               title="Bagikan tautan profil band"
               aria-label="Bagikan tautan profil band"
             >

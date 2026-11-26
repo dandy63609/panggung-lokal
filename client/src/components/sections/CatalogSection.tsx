@@ -56,17 +56,11 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
   const [visibleCount, setVisibleCount] = useState<number>(9)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authClient.getUser())
 
-  // Fetch live bands from backend API for authenticated accounts
+  // Fetch live bands from backend API (supports both authenticated users and public guest preview)
   useEffect(() => {
     let cancelled = false
 
     async function fetchBands() {
-      if (!authClient.getUser()) {
-        setBands([])
-        setLoading(false)
-        return
-      }
-
       try {
         setLoading(true)
         const qParam = (searchParams.get('q') || searchParams.get('search') || '').trim()
@@ -102,25 +96,15 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
       }
     }
 
-    if (currentUser) {
-      if (!initialBands || initialBands.length === 0) {
-        fetchBands()
-      }
-    } else {
-      setBands([])
-      setLoading(false)
+    if (!initialBands || initialBands.length === 0) {
+      fetchBands()
     }
 
     const onAuthChange = () => {
       const u = authClient.getUser()
       setCurrentUser(u)
-      if (u) {
-        if (!initialBands || initialBands.length === 0) {
-          fetchBands()
-        }
-      } else {
-        setBands([])
-        setLoading(false)
+      if (!initialBands || initialBands.length === 0) {
+        fetchBands()
       }
     }
     window.addEventListener('auth-change', onAuthChange)
@@ -165,14 +149,17 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
       }
 
       // 4. Budget range
-      if (filters.budgetRange === 'under3m') {
-        if (band.budgetMin && band.budgetMin >= 3000000) return false
+      const minBudget = Number(band.budgetMin || 0)
+      if (filters.budgetRange === '100kto1m') {
+        if (!minBudget || minBudget < 100000 || minBudget > 1000000) return false
+      } else if (filters.budgetRange === 'under3m') {
+        if (minBudget && minBudget >= 3000000) return false
       } else if (filters.budgetRange === '3to6m') {
-        if (!band.budgetMin || band.budgetMin < 3000000 || band.budgetMin > 6000000) return false
+        if (!minBudget || minBudget < 3000000 || minBudget > 6000000) return false
       } else if (filters.budgetRange === '6to10m') {
-        if (!band.budgetMin || band.budgetMin < 6000000 || band.budgetMin > 10000000) return false
+        if (!minBudget || minBudget < 6000000 || minBudget > 10000000) return false
       } else if (filters.budgetRange === 'above10m') {
-        if (!band.budgetMin || band.budgetMin < 10000000) return false
+        if (!minBudget || minBudget < 10000000) return false
       }
 
       return true
@@ -226,43 +213,45 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
           </p>
         </div>
 
-        {!currentUser ? (
-          /* Gated Lock Screen for Guests / Unregistered Visitors */
-          <div className="bg-[#141414] border border-[#E01E37]/50 rounded-2xl p-8 sm:p-14 text-center max-w-2xl mx-auto space-y-6 shadow-2xl my-8">
-            <div className="w-16 h-16 rounded-full bg-[#E01E37]/15 border border-[#E01E37]/50 text-[#E01E37] mx-auto flex items-center justify-center">
-              <Lock className="w-8 h-8" />
+        {!currentUser && (
+          <div className="bg-[#141113] border border-[#E01E37]/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#E01E37]/15 border border-[#E01E37]/40 text-[#E01E37] flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-white">
+                    Mode Pratinjau Publik
+                  </span>
+                  <span className="font-mono text-[9px] text-[#FF6B7F] font-bold tracking-widest uppercase bg-[#E01E37]/15 px-2 py-0.5 rounded border border-[#E01E37]/30">
+                    Akses Tamu
+                  </span>
+                </div>
+                <p className="text-[#A0A0A0] text-xs font-sans leading-relaxed mt-0.5">
+                  Jelajahi katalog, sampel audio, dan technical rider band secara bebas. Masuk atau daftar gratis untuk membuka nomor WhatsApp, booking, dan kirim broadcast acara.
+                </p>
+              </div>
             </div>
-            <div className="space-y-3">
-              <span className="font-mono text-[11px] text-[#E01E37] font-bold tracking-widest uppercase bg-[#E01E37]/10 px-3 py-1 rounded-full border border-[#E01E37]/20">
-                Akses Terproteksi
-              </span>
-              <h2 className="font-mono text-xl sm:text-2xl font-bold uppercase text-white tracking-wider">
-                Daftar Akun Untuk Melihat Musisi
-              </h2>
-              <p className="text-[#A0A0A0] text-sm font-sans leading-relaxed max-w-lg mx-auto">
-                Katalog band lokal dan spesifikasi teknis panggung hanya dapat diakses oleh akun terdaftar. Daftarkan akun baru atau masuk untuk menjelajahi seluruh musisi siap tampil.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
-              <Link
-                to="/daftar?redirect=/cari-band"
-                className="w-full sm:w-auto min-h-[46px] px-8 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)]"
-              >
-                <span>Daftar Akun Baru</span>
-                <span className="text-white text-sm">▶</span>
-              </Link>
+            <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
               <Link
                 to="/masuk?redirect=/cari-band"
-                className="w-full sm:w-auto min-h-[46px] px-7 bg-[#202020] hover:bg-[#2A2A2A] border border-[#3A3A3A] text-white font-mono font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-colors"
+                className="flex-1 sm:flex-none min-h-[42px] px-5 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_4px_16px_rgba(224,30,55,0.35)]"
               >
-                <Lock className="w-3.5 h-3.5 text-[#E01E37]" />
-                <span>Masuk ke Akun</span>
+                <span>Masuk</span>
+              </Link>
+              <Link
+                to="/daftar?redirect=/cari-band"
+                className="flex-1 sm:flex-none min-h-[42px] px-5 bg-[#202020] hover:bg-[#2A2A2A] border border-[#3A3A3A] text-white font-mono font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-colors"
+              >
+                <span>Daftar Gratis</span>
               </Link>
             </div>
           </div>
-        ) : (
-          <>
-            {/* 2. STICKY FILTER BAR */}
+        )}
+
+        <>
+          {/* 2. STICKY FILTER BAR */}
             <div className="sticky top-20 z-30 bg-black/90 backdrop-blur-md pt-2 pb-4">
               <div className="flex items-center gap-2">
                 {/* Horizontal Category Tabs Bar with Mask Fade */}
@@ -435,7 +424,6 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ initialBands }) 
               </div>
             )}
           </>
-        )}
       </div>
 
       {/* 5. FLOATING COMPARE DRAWER (Gencherry CompareFab Adaptation) */}

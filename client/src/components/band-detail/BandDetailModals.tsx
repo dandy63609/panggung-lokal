@@ -412,14 +412,14 @@ export const DirectBookingModal: React.FC<DirectBookingModalProps> = ({
         {!currentUser ? (
           <div className="space-y-3">
             <Link
-              to={`/masuk?redirect=${encodeURIComponent(window.location.pathname)}`}
+              to={`/masuk?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`}
               className="w-full min-h-[44px] h-12 bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-[0_4px_20px_rgba(224,30,55,0.4)] flex items-center justify-center gap-2 rounded-xl text-center"
             >
               <Lock className="w-4 h-4" />
               <span>MASUK / LOGIN UNTUK HUBUNGI BAND</span>
             </Link>
             <Link
-              to="/daftar"
+              to={`/daftar?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`}
               className="w-full min-h-[44px] h-10 bg-[#1A1A1A] hover:bg-[#252525] border border-white/10 text-[#CCCCCC] hover:text-white font-mono text-xs uppercase tracking-wider transition-all flex items-center justify-center rounded-xl text-center"
             >
               <span>DAFTAR AKUN BARU</span>

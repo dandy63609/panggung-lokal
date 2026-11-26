@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Menu, X, ArrowUpRight, Search, LogOut, LayoutDashboard, ChevronRight, ChevronDown } from 'lucide-react'
 import { Button } from './ui/Button'
+import { NotificationBell } from './ui/NotificationBell'
 import { authClient, type AuthUser } from '../lib/auth'
 
 export const Navbar: React.FC = () => {
@@ -257,6 +258,8 @@ export const Navbar: React.FC = () => {
                 </Link>
               )}
 
+              <NotificationBell currentUser={currentUser} />
+
               <button
                 type="button"
                 onClick={() => authClient.logout()}
@@ -289,64 +292,65 @@ export const Navbar: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile Hamburger Button */}
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden min-w-[44px] min-h-[44px] p-2 flex items-center justify-center text-[#F5F5F5] hover:text-white hover:bg-[#1A1A1A] border border-[#2C2C2C] rounded-sm"
-          aria-label="Toggle Menu"
-          aria-expanded={mobileMenuOpen}
-        >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        {/* Mobile Right Actions: Notification Bell + Hamburger Button */}
+        <div className="lg:hidden flex items-center gap-2">
+          {currentUser && <NotificationBell currentUser={currentUser} />}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="min-w-[44px] min-h-[44px] p-2 flex items-center justify-center text-[#F5F5F5] hover:text-white hover:bg-[#1A1A1A] border border-[#2C2C2C] rounded-sm"
+            aria-label="Toggle Menu"
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-[#141414] border-b border-[#2C2C2C] px-4 pt-4 pb-6 space-y-3">
-          {/* Quick Search Mobile (Hanya saat user sudah login) */}
-          {currentUser && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                setMobileMenuOpen(false)
-                const trimmed = navSearchQuery.trim()
-                if (trimmed) {
-                  navigate(`/cari-band?q=${encodeURIComponent(trimmed)}`)
-                } else {
-                  navigate('/cari-band')
-                }
-              }}
-              className="relative flex items-center mb-1"
+          {/* Quick Search Mobile (Terbuka untuk publik & akun login) */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              setMobileMenuOpen(false)
+              const trimmed = navSearchQuery.trim()
+              if (trimmed) {
+                navigate(`/cari-band?q=${encodeURIComponent(trimmed)}`)
+              } else {
+                navigate('/cari-band')
+              }
+            }}
+            className="relative flex items-center mb-1"
+          >
+            <input
+              type="text"
+              value={navSearchQuery}
+              onChange={(e) => setNavSearchQuery(e.target.value)}
+              placeholder="Cari nama band..."
+              className="w-full bg-[#1A1A1A] text-white text-xs font-mono placeholder-[#777777] pl-9 pr-8 py-2.5 border border-[#2C2C2C] focus:border-[#E01E37] focus:outline-none rounded-sm min-h-[44px]"
+              aria-label="Cari nama band"
+            />
+            <button
+              type="submit"
+              className="absolute left-3 text-[#A0A0A0] hover:text-[#E01E37]"
+              title="Cari"
+              aria-label="Cari"
             >
-              <input
-                type="text"
-                value={navSearchQuery}
-                onChange={(e) => setNavSearchQuery(e.target.value)}
-                placeholder="Cari nama band..."
-                className="w-full bg-[#1A1A1A] text-white text-xs font-mono placeholder-[#777777] pl-9 pr-8 py-2.5 border border-[#2C2C2C] focus:border-[#E01E37] focus:outline-none rounded-sm min-h-[44px]"
-                aria-label="Cari nama band"
-              />
+              <Search className="w-4 h-4" />
+            </button>
+            {navSearchQuery && (
               <button
-                type="submit"
-                className="absolute left-3 text-[#A0A0A0] hover:text-[#E01E37]"
-                title="Cari"
-                aria-label="Cari"
+                type="button"
+                onClick={() => setNavSearchQuery('')}
+                className="absolute right-3 text-[#777777] hover:text-white p-1"
+                title="Hapus kata kunci"
               >
-                <Search className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
-              {navSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setNavSearchQuery('')}
-                  className="absolute right-3 text-[#777777] hover:text-white p-1"
-                  title="Hapus kata kunci"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </form>
-          )}
+            )}
+          </form>
 
           {/* Beranda Group with Accordion */}
           <div className="border border-[#2C2C2C] bg-[#1A1A1A] rounded-sm overflow-hidden">

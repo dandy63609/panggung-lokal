@@ -110,54 +110,12 @@ export default function App() {
           <main className="flex-1 overflow-x-clip w-full max-w-full">
             <Routes>
               <Route path="/" element={<HomePage stats={stats} />} />
-              <Route
-                path="/cari-band"
-                element={
-                  <ProtectedRoute>
-                    <CariBandPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/search"
-                element={
-                  <ProtectedRoute>
-                    <CariBandPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/search.html"
-                element={
-                  <ProtectedRoute>
-                    <CariBandPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/band/:id"
-                element={
-                  <ProtectedRoute>
-                    <BandDetailPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile/:id"
-                element={
-                  <ProtectedRoute>
-                    <BandDetailPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile.html"
-                element={
-                  <ProtectedRoute>
-                    <BandDetailPage />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/cari-band" element={<CariBandPage />} />
+              <Route path="/search" element={<CariBandPage />} />
+              <Route path="/search.html" element={<CariBandPage />} />
+              <Route path="/band/:id" element={<BandDetailPage />} />
+              <Route path="/profile/:id" element={<BandDetailPage />} />
+              <Route path="/profile.html" element={<BandDetailPage />} />
               <Route path="/masuk" element={<LoginPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/login.html" element={<LoginPage />} />

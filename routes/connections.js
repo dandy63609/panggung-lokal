@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Connection = require('../models/Connection');
 const BandProfile = require('../models/BandProfile');
+const Notification = require('../models/Notification');
 const { verifyToken, requireBand } = require('../middleware/auth');
 
 /**
@@ -46,6 +47,22 @@ router.post('/', verifyToken, async (req, res) => {
       eventName: eventName || null,
       status: initialStatus
     });
+
+    // Notify band owner about incoming booking/inquiry (non-blocking)
+    if (band.userId && String(band.userId) !== String(req.user.id)) {
+      const eoLabel = req.user.email ? req.user.email.split('@')[0] : 'Event Organizer';
+      const eventPart = eventName ? ` untuk "${String(eventName).trim()}"` : '';
+      const datePart = eventDate ? ` (${String(eventDate).trim()})` : '';
+      Notification.create({
+        userId: band.userId,
+        notificationKey: `conn:${connection.id}`,
+        type: 'booking_inquiry',
+        title: initialStatus === 'confirmed' ? 'Booking Panggung Masuk' : 'Inquiry Booking Baru',
+        message: `${eoLabel} menghubungi band Anda${eventPart}${datePart}.`,
+        link: '/dashboard-band?tab=analytics',
+        badge: initialStatus === 'confirmed' ? 'BOOKING MASUK' : 'INQUIRY BARU',
+      }).catch((err) => console.warn('Notice: Failed creating booking notification:', err.message));
+    }
 
     // Format WhatsApp link if phone is present
     let whatsappUrl = null;
