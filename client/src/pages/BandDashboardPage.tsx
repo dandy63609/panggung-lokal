@@ -382,7 +382,7 @@ export const BandDashboardPage: React.FC = () => {
       showToast(
         nextId
           ? 'Carousel postingan dipilih untuk Stage Visual profil EO!'
-          : 'Stage Visual dikembalikan ke galeri panggung default.'
+          : 'Stage Visual diatur otomatis dari postingan karya band.'
       )
     } else {
       showToast(res.message || 'Gagal mengatur Stage Visual.', 'error')
@@ -1136,7 +1136,7 @@ export const BandDashboardPage: React.FC = () => {
                   className="w-full sm:w-72 max-w-full min-w-0 truncate bg-[#181818] border border-[#333333] focus:border-[#E01E37] text-white text-xs font-mono px-3 py-2.5 min-h-[44px] outline-none cursor-pointer disabled:opacity-50"
                 >
                   <option value="" className="bg-[#121212] text-white">
-                    Galeri Panggung Default (8 Slide)
+                    Otomatis (Semua Postingan Karya Band)
                   </option>
                   {posts.map((post, idx) => {
                     const slidesCount = parsePostSlides(post).length
