@@ -28,7 +28,7 @@ export const FaqSection: React.FC = () => {
     {
       number: '05',
       title: 'Bagaimana jika alat di venue kami berbeda dengan rider band?',
-      content: 'Anda dapat mendiskusikan opsi substitusi alat langsung dengan manajer band melalui WhatsApp sebelum menandatangani kesepakatan jadwal dan technical meeting.',
+      content: 'Anda dapat mendiskusikan opsi substitusi alat langsung dengan manajer band melalui WhatsApp sebelum menyepakati technical meeting dan detail penampilan.',
     },
   ]
 

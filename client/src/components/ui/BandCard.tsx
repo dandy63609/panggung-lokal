@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ArrowRight, Star } from 'lucide-react'
+import { Check, ArrowRight } from 'lucide-react'
 import type { Band } from '../../types'
 import { formatRupiah } from '../../lib/utils'
 import { getBandProfileUrl } from '../../lib/bandHelpers'
-import { getRatingTierBadge } from '../../lib/ratingHelpers'
+import { getProvinceForCity } from '../../lib/cities'
 import { usePlatformSettings } from '../../lib/platformSettings'
 import { authClient } from '../../lib/auth'
 
@@ -81,8 +81,6 @@ export const BandCard: React.FC<BandCardProps> = ({
   }, [band.bandName])
 
   const photo = band.profilePhotoUrl || band.coverPhotoUrl || null
-  const currentRating = Number(band.rating ?? band.ratingAverage ?? 2.5)
-  const ratingTierInfo = getRatingTierBadge(currentRating)
 
   const budgetText = band.budgetMin && band.budgetMax && band.budgetMin !== band.budgetMax
     ? `${formatRupiah(band.budgetMin)} - ${formatRupiah(band.budgetMax)}`
@@ -117,14 +115,8 @@ export const BandCard: React.FC<BandCardProps> = ({
         {/* Subtle Vignette Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-black/50 pointer-events-none" />
 
-        {/* Floating Top Badges (Tag Baru, Genre, City, and Campus Label) */}
+        {/* Floating Top Badges (Genre, City, and Campus Label) */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10 pointer-events-none flex-wrap max-w-[80%]">
-          {band.customTag && (
-            <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-black bg-[#00D9FF] px-2.5 py-1 font-bold select-none shadow-md flex items-center gap-1">
-              <span>✨</span>
-              <span>{band.customTag}</span>
-            </span>
-          )}
           <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-white bg-[#E01E37] px-2.5 py-1 font-bold select-none shadow-md">
             {resolvedAccentTag}
           </span>
@@ -179,21 +171,9 @@ export const BandCard: React.FC<BandCardProps> = ({
         className="flex-1 flex flex-col justify-between p-5 text-inherit no-underline space-y-4"
       >
         <div className="space-y-2">
-          {/* Tier Representation Badge (Stars & numbers removed for public, only status words shown) */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={`font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 font-bold border rounded ${ratingTierInfo.bgClass}`}
-              title={ratingTierInfo.description}
-            >
-              {ratingTierInfo.label}
-            </span>
-            {band.customTag && (
-              <span className="font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 font-bold rounded bg-[#00D9FF]/15 border border-[#00D9FF]/40 text-[#00D9FF] flex items-center gap-1">
-                <span>✨</span>
-                <span>{band.customTag}</span>
-              </span>
-            )}
-            {band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin') && (
+          {/* Campus Badge (Admin-controlled visibility) */}
+          {band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin') && (
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-[10px] uppercase tracking-wider text-[#FFD166] bg-black/70 border border-[#FFD166]/40 px-2 py-0.5 font-bold rounded flex items-center gap-1">
                 <span>🎓</span>
                 <span>{band.campus}</span>
@@ -201,8 +181,8 @@ export const BandCard: React.FC<BandCardProps> = ({
                   <span className="text-[9px] text-[#888] font-mono">(Admin Only)</span>
                 )}
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Band Title with Cipher text scramble */}
           <h3 className="font-mono font-bold text-lg text-white uppercase tracking-tight group-hover:text-[#E01E37] transition-colors truncate">
@@ -211,9 +191,13 @@ export const BandCard: React.FC<BandCardProps> = ({
 
           {/* Location & Status Line */}
           <div className="flex items-center gap-2 text-xs font-mono text-[#00D9FF]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00D9FF] animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00D9FF] animate-pulse shrink-0" />
             <span className="truncate uppercase">
-              {band.locationCity} {band.locationRegion ? `• ${band.locationRegion}` : ''}
+              {band.locationCity}
+              {(() => {
+                const region = band.locationRegion || getProvinceForCity(band.locationCity)
+                return region ? ` • ${region}` : ''
+              })()}
             </span>
           </div>
 

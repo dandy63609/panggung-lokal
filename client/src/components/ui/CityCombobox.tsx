@@ -1,8 +1,8 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, MapPin, X } from 'lucide-react'
 import {
-  INDONESIA_CITY_RECORDS,
   normalizeLegacyCity,
+  resolveIndonesiaCity,
   searchIndonesiaCities,
   type IndonesiaCityRecord,
 } from '../../lib/cities'
@@ -131,16 +131,20 @@ export const CityCombobox: React.FC<CityComboboxProps> = ({
     }
   }, [activeIndex, isOpen])
 
-  // Close on outside click
+  // Close on outside click or touch
   useEffect(() => {
     if (!isOpen) return
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleOutsideEvent = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         closeAndReconcile()
       }
     }
-    document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
+    document.addEventListener('mousedown', handleOutsideEvent)
+    document.addEventListener('touchstart', handleOutsideEvent)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideEvent)
+      document.removeEventListener('touchstart', handleOutsideEvent)
+    }
   })
 
   const selectOption = (opt: ComboboxOption) => {
@@ -154,19 +158,21 @@ export const CityCombobox: React.FC<CityComboboxProps> = ({
     setIsOpen(false)
     if (hasTyped) {
       const trimmed = inputText.trim()
-      if (!trimmed && allowAll) {
-        onChange('Semua')
+      if (!trimmed) {
+        if (allowAll) {
+          onChange('Semua')
+        } else {
+          onChange('')
+        }
         setInputText('')
         setHasTyped(false)
         return
       }
-      // If user typed an exact official name, commit it; otherwise restore last valid selection
-      const exact = INDONESIA_CITY_RECORDS.find(
-        (c) => c.name.toLowerCase() === trimmed.toLowerCase()
-      )
-      if (exact) {
-        onChange(exact.name)
-        setInputText(exact.name)
+      // Resolve typed input (official name, core name like "Bandung", alias like "Jogja", or closest match)
+      const resolved = resolveIndonesiaCity(trimmed)
+      if (resolved) {
+        onChange(resolved.name)
+        setInputText(resolved.name)
       } else {
         setInputText(displayValue)
       }
@@ -186,13 +192,22 @@ export const CityCombobox: React.FC<CityComboboxProps> = ({
     }
   }
 
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Reconcile on blur as well (covers clicks inside cross-origin iframes like Google Sign-Up)
+    const related = e.relatedTarget as Node | null
+    if (related && containerRef.current?.contains(related)) return
+    if (isOpen || hasTyped) {
+      closeAndReconcile()
+    }
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const next = e.target.value
     setInputText(next)
     setHasTyped(true)
     if (!isOpen) setIsOpen(true)
-    if (allowAll && next.trim() === '') {
-      onChange('Semua')
+    if (next.trim() === '') {
+      onChange(allowAll ? 'Semua' : '')
     }
   }
 
@@ -249,9 +264,7 @@ export const CityCombobox: React.FC<CityComboboxProps> = ({
     e.stopPropagation()
     setInputText('')
     setHasTyped(true)
-    if (allowAll) {
-      onChange('Semua')
-    }
+    onChange(allowAll ? 'Semua' : '')
     setIsOpen(true)
     inputRef.current?.focus()
   }
@@ -301,6 +314,7 @@ export const CityCombobox: React.FC<CityComboboxProps> = ({
           value={inputText}
           onChange={handleInputChange}
           onFocus={handleFocus}
+          onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={inputClassName || defaultInputClasses}

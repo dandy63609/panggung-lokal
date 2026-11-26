@@ -5,7 +5,6 @@ import {
   ChevronRight,
   Plus,
   Minus,
-  Star,
   MapPin,
   Phone,
   Play,
@@ -24,7 +23,6 @@ import {
   Settings,
   X,
   Lock,
-  Calendar,
 } from 'lucide-react'
 import { BandCard } from '../components/ui/BandCard'
 import {
@@ -36,8 +34,6 @@ import {
 import { BroadcastInquirySection } from '../components/band-detail/BroadcastInquirySection'
 import { PostViewerModal, DirectBookingModal } from '../components/band-detail/BandDetailModals'
 import { ManageAudioModal } from '../components/band/ManageAudioModal'
-import { BandScheduleCalendar } from '../components/band/BandScheduleCalendar'
-import { ManageScheduleModal } from '../components/band/ManageScheduleModal'
 import {
   formatWhatsAppPhone,
   isActualVideoSlide,
@@ -46,10 +42,10 @@ import {
   getBandProfileUrl,
 } from '../lib/bandHelpers'
 import { formatRupiah } from '../lib/utils'
+import { getProvinceForCity } from '../lib/cities'
 import { authClient, type AuthUser } from '../lib/auth'
-import { getRatingTierBadge, getRatingTier } from '../lib/ratingHelpers'
 import { usePlatformSettings } from '../lib/platformSettings'
-import type { Band, BandPost, MediaFile, RiderItem, BandReview } from '../types'
+import type { Band, BandPost, MediaFile, RiderItem } from '../types'
 
 function formatAudioTime(seconds: number): string {
   if (isNaN(seconds) || seconds <= 0) return '0:00'
@@ -62,7 +58,6 @@ export const BandDetailPage: React.FC = () => {
   const { id: routeId } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
 
-  const [activeAccordion, setActiveAccordion] = useState<'specs' | 'kit' | 'hospitality'>('kit')
   const [setQuantity, setSetQuantity] = useState<number>(1)
   const [activeSlide, setActiveSlide] = useState<number>(0)
   const [isOrderModalOpen, setIsOrderModalOpen] = useState<boolean>(false)
@@ -77,7 +72,6 @@ export const BandDetailPage: React.FC = () => {
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authClient.getUser())
   const [isAudioManageModalOpen, setIsAudioManageModalOpen] = useState<boolean>(false)
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false)
 
   // Auto-open manage audio modal if requested via URL query params
   useEffect(() => {
@@ -108,7 +102,6 @@ export const BandDetailPage: React.FC = () => {
   const [loadingBand, setLoadingBand] = useState<boolean>(isValidIdentifier)
   const [notFoundError, setNotFoundError] = useState<boolean>(!isValidIdentifier)
   const [liveRelatedBands, setLiveRelatedBands] = useState<Band[] | null>(null)
-  const [reviews, setReviews] = useState<BandReview[]>([])
   const { showCampusAffiliation } = usePlatformSettings()
 
   if (rawIdentifier !== prevIdentifier) {
@@ -122,18 +115,6 @@ export const BandDetailPage: React.FC = () => {
     setActivePost(null)
     setBrokenCardThumbIds({})
   }
-
-  useEffect(() => {
-    if (!band?.id) return
-    fetch(`/api/reviews/band/${band.id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.data)) {
-          setReviews(data.data)
-        }
-      })
-      .catch(() => {})
-  }, [band?.id])
 
   // Sync fetched live band details when route target or auth session changes (public guest preview supported)
   useEffect(() => {
@@ -384,7 +365,7 @@ export const BandDetailPage: React.FC = () => {
   const baseRate = hasFixedRate ? (band?.budgetMin || 0) : 0
   const totalPrice = hasFixedRate ? Math.round(baseRate * setQuantity) : 0
 
-  const handleDirectWhatsApp = (eventDate?: string, eventName?: string) => {
+  const handleDirectWhatsApp = (eventName?: string) => {
     if (!currentUser) return
     if (!band?.phone || band.phone.includes('x')) return
     const cleanPhone = formatWhatsAppPhone(band.phone, '')
@@ -402,8 +383,7 @@ export const BandDetailPage: React.FC = () => {
           body: JSON.stringify({
             bandProfileId: band.id,
             connectionType: 'whatsapp_direct',
-            notes: `Direct WA booking: ${setQuantity} Set Performance`,
-            eventDate: eventDate || null,
+            notes: `Direct WA inquiry: ${setQuantity} Set Performance`,
             eventName: eventName || null,
           }),
         }).catch(() => {})
@@ -413,14 +393,13 @@ export const BandDetailPage: React.FC = () => {
     }
     const rateLabel = hasFixedRate ? formatRupiah(totalPrice) : 'Negosiasi'
     const eventLabel = eventName ? `- Acara: ${eventName}\n` : ''
-    const dateLabel = eventDate ? `- Tanggal Tampil: ${eventDate}\n` : ''
+    const durationSuffix = band.setDuration?.trim() ? ` (${band.setDuration.trim()} / set)` : ''
     const message = encodeURIComponent(
-      `Halo Management ${band.bandName}, kami dari Event Organizer ingin mengajukan penawaran booking panggung melalui Reffband:\n` +
+      `Halo Management ${band.bandName}, kami dari Event Organizer ingin mengajukan penawaran penampilan panggung melalui Reffband:\n` +
       eventLabel +
-      dateLabel +
-      `- Durasi: ${setQuantity} Set Performance\n` +
+      `- Durasi: ${setQuantity} Set Performance${durationSuffix}\n` +
       `- Estimasi Rate: ${rateLabel}\n` +
-      `Mohon informasi ketersediaan jadwal tanggal dan konfirmasi spesifikasi technical rider panggung Anda. Terima kasih!`
+      `Mohon informasi ketersediaan serta konfirmasi spesifikasi technical rider panggung Anda. Terima kasih!`
     )
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank')
   }
@@ -435,29 +414,15 @@ export const BandDetailPage: React.FC = () => {
     }
   }
 
-  // Fallback / Customizable Rider items
+  // Only display technical rider items explicitly set by the band
   const displayRiderItems: RiderItem[] = useMemo(() => {
-    if (band?.riderItems && band.riderItems.length > 0) {
-      return band.riderItems
+    if (!band) return []
+    if (Array.isArray(band.riderItems)) {
+      return band.riderItems.filter(
+        (item) => item && (item.title?.trim() || item.description?.trim())
+      )
     }
-    return [
-      {
-        title: 'FOH Mixer & Audio Console',
-        description: 'Digital console min 16-channel (Yamaha QL/CL series, Behringer X32, or Allen & Heath)',
-      },
-      {
-        title: 'Monitor Panggung & IEM System',
-        description: '4 Independent AUX Wedge mixes + 2 Wireless IEM transmitter feeds',
-      },
-      {
-        title: 'Mikrofon & Wireless Transmitters',
-        description: 'Shure SM58 wireless untuk vokal utama, Shure SM57 untuk cabinet & perkusi',
-      },
-      {
-        title: 'Kelistrikan & Power Distribution',
-        description: 'Dedicated isolated power 220V dengan grounded stabilizer khusus panggung audio',
-      },
-    ]
+    return []
   }, [band])
 
   if (loadingBand && !band) {
@@ -663,12 +628,6 @@ export const BandDetailPage: React.FC = () => {
 
               {/* Status Badges */}
               <div className="flex items-center gap-2 flex-wrap">
-                {band.customTag && (
-                  <span className="font-mono text-[11px] uppercase tracking-wider text-black bg-[#00D9FF] px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full shadow-sm">
-                    <span>✨</span>
-                    <span>{band.customTag}</span>
-                  </span>
-                )}
                 <span className="font-mono text-[11px] uppercase tracking-wider text-white bg-[#E01E37] px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                   TOP BAND TERKURASI
@@ -676,21 +635,6 @@ export const BandDetailPage: React.FC = () => {
                 <span className="font-mono text-[11px] uppercase tracking-wider text-white bg-white/10 border border-white/20 px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full">
                   SOUNDCHECK VERIFIED
                 </span>
-                {(() => {
-                  const currentRating = Number(band.rating ?? band.ratingAverage ?? 2.5)
-                  const tierInfo = getRatingTierBadge(currentRating)
-                  return (
-                    <div className={`font-mono text-[11px] uppercase tracking-wider px-3 py-1 font-bold flex items-center gap-1.5 select-none rounded-full border ${tierInfo.bgClass}`}>
-                      {currentUser?.accountType === 'admin' && (
-                        <span className="text-[#FFD166] flex items-center gap-1 mr-0.5">
-                          <Star className="w-3 h-3 fill-current" />
-                          <span>{currentRating.toFixed(1)} ·</span>
-                        </span>
-                      )}
-                      <span>{tierInfo.label}</span>
-                    </div>
-                  )
-                })()}
               </div>
             </div>
 
@@ -701,59 +645,6 @@ export const BandDetailPage: React.FC = () => {
                   {band.bandName}
                 </h1>
 
-                {/* Rating & Review Counter Line (Stars visible only to Admin; public only sees status words) */}
-                {(() => {
-                  const currentRating = Number(band.rating ?? band.ratingAverage ?? 2.5)
-                  const tierInfo = getRatingTierBadge(currentRating)
-                  return (
-                    <div className="flex items-center gap-3 flex-wrap pt-0.5">
-                      {band.customTag && (
-                        <>
-                          <span className="font-mono text-xs font-bold px-3 py-1 rounded border uppercase tracking-wider bg-[#00D9FF]/15 border-[#00D9FF] text-[#00D9FF] flex items-center gap-1">
-                            <span>✨</span>
-                            <span>{band.customTag}</span>
-                          </span>
-                          <span className="text-[#555]">•</span>
-                        </>
-                      )}
-                      {currentUser?.accountType === 'admin' && (
-                        <>
-                          <div className="flex items-center gap-1 bg-[#181818] border border-[#FFD166]/40 px-2.5 py-1 rounded-lg">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star
-                                key={s}
-                                className={`w-3.5 h-3.5 ${
-                                  s <= Math.round(currentRating)
-                                    ? 'fill-[#FFD166] text-[#FFD166]'
-                                    : 'text-[#444]'
-                                }`}
-                              />
-                            ))}
-                            <span className="font-mono font-bold text-white text-xs sm:text-sm ml-1.5">
-                              {currentRating.toFixed(1)} / 5.0
-                            </span>
-                            <span className="text-[10px] text-[#00D9FF] ml-1 bg-[#00D9FF]/10 px-1.5 py-0.5 rounded border border-[#00D9FF]/20 font-bold">
-                              Admin View
-                            </span>
-                          </div>
-                          <span className="text-[#555]">•</span>
-                        </>
-                      )}
-                      <span className={`font-mono text-xs font-bold px-3 py-1 rounded border uppercase tracking-wider ${tierInfo.bgClass}`}>
-                        {tierInfo.label}
-                      </span>
-                      <span className="text-[#555]">•</span>
-                      <span className="font-mono text-xs text-[#A0A0A0]">
-                        {(() => {
-                          const verifiedCount = reviews.length > 0 ? reviews.length : Number(band.ratingCount ?? 0)
-                          return verifiedCount > 0
-                            ? `${verifiedCount} Penilaian EO Terverifikasi`
-                            : 'Belum Ada Penilaian EO'
-                        })()}
-                      </span>
-                    </div>
-                  )
-                })()}
                 <p className="text-sm text-[#CCCCCC] font-sans leading-relaxed">
                   {band.bio || 'Unit musisi terverifikasi siap tampil untuk panggung live festival, gig intim, dan pementasan kampus.'}
                 </p>
@@ -762,7 +653,13 @@ export const BandDetailPage: React.FC = () => {
                 <div className="flex items-center gap-4 flex-wrap pt-1 font-mono text-xs text-[#A0A0A0]">
                   <div className="flex items-center gap-1.5 text-white">
                     <MapPin className="w-3.5 h-3.5 text-[#E01E37]" />
-                    <span>{band.locationCity}{band.locationRegion ? ` • ${band.locationRegion}` : ''}</span>
+                    <span>
+                      {band.locationCity}
+                      {(() => {
+                        const region = band.locationRegion || getProvinceForCity(band.locationCity)
+                        return region ? ` • ${region}` : ''
+                      })()}
+                    </span>
                   </div>
                   {band.campus && (showCampusAffiliation || currentUser?.accountType === 'admin') && (
                     <>
@@ -884,51 +781,13 @@ export const BandDetailPage: React.FC = () => {
 
             {/* Bottom Bar: 3 Metrics Columns & Pill Action Buttons */}
             <div className="border-t border-[#222222] mt-6 pt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-              {/* 3 Metrics separated by vertical line dividers */}
+              {/* Metrics separated by vertical line divider */}
               <div className="flex items-center gap-5 sm:gap-8 flex-wrap">
-                {/* Metric 1: Rating / Curation Status */}
-                {(() => {
-                  const effectiveRating = Number(band.rating ?? band.ratingAverage ?? 0)
-                  const verifiedCount = reviews.length > 0 ? reviews.length : Number(band.ratingCount ?? 0)
-                  const tierInfo = getRatingTierBadge(effectiveRating > 0 ? effectiveRating : 2.5)
-
-                  if (currentUser?.accountType === 'admin') {
-                    return (
-                      <div>
-                        <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
-                          <Star className="w-4 h-4 fill-[#E01E37] text-[#E01E37]" />
-                          <span>{effectiveRating > 0 ? effectiveRating.toFixed(1) : '-'}</span>
-                        </div>
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
-                          RATING PANGGUNG
-                        </span>
-                      </div>
-                    )
-                  }
-
-                  return (
-                    <div>
-                      <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
-                        <span>
-                          {verifiedCount > 0 || band.ratingOverride != null
-                            ? tierInfo.label.toUpperCase()
-                            : 'TERKURASI'}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
-                        STATUS KURASI
-                      </span>
-                    </div>
-                  )
-                })()}
-
-                <div className="w-px h-8 bg-[#2A2A2A] hidden sm:block" />
-
-                {/* Metric 2: Live Set Duration */}
+                {/* Metric 1: Live Set Duration */}
                 <div>
-                  <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
+                  <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide uppercase">
                     <Clock className="w-4 h-4 text-white/80" />
-                    <span>45 - 60 MENIT</span>
+                    <span>{band.setDuration?.trim() || 'Belum diatur'}</span>
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
                     DURASI LIVE SET
@@ -996,14 +855,6 @@ export const BandDetailPage: React.FC = () => {
                   <>
                     <button
                       type="button"
-                      onClick={() => setIsScheduleModalOpen(true)}
-                      className="px-5 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] cursor-pointer"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      <span>+ Input Jadwal Manggung</span>
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setIsAudioManageModalOpen(true)}
                       className="px-5 py-2.5 rounded-full bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333] font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer"
                     >
@@ -1028,13 +879,6 @@ export const BandDetailPage: React.FC = () => {
                       {currentUser ? <Phone className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                       <span>{currentUser ? 'Booking Sekarang' : 'Hubungi Band (Login)'}</span>
                     </button>
-                    <a
-                      href="#jadwal-manggung"
-                      className="px-5 py-2.5 rounded-full bg-[#181818] hover:bg-[#252525] border border-[#FFD166]/40 text-[#FFD166] hover:text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      <span>Kalender Manggung ({band.schedules?.length || 0})</span>
-                    </a>
                   </div>
                 )}
               </div>
@@ -1152,99 +996,55 @@ export const BandDetailPage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Technical Rider Items (Customizable list from band dashboard) */}
+              {/* Technical Rider Items (Only items explicitly configured by the band) */}
               <div className="space-y-3">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-[#777] block font-bold">
                   KEBUTUHAN PERALATAN & RIDER RESMI
                 </span>
-                <div className="space-y-2.5">
-                  {displayRiderItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-[#0C0C0C] border border-[#222222] p-3.5 rounded-xl space-y-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs text-white font-bold uppercase flex items-center gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#E01E37]" />
-                          {item.title}
-                        </span>
-                        <span className="font-mono text-[10px] text-[#666]">#0{idx + 1}</span>
+                {displayRiderItems.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {displayRiderItems.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-[#0C0C0C] border border-[#222222] p-3.5 rounded-xl space-y-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-xs text-white font-bold uppercase flex items-center gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#E01E37] shrink-0" />
+                            {item.title}
+                          </span>
+                          <span className="font-mono text-[10px] text-[#666]">#{String(idx + 1).padStart(2, '0')}</span>
+                        </div>
+                        {item.description?.trim() && (
+                          <p className="text-xs text-[#A8A8A8] font-sans pl-5.5 leading-relaxed whitespace-pre-wrap">
+                            {item.description}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-xs text-[#A8A8A8] font-sans pl-5.5 leading-relaxed">
-                        {item.description}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-[#0C0C0C] border border-[#222222] rounded-xl p-6 text-center space-y-3">
+                    <Sliders className="w-7 h-7 text-[#555555] mx-auto" aria-hidden="true" />
+                    <div className="space-y-1">
+                      <p className="font-mono text-xs font-bold uppercase text-white">
+                        Rider Teknis Belum Diatur Band
+                      </p>
+                      <p className="text-xs text-[#8A8A8A] font-sans leading-relaxed max-w-sm mx-auto">
+                        Band belum menuliskan daftar kebutuhan peralatan panggung. Diskusikan kebutuhan teknis langsung bersama manajemen band saat booking.
                       </p>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Accordion: Specs Tambahan & Hospitality */}
-              <div className="space-y-2 border-t border-[#1E1E1E] pt-4">
-
-                {/* ACCORDION 1: KONSOL & CHANNEL FOH */}
-                <div className="border border-[#202020] bg-[#0C0C0C] rounded-xl overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setActiveAccordion(activeAccordion === 'specs' ? 'kit' : 'specs')}
-                    className="w-full min-h-[44px] px-4 py-3 flex items-center justify-between text-left font-mono text-xs uppercase tracking-widest text-white hover:text-[#E01E37] transition-colors"
-                  >
-                    <span>DETAIL TEKNIS INPUT CHANNEL & SOUND SYSTEM</span>
-                    <span className="text-[#E01E37]">
-                      {activeAccordion === 'specs' ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                    </span>
-                  </button>
-                  {activeAccordion === 'specs' && (
-                    <div className="px-4 pb-4 pt-1 border-t border-[#1C1C1C] space-y-2.5 font-mono text-xs">
-                      <div className="flex justify-between py-1 border-b border-[#181818]">
-                        <span className="text-[#757575] uppercase">INPUT CHANNELS FOH</span>
-                        <span className="text-white font-medium uppercase">{band.riderChannelInputs || '16 Channels Analog/Digital'}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-[#181818]">
-                        <span className="text-[#757575] uppercase">KAPASITAS SOUND SYSTEM FOH</span>
-                        <span className="text-white font-medium uppercase">{band.riderSoundSystem || 'MIN. 10.000 WATT'}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-[#181818]">
-                        <span className="text-[#757575] uppercase">DURASI SOUNDCHECK</span>
-                        <span className="text-white font-medium uppercase">30 - 45 MENIT SEBELUM OPEN GATE</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-[#757575] uppercase">KABEL & DIRECT BOX (DI)</span>
-                        <span className="text-white font-medium uppercase">SEDIAKAN MINIMAL 4 UNIT PASSIVE/ACTIVE DI BOX</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* ACCORDION 2: HOSPITALITY & RUANG TUNGGU */}
-                <div className="border border-[#202020] bg-[#0C0C0C] rounded-xl overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setActiveAccordion(activeAccordion === 'hospitality' ? 'kit' : 'hospitality')}
-                    className="w-full min-h-[44px] px-4 py-3 flex items-center justify-between text-left font-mono text-xs uppercase tracking-widest text-white hover:text-[#E01E37] transition-colors"
-                  >
-                    <span>HOSPITALITY, RUANG TRANSIT & LOGISTIK</span>
-                    <span className="text-[#E01E37]">
-                      {activeAccordion === 'hospitality' ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                    </span>
-                  </button>
-                  {activeAccordion === 'hospitality' && (
-                    <div className="px-4 pb-4 pt-1 border-t border-[#1C1C1C] space-y-2.5 font-mono text-xs">
-                      <div className="flex flex-col sm:flex-row sm:justify-between py-1 border-b border-[#181818] gap-1">
-                        <span className="text-[#757575] uppercase">RUANG TRANSIT PRIVAT</span>
-                        <span className="text-white font-medium uppercase text-right">Ruangan privat ber-AC dengan cermin & stopkontak aman</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:justify-between py-1 border-b border-[#181818] gap-1">
-                        <span className="text-[#757575] uppercase">KONSUMSI & REFRESHMENT</span>
-                        <span className="text-white font-medium uppercase text-right">Air mineral botol, kopi/teh hangat, & snack kru</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:justify-between py-1 gap-1">
-                        <span className="text-[#757575] uppercase">TRANSPORTASI LUAR KOTA</span>
-                        <span className="text-white font-medium uppercase text-right">Akomodasi hotel min. bintang 3 & transportasi darat resmi</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
+                    {canManage && (
+                      <Link
+                        to="/dashboard-band?tab=rider"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1C1C1C] hover:bg-[#282828] border border-[#333333] hover:border-[#E01E37] text-white font-mono text-[11px] uppercase font-bold tracking-wider min-h-[40px] transition-colors"
+                      >
+                        <Sliders className="w-3.5 h-3.5 text-[#E01E37]" />
+                        <span>Atur Technical Rider</span>
+                      </Link>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1420,17 +1220,7 @@ export const BandDetailPage: React.FC = () => {
 
         </div>
 
-        {/* 4. KALENDER PANGGUNG LIVE & JADWAL MANGGUNG TERKONFIRMASI */}
-        <BandScheduleCalendar
-          schedules={band.schedules || []}
-          bandName={band.bandName}
-          bandId={band.id}
-          isOwner={canManage}
-          onAddScheduleClick={() => setIsScheduleModalOpen(true)}
-          onScheduleDeleted={() => refetchBandProfile()}
-        />
-
-        {/* 5. POSTINGAN & GALERI KARYA */}
+        {/* 4. POSTINGAN & GALERI KARYA */}
         <section className="w-full pt-4 pb-16">
           <div className="relative border-b-2 border-[#E01E37] pb-3 mb-8 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
             <div
@@ -1585,187 +1375,6 @@ export const BandDetailPage: React.FC = () => {
           )}
         </section>
 
-        {/* 6. PENILAIAN & ULASAN EVENT ORGANIZER */}
-        <section className="w-full pb-16">
-          <div className="relative border-b-2 border-[#E01E37] pb-3 mb-8 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-            <div
-              className="bg-[#E01E37] text-white px-6 py-2.5 font-mono font-bold text-sm sm:text-base uppercase tracking-widest inline-flex items-center gap-3 select-none"
-              style={{
-                clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%)',
-              }}
-            >
-              <span>PENILAIAN & ULASAN EVENT ORGANIZER</span>
-            </div>
-
-            <div className="flex items-center gap-4 font-mono text-xs">
-              <span className="text-[#A0A0A0]">
-                Rating Ditentukan Oleh EO Terverifikasi
-              </span>
-            </div>
-          </div>
-
-          {/* Rating Summary Card & Scale Representation (Stars visible ONLY to Admin) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Status Box */}
-            {(() => {
-              const currentRating = Number(band.rating ?? band.ratingAverage ?? 2.5)
-              const tierInfo = getRatingTierBadge(currentRating)
-              return (
-                <div className="bg-[#121212] border border-[#222222] p-6 rounded-2xl flex flex-col justify-between">
-                  <div>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#737373] block mb-2 font-bold">
-                      STATUS KURASI &amp; PERFORMA BAND
-                    </span>
-                    <div className="my-3">
-                      <span className={`inline-block font-mono text-xl sm:text-2xl font-black px-4 py-2.5 rounded-xl border uppercase tracking-wider ${tierInfo.bgClass}`}>
-                        {tierInfo.label}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-[#A0A0A0] mt-3 font-sans leading-relaxed">
-                      {tierInfo.description}
-                    </p>
-
-                    {/* Admin Only Star Inspection */}
-                    {currentUser?.accountType === 'admin' && (
-                      <div className="mt-4 pt-3 border-t border-white/10 bg-black/60 p-3 rounded-xl border border-[#FFD166]/30">
-                        <div className="flex items-center justify-between text-xs font-mono">
-                          <span className="text-[#FFD166] font-bold">KHUSUS ADMIN // SKOR BINTANG</span>
-                          <span className="text-white font-bold">{currentRating.toFixed(1)} / 5.0</span>
-                        </div>
-                        <div className="flex items-center gap-1 mt-1.5 text-[#FFD166]">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              className={`w-3.5 h-3.5 ${
-                                s <= Math.round(currentRating) ? 'fill-[#FFD166] text-[#FFD166]' : 'text-[#444]'
-                              }`}
-                            />
-                          ))}
-                          <span className="text-[9px] font-mono text-[#00D9FF] ml-1 bg-[#00D9FF]/10 px-1 py-0.2 rounded border border-[#00D9FF]/20">
-                            Admin View
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })()}
-
-            {/* Rating Scale Legend (1-2 Baik, 3-4 Sangat Baik, 4.5-5 Rekomendasi Favorit) */}
-            <div className="lg:col-span-2 bg-[#121212] border border-[#222222] p-6 rounded-2xl space-y-4">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-[#737373] block font-bold">
-                STANDAR TIER STATUS REFFBAND
-              </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="bg-[#0A0A0A] border border-[#FFD166]/30 p-3.5 rounded-xl space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-[#FFD166]">BAIK</span>
-                    {currentUser?.accountType === 'admin' && (
-                      <span className="text-[9px] font-mono text-[#FFD166]/70">1.0 - 2.9 ★</span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-[#A0A0A0] leading-relaxed">
-                    Performa standar, musisi siap tampil di gig kecil dan panggung santai.
-                  </p>
-                </div>
-
-                <div className="bg-[#0A0A0A] border border-[#00D9FF]/30 p-3.5 rounded-xl space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-[#00D9FF]">SANGAT BAIK</span>
-                    {currentUser?.accountType === 'admin' && (
-                      <span className="text-[9px] font-mono text-[#00D9FF]/70">3.0 - 4.4 ★</span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-[#A0A0A0] leading-relaxed">
-                    Aksi panggung energik, crowd engagement kuat, dan kedisiplinan rundown tinggi.
-                  </p>
-                </div>
-
-                <div className="bg-[#0A0A0A] border border-[#E01E37]/50 p-3.5 rounded-xl space-y-1.5 shadow-[0_0_15px_rgba(224,30,55,0.1)]">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-[#FF4D6D]">REKOMENDASI FAVORIT</span>
-                    {currentUser?.accountType === 'admin' && (
-                      <span className="text-[9px] font-mono text-[#FF4D6D]/70">4.5 - 5.0 ★</span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-[#A0A0A0] leading-relaxed">
-                    Pilihan utama kurator &amp; EO. Live show spektakuler, audio rider prima, kepuasan 100%.
-                  </p>
-                </div>
-              </div>
-
-              {/* EO Rating Workflow Info */}
-              <div className="bg-[#181818] p-3 rounded-xl border border-white/5 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#E01E37]/20 text-[#E01E37] flex items-center justify-center shrink-0 mt-0.5 font-bold">
-                  ✓
-                </div>
-                <div className="text-xs text-[#CCCCCC] space-y-0.5 leading-relaxed">
-                  <span className="font-bold text-white block">Sistem Kurasi Status Otomatis Reffband</span>
-                  <span>Penilaian hanya dapat diberikan oleh akun Event Organizer (EO) yang telah membooking band. Setelah tanggal acara selesai (tepat pukul 00.00 WIB), EO menerima email otomatis dan wajib memberikan ulasan sebelum dapat mengakses menu utama.</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Reviews List */}
-          {reviews.length > 0 ? (
-            <div className="space-y-3">
-              {reviews.map((rev) => {
-                const tierInfo = getRatingTierBadge(rev.rating)
-                return (
-                  <div key={rev.id} className="bg-[#101010] border border-[#222222] p-5 rounded-2xl flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        {currentUser?.accountType === 'admin' ? (
-                          <div className="flex items-center gap-1 text-[#FFD166] bg-black/60 px-2 py-0.5 rounded border border-[#FFD166]/30">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star
-                                key={s}
-                                className={`w-3.5 h-3.5 ${
-                                  s <= Math.round(rev.rating) ? 'fill-[#FFD166] text-[#FFD166]' : 'text-[#333]'
-                                }`}
-                              />
-                            ))}
-                            <span className="font-mono text-xs font-bold text-white ml-1">{Number(rev.rating).toFixed(1)}</span>
-                            <span className="text-[9px] font-mono text-[#00D9FF] bg-[#00D9FF]/10 px-1 py-0.2 rounded border border-[#00D9FF]/20 font-bold ml-1">
-                              Admin View
-                            </span>
-                          </div>
-                        ) : null}
-                        <span className={`text-[10px] font-mono px-2.5 py-1 rounded border font-bold uppercase ${tierInfo.bgClass}`}>
-                          {tierInfo.label}
-                        </span>
-                        <span className="text-[11px] font-mono text-[#00D9FF] bg-[#00D9FF]/10 px-2 py-0.5 rounded border border-[#00D9FF]/20">
-                          ✓ Terverifikasi Selesai Tampil
-                        </span>
-                      </div>
-                      <p className="text-sm text-[#CCCCCC] font-sans leading-relaxed">
-                        "{rev.reviewText}"
-                      </p>
-                    </div>
-
-                    <div className="text-right shrink-0 space-y-1 font-mono text-[11px] text-[#777]">
-                      <div className="text-[#AAA] font-bold">{rev.organizerEmail || 'EO Penyelenggara'}</div>
-                      {rev.eventDate && <div>Tgl Tampil: {rev.eventDate}</div>}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="bg-[#101010] border border-[#222222] p-8 text-center rounded-2xl space-y-2">
-              <span className="text-2xl">⚡</span>
-              <h3 className="font-mono text-sm font-bold uppercase text-white">Belum Ada Ulasan Pasca-Tampil</h3>
-              <p className="text-xs text-[#888] max-w-md mx-auto">
-                Band ini berstatus kurasi Rekomendasi Favorit. Penilaian langsung akan bertambah setelah EO menyelesaikan booking tanggal penampilan berikutnya.
-              </p>
-            </div>
-          )}
-        </section>
-
         <BroadcastInquirySection sourceBandProfileId={band.id} currentUser={currentUser} />
 
         {/* 7. BAND LAIN YANG TERKAIT */}
@@ -1818,17 +1427,8 @@ export const BandDetailPage: React.FC = () => {
         setQuantity={setQuantity}
         totalPrice={totalPrice}
         currentUser={currentUser}
-        schedules={band.schedules || []}
         onClose={() => setIsOrderModalOpen(false)}
         onConfirmWhatsApp={handleDirectWhatsApp}
-      />
-
-      {/* Modal Input Jadwal Manggung (Mode Pemilik Band) */}
-      <ManageScheduleModal
-        isOpen={isScheduleModalOpen}
-        onClose={() => setIsScheduleModalOpen(false)}
-        onSuccess={() => refetchBandProfile()}
-        defaultCity={band.locationCity}
       />
 
       {/* Modal Kelola & Edit Sampel Audio Profil (Mode Pemilik) */}

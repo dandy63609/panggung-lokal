@@ -1,28 +1,5 @@
 import type { Band, BandPost, BandPostSlide, RiderItem } from '../types'
 
-const DEFAULT_DASHBOARD_RIDER: RiderItem[] = [
-  {
-    title: 'Channel Inputs & Patch FOH',
-    description:
-      'Drum (Kick, Snare, Hi-Hat, 2 Tom, Overhead L/R), Bass DI Box, Guitar Amp Mic (Shure SM57), 2 Vocal Mics (Shure SM58).',
-  },
-  {
-    title: 'Tata Suara & Monitor Panggung',
-    description:
-      'FOH PA System minimal 5.000 Watt RMS terkalibrasi, 4 unit Floor Wedge Monitors aktif independen.',
-  },
-  {
-    title: 'Backline & Instrumen Panggung',
-    description:
-      'Standard Drum Kit (Pearl/Tama), Ampeg Bass Head + 4x10 Cab, Marshall JCM900 / Roland JC-120 Guitar Amp.',
-  },
-  {
-    title: 'Hospitality & Ruang Tunggu',
-    description:
-      'Ruang tunggu bersih ber-AC, air mineral 600ml (2 dus), konsumsi untuk 6 personel, handuk bersih.',
-  },
-]
-
 const LEGACY_RIDER_KEYS: Array<{
   title: string
   field: keyof Pick<
@@ -38,26 +15,21 @@ const LEGACY_RIDER_KEYS: Array<{
 
 export function buildDashboardRiderItems(
   profile?: Partial<Band> | null,
-  options: { filterEmptyLegacy?: boolean } = {}
+  _options: { filterEmptyLegacy?: boolean } = {}
 ): RiderItem[] {
-  if (profile?.riderItems && profile.riderItems.length > 0) {
-    return profile.riderItems.map((item) => ({ ...item }))
+  if (Array.isArray(profile?.riderItems)) {
+    return profile.riderItems
+      .filter((item) => item && (item.title?.trim() || item.description?.trim()))
+      .map((item) => ({
+        title: item.title || '',
+        description: item.description || '',
+      }))
   }
 
-  if (options.filterEmptyLegacy) {
-    const legacy = LEGACY_RIDER_KEYS.map(({ title, field }) => ({
-      title,
-      description: profile?.[field] || '',
-    })).filter((item) => item.description.trim() !== '')
-
-    if (legacy.length > 0) return legacy
-    return DEFAULT_DASHBOARD_RIDER.map((item) => ({ ...item }))
-  }
-
-  return LEGACY_RIDER_KEYS.map(({ title, field }, index) => ({
+  return LEGACY_RIDER_KEYS.map(({ title, field }) => ({
     title,
-    description: profile?.[field] || DEFAULT_DASHBOARD_RIDER[index].description,
-  }))
+    description: profile?.[field] || '',
+  })).filter((item) => item.description.trim() !== '')
 }
 
 export function parsePostSlides(

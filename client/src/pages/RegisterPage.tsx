@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { authClient, type RegisterPayload } from '../lib/auth'
 import { BAND_GENRE_OPTIONS } from '../lib/genres'
-import { DEFAULT_CITY } from '../lib/cities'
+import { getProvinceForCity, resolveIndonesiaCity } from '../lib/cities'
 import { CityCombobox } from '../components/ui/CityCombobox'
 
 export const RegisterPage: React.FC = () => {
@@ -46,7 +46,7 @@ export const RegisterPage: React.FC = () => {
   const [bandName, setBandName] = useState('')
   const [orgName, setOrgName] = useState('')
   const [genre, setGenre] = useState(BAND_GENRE_OPTIONS[1])
-  const [locationCity, setLocationCity] = useState<string>(DEFAULT_CITY)
+  const [locationCity, setLocationCity] = useState<string>('')
 
   // UI state
   const [loading, setLoading] = useState(false)
@@ -56,10 +56,25 @@ export const RegisterPage: React.FC = () => {
 
   const hasGoogleClient = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID)
 
+  const getResolvedCitySelection = () => {
+    const trimmed = locationCity.trim()
+    if (!trimmed) return { city: '', province: undefined as string | undefined }
+    const resolved = resolveIndonesiaCity(trimmed)
+    const finalCity = resolved ? resolved.name : trimmed
+    const province = resolved?.province || getProvinceForCity(finalCity) || undefined
+    return { city: finalCity, province }
+  }
+
   const handleGoogleRegister = async (credentialResponse: CredentialResponse) => {
     const credential = credentialResponse.credential
     if (!credential) {
       setErrorMessage('Google tidak mengembalikan token pendaftaran yang valid.')
+      return
+    }
+
+    const { city: resolvedCity, province: resolvedProvince } = getResolvedCitySelection()
+    if (accountType === 'band' && !resolvedCity) {
+      setErrorMessage('Silakan pilih Kota / Kabupaten domisili band terlebih dahulu sebelum mendaftar dengan Google.')
       return
     }
 
@@ -73,7 +88,8 @@ export const RegisterPage: React.FC = () => {
         accountType,
         bandName: accountType === 'band' ? bandName.trim() || undefined : undefined,
         genre: accountType === 'band' ? genre : undefined,
-        locationCity: locationCity.trim() || 'Kota Semarang',
+        locationCity: resolvedCity || undefined,
+        locationRegion: resolvedProvince,
       })
 
       if (res.success && res.user) {
@@ -121,6 +137,15 @@ export const RegisterPage: React.FC = () => {
       return
     }
 
+    const { city: resolvedCity, province: resolvedProvince } = getResolvedCitySelection()
+    if (!resolvedCity) {
+      setErrorMessage('Kota / Kabupaten domisili wajib dipilih.')
+      return
+    }
+    if (resolvedCity !== locationCity) {
+      setLocationCity(resolvedCity)
+    }
+
     setLoading(true)
 
     const payload: RegisterPayload = {
@@ -129,7 +154,8 @@ export const RegisterPage: React.FC = () => {
       accountType,
       bandName: accountType === 'band' ? bandName.trim() : undefined,
       genre: accountType === 'band' ? genre : undefined,
-      locationCity: locationCity.trim() || 'Kota Semarang',
+      locationCity: resolvedCity,
+      locationRegion: resolvedProvince,
     }
 
     try {
@@ -268,7 +294,7 @@ export const RegisterPage: React.FC = () => {
                   )}
                 </div>
                 <div className="text-[11px] text-[#A0A0A0] font-sans mt-0.5 leading-snug">
-                  Kurasi musisi, ajukan jadwal & penawaran panggung.
+                  Kurasi musisi, kirim broadcast lowongan & penawaran panggung.
                 </div>
               </div>
             </button>
@@ -511,8 +537,16 @@ export const RegisterPage: React.FC = () => {
               </span>
               <div className="border-t border-[#262626] w-full" />
             </div>
-            <p className="text-[11px] text-center text-[#808080] font-mono mb-3">
-              Tipe akun terpilih: <span className="text-white font-bold">{accountType === 'band' ? 'MUSISI / BAND' : 'PENYELENGGARA / EO'}</span>
+            <p className="text-[11px] text-center text-[#9E9E9E] font-mono mb-3">
+              Tipe akun: <span className="text-white font-bold">{accountType === 'band' ? 'MUSISI / BAND' : 'PENYELENGGARA / EO'}</span>
+              {accountType === 'band' && (
+                <>
+                  {' · '}Kota:{' '}
+                  <span className={locationCity ? 'text-white font-bold' : 'text-[#FF6B7F] font-bold'}>
+                    {locationCity || 'Pilih kota di atas dulu'}
+                  </span>
+                </>
+              )}
             </p>
             <div className="w-full flex justify-center min-h-[44px]">
               <GoogleLogin

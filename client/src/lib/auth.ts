@@ -16,6 +16,7 @@ export interface AuthUser {
     slug?: string
     genre?: string
     locationCity?: string
+    locationRegion?: string | null
   } | null
 }
 
@@ -35,6 +36,7 @@ export interface RegisterPayload {
   bandName?: string
   genre?: string
   locationCity?: string
+  locationRegion?: string
 }
 
 export interface GoogleAuthPayload {
@@ -43,6 +45,7 @@ export interface GoogleAuthPayload {
   bandName?: string
   genre?: string
   locationCity?: string
+  locationRegion?: string
 }
 
 export interface GoogleAuthResponse extends AuthResponse {
@@ -226,6 +229,7 @@ export const authClient = {
             bandName: data.data.bandName,
             genre: data.data.genre,
             locationCity: data.data.locationCity,
+            locationRegion: data.data.locationRegion || null,
           }
           this.setSession(this.getToken() || '', user)
         }

@@ -21,14 +21,12 @@ import {
   GraduationCap,
   Plus,
   Building2,
-  Star,
   Edit3,
 } from 'lucide-react'
 import { authClient, type AuthUser } from '../lib/auth'
-import { getRatingTierBadge, getRatingTier } from '../lib/ratingHelpers'
 import { formatRupiah } from '../lib/utils'
 import { setLocalShowCampus } from '../lib/platformSettings'
-import { DEFAULT_CITY } from '../lib/cities'
+import { DEFAULT_CITY, getProvinceForCity } from '../lib/cities'
 import { CityCombobox } from '../components/ui/CityCombobox'
 
 interface AdminCampus {
@@ -50,17 +48,12 @@ interface AdminBandRecord {
   bio?: string
   budgetMin?: number
   budgetMax?: number
+  setDuration?: string | null
   phone?: string
   profileViews?: number
-  ratingAverage?: number
-  ratingCount?: number
-  ratingOverride?: number | null
-  rating: number
-  ratingTier: string
   userEmail?: string
   isActive?: boolean
   createdAt?: string
-  customTag?: string | null
   profilePhotoUrl?: string | null
   coverPhotoUrl?: string | null
   instagramHandle?: string | null
@@ -128,14 +121,12 @@ export const AdminDashboardPage: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
-  // Super Admin Bands & Rating Control State
+  // Super Admin Bands Control State
   const [adminBands, setAdminBands] = useState<AdminBandRecord[]>([])
   const [loadingBands, setLoadingBands] = useState(false)
   const [bandSearch, setBandSearch] = useState('')
   const [editingBand, setEditingBand] = useState<AdminBandRecord | null>(null)
   const [isSavingBand, setIsSavingBand] = useState(false)
-  const [inspectingBandReviews, setInspectingBandReviews] = useState<{ bandName: string; reviews: any[] } | null>(null)
-  const [loadingReviewsForBand, setLoadingReviewsForBand] = useState<number | null>(null)
 
   // Platform Settings State (Campus Affiliation Visibility Control)
   const [showCampusAffiliation, setShowCampusAffiliation] = useState(false)
@@ -306,26 +297,6 @@ export const AdminDashboardPage: React.FC = () => {
     }
   }
 
-  const handleViewBandReviews = async (band: AdminBandRecord) => {
-    try {
-      setLoadingReviewsForBand(band.id)
-      const res = await fetch(`/api/reviews/band/${band.id}`)
-      const json = await res.json()
-      if (res.ok && json.success) {
-        setInspectingBandReviews({
-          bandName: band.bandName,
-          reviews: json.data || [],
-        })
-      } else {
-        showToast('Gagal memuat daftar ulasan musisi', 'error')
-      }
-    } catch {
-      showToast('Kendala koneksi saat memuat ulasan musisi', 'error')
-    } finally {
-      setLoadingReviewsForBand(null)
-    }
-  }
-
   const loadAdminBands = useCallback(async () => {
     try {
       setLoadingBands(true)
@@ -362,10 +333,7 @@ export const AdminDashboardPage: React.FC = () => {
           campus: editingBand.campus,
           budgetMin: editingBand.budgetMin,
           budgetMax: editingBand.budgetMax,
-          ratingOverride: editingBand.ratingOverride,
-          ratingAverage: editingBand.ratingAverage,
-          ratingCount: editingBand.ratingCount,
-          customTag: editingBand.customTag,
+          setDuration: editingBand.setDuration,
           profilePhotoUrl: editingBand.profilePhotoUrl,
           coverPhotoUrl: editingBand.coverPhotoUrl,
           instagramHandle: editingBand.instagramHandle,
@@ -1088,8 +1056,8 @@ export const AdminDashboardPage: React.FC = () => {
                 : 'bg-[#121212] border border-[#242424] text-[#808080] hover:text-white'
             }`}
           >
-            <Star className="w-3.5 h-3.5 text-[#FFD166]" />
-            <span>05 // Kontrol Musisi & Rating</span>
+            <Edit3 className="w-3.5 h-3.5 text-[#FFD166]" />
+            <span>05 // Kontrol Musisi &amp; Harga</span>
           </button>
         </div>
 
@@ -1244,7 +1212,7 @@ export const AdminDashboardPage: React.FC = () => {
                                     }
                                   }}
                                   className="px-2.5 py-1.5 rounded-lg bg-[#FFD166]/10 text-[#FFD166] border border-[#FFD166]/40 hover:bg-[#FFD166] hover:text-black font-mono text-[11px] uppercase transition-all min-h-[44px] whitespace-nowrap cursor-pointer inline-flex items-center gap-1 font-bold"
-                                  title="Super Admin: Ubah status, rating, harga dan profil band"
+                                  title="Super Admin: Ubah status akun, harga dan profil band"
                                 >
                                   <Edit3 className="w-3 h-3" />
                                   <span>Kontrol Band</span>
@@ -1297,7 +1265,7 @@ export const AdminDashboardPage: React.FC = () => {
                 TIKET LAPORAN &amp; KELUHAN MODERASI
               </h2>
               <p className="text-xs text-[#808080] font-sans">
-                Tinjau keluhan penyelenggara terkait profil musisi, ketersediaan jadwal, atau rider panggung.
+                Tinjau keluhan penyelenggara terkait profil musisi, informasi kontak, atau rider panggung.
               </p>
             </div>
 
@@ -1641,7 +1609,7 @@ export const AdminDashboardPage: React.FC = () => {
                           <div className="text-[11px] text-[#777] font-mono">{b.email || `ID #${b.id}`}</div>
                         </td>
                         <td className="py-3 px-4 text-[#C0C0C0] font-mono text-[11px]">
-                          {b.location_city || 'Semarang'}
+                          {b.location_city || 'Belum diatur'}
                         </td>
                         <td className="py-3 px-4 text-[#A0A0A0]">
                           {b.genre}
@@ -1699,7 +1667,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 5: SUPER ADMIN BANDS & RATING CONTROL */}
+        {/* TAB 5: SUPER ADMIN BANDS CONTROL */}
         {activeTab === 'bands' && (
           <div className="bg-[#121212] border border-[#242424] rounded-2xl p-6 shadow-xl space-y-8">
             {/* Header */}
@@ -1712,10 +1680,10 @@ export const AdminDashboardPage: React.FC = () => {
                   </span>
                 </div>
                 <h2 className="font-mono text-base font-bold text-white uppercase">
-                  KONTROL LENGKAP MUSISI, RATING &amp; HARGA
+                  KONTROL LENGKAP MUSISI &amp; HARGA
                 </h2>
                 <p className="text-xs text-[#808080] font-sans">
-                  Akun Administrator memiliki kuasa penuh mengubah nama, genre, status keaktifan, afiliasi kampus, tarif panggung, dan melakukan override manual rating bintang musisi.
+                  Akun Administrator memiliki kuasa penuh mengubah nama, genre, status keaktifan, afiliasi kampus, rider, dan tarif panggung musisi.
                 </p>
               </div>
 
@@ -1758,7 +1726,6 @@ export const AdminDashboardPage: React.FC = () => {
                     <th className="py-3 px-4">Musisi &amp; Kontak</th>
                     <th className="py-3 px-4">Genre &amp; Domisili</th>
                     <th className="py-3 px-4">Afiliasi Kampus</th>
-                    <th className="py-3 px-4">Rating &amp; Tier</th>
                     <th className="py-3 px-4">Estimasi Tarif</th>
                     <th className="py-3 px-4">Status Akun</th>
                     <th className="py-3 px-4 text-right">Otoritas Admin</th>
@@ -1777,19 +1744,12 @@ export const AdminDashboardPage: React.FC = () => {
                       )
                     })
                     .map((b) => {
-                      const tierInfo = getRatingTierBadge(b.rating)
                       return (
                         <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-3.5 px-4">
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-bold text-white text-sm block uppercase">{b.bandName}</span>
-                                {b.customTag && (
-                                  <span className="font-mono text-[9px] uppercase font-bold text-[#00D9FF] bg-[#00D9FF]/10 px-1.5 py-0.5 rounded border border-[#00D9FF]/30 inline-flex items-center gap-1">
-                                    <span>✨</span>
-                                    <span>{b.customTag}</span>
-                                  </span>
-                                )}
                               </div>
                               <span className="text-[11px] text-[#777] block">{b.userEmail}</span>
                               <span className="text-[11px] text-[#999] block font-sans">WA: {b.phone || '-'}</span>
@@ -1810,22 +1770,6 @@ export const AdminDashboardPage: React.FC = () => {
                             ) : (
                               <span className="text-[#555] font-mono text-[11px]">Bebas Kampus</span>
                             )}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1.5">
-                                <Star className="w-3.5 h-3.5 fill-[#FFD166] text-[#FFD166]" />
-                                <span className="font-bold text-white text-sm">{b.rating.toFixed(1)}</span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${tierInfo.bgClass}`}>
-                                  {tierInfo.label}
-                                </span>
-                              </div>
-                              {b.ratingOverride !== null && (
-                                <span className="text-[9px] font-mono text-[#FFD166] bg-[#FFD166]/10 px-1.5 py-0.5 rounded border border-[#FFD166]/30 block w-fit">
-                                  OVERRIDE ADMIN
-                                </span>
-                              )}
-                            </div>
                           </td>
                           <td className="py-3.5 px-4">
                             <div className="space-y-0.5 font-mono text-xs">
@@ -1853,16 +1797,6 @@ export const AdminDashboardPage: React.FC = () => {
                           </td>
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleViewBandReviews(b)}
-                                disabled={loadingReviewsForBand === b.id}
-                                className="px-2.5 py-1.5 rounded-xl bg-[#FFD166]/10 hover:bg-[#FFD166] text-[#FFD166] hover:text-black border border-[#FFD166]/40 font-mono text-[11px] font-bold uppercase transition-all inline-flex items-center gap-1 cursor-pointer"
-                                title="Super Admin: Lihat ulasan dan bintang riil yang diberikan EO"
-                              >
-                                <Star className="w-3 h-3 fill-current" />
-                                <span>{loadingReviewsForBand === b.id ? 'Memuat...' : 'Ulasan EO (Stars)'}</span>
-                              </button>
                               <button
                                 type="button"
                                 onClick={() => setEditingBand({ ...b })}
@@ -1905,7 +1839,7 @@ export const AdminDashboardPage: React.FC = () => {
                     </span>
                   </div>
                   <h3 className="font-mono text-lg font-bold text-white uppercase mt-0.5">
-                    Edit Musisi &amp; Override Rating: {editingBand.bandName}
+                    Edit Musisi: {editingBand.bandName}
                   </h3>
                 </div>
                 <button
@@ -1957,7 +1891,13 @@ export const AdminDashboardPage: React.FC = () => {
                     <CityCombobox
                       id="admin-edit-band-city"
                       value={editingBand.locationCity}
-                      onChange={(city) => setEditingBand({ ...editingBand, locationCity: city })}
+                      onChange={(city) =>
+                        setEditingBand({
+                          ...editingBand,
+                          locationCity: city,
+                          locationRegion: getProvinceForCity(city) || editingBand.locationRegion || '',
+                        })
+                      }
                       required
                       showIcon={false}
                       placeholder="Ketik kota / kabupaten..."
@@ -1982,121 +1922,9 @@ export const AdminDashboardPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
-
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <label className="font-mono text-xs uppercase tracking-wider text-[#00D9FF] block font-bold flex items-center gap-1.5">
-                      <span>✨</span>
-                      <span>TAG / LABEL KHUSUS MUSISI:</span>
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        value={editingBand.customTag || ''}
-                        onChange={(e) => setEditingBand({ ...editingBand, customTag: e.target.value })}
-                        placeholder="Contoh: Baru Ditambahkan, Terkurasi, Pilihan Editor"
-                        className="flex-1 bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#00D9FF] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
-                      />
-                      <div className="flex gap-1.5 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => setEditingBand({ ...editingBand, customTag: 'Band Baru Ditambahkan' })}
-                          className="px-2.5 py-1.5 bg-[#00D9FF]/10 hover:bg-[#00D9FF]/20 text-[#00D9FF] border border-[#00D9FF]/40 text-[10px] font-mono uppercase font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
-                        >
-                          + Band Baru Ditambahkan
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingBand({ ...editingBand, customTag: 'Terkurasi' })}
-                          className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/20 text-[10px] font-mono uppercase font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
-                        >
-                          Terkurasi
-                        </button>
-                        {editingBand.customTag && (
-                          <button
-                            type="button"
-                            onClick={() => setEditingBand({ ...editingBand, customTag: null })}
-                            className="px-2.5 py-1.5 bg-[#E01E37]/10 hover:bg-[#E01E37]/20 text-[#FF4D6D] border border-[#E01E37]/40 text-[10px] font-mono uppercase font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer"
-                          >
-                            Hapus Tag
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
-                {/* 2. Rating & Tier Override Section */}
-                <div className="bg-[#181310] border border-[#FFD166]/40 p-4 sm:p-5 rounded-2xl space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-mono text-[10px] uppercase tracking-widest text-[#FFD166] font-bold block">
-                        OVERRIDE RATING BINTANG // SUPER ADMIN
-                      </span>
-                      <h4 className="font-mono text-sm font-bold text-white uppercase">
-                        Kontrol Penilaian &amp; Tier Representasi
-                      </h4>
-                    </div>
-
-                    {editingBand.ratingOverride !== null && (
-                      <button
-                        type="button"
-                        onClick={() => setEditingBand({ ...editingBand, ratingOverride: null })}
-                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-[#FFD166] border border-[#FFD166]/30 text-[10px] font-mono uppercase rounded transition-colors"
-                      >
-                        Reset ke Skor Alami EO
-                      </button>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-[#BBB] font-sans leading-relaxed">
-                    Admin dapat menentukan rating band secara langsung (1.0 sampai 5.0 bintang). Tier akan otomatis berubah secara real-time sesuai ketentuan:
-                    <br />
-                    • <strong>1.0 - 2.9</strong>: Baik | • <strong>3.0 - 4.4</strong>: Sangat Baik | • <strong>4.5 - 5.0</strong>: Rekomendasi Favorit
-                  </p>
-
-                  <div className="space-y-3 bg-[#0A0A0A] p-4 rounded-xl border border-white/5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs text-white font-bold">
-                        Bintang Manual: {Number(editingBand.ratingOverride ?? editingBand.rating).toFixed(1)} / 5.0
-                      </span>
-
-                      {(() => {
-                        const score = Number(editingBand.ratingOverride ?? editingBand.rating)
-                        const tier = getRatingTierBadge(score)
-                        return (
-                          <span className={`font-mono text-xs font-bold px-3 py-1 rounded-full border uppercase tracking-wider ${tier.bgClass}`}>
-                            {tier.badgeText}
-                          </span>
-                        )
-                      })()}
-                    </div>
-
-                    <input
-                      type="range"
-                      min="1.0"
-                      max="5.0"
-                      step="0.1"
-                      value={Number(editingBand.ratingOverride ?? editingBand.rating)}
-                      onChange={(e) =>
-                        setEditingBand({
-                          ...editingBand,
-                          ratingOverride: parseFloat(e.target.value),
-                          rating: parseFloat(e.target.value),
-                        })
-                      }
-                      className="w-full accent-[#E01E37] cursor-pointer"
-                    />
-
-                    <div className="flex justify-between text-[10px] font-mono text-[#666]">
-                      <span>1.0 (Baik)</span>
-                      <span>3.0 (Sangat Baik)</span>
-                      <span>4.5 (Rekomendasi Favorit)</span>
-                      <span>5.0</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Pricing / Honor Range */}
+                {/* 2. Pricing / Honor Range */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
@@ -2143,6 +1971,21 @@ export const AdminDashboardPage: React.FC = () => {
                       {editingBand.budgetMax ? formatRupiah(editingBand.budgetMax) : 'Rp 0'}
                     </span>
                   </div>
+                </div>
+
+                {/* Durasi Live Set */}
+                <div className="space-y-1.5">
+                  <label className="font-mono text-xs uppercase tracking-wider text-[#A0A0A0] block font-bold">
+                    DURASI LIVE SET (PER SET):
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={100}
+                    value={editingBand.setDuration || ''}
+                    onChange={(e) => setEditingBand({ ...editingBand, setDuration: e.target.value })}
+                    placeholder="Contoh: 45 - 60 Menit"
+                    className="w-full bg-[#0E0E0E] border border-[#2E2E2E] focus:border-[#E01E37] text-white p-2.5 rounded-xl font-mono text-xs outline-none"
+                  />
                 </div>
 
                 {/* 4. Phone & Active Status */}
@@ -2412,108 +2255,6 @@ export const AdminDashboardPage: React.FC = () => {
               >
                 <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>{deletingUserId !== null ? 'Menghapus...' : 'Hapus Permanen'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* SUPER ADMIN REVIEW INSPECTOR MODAL (Stars & EO feedback visible to Admin) */}
-      {inspectingBandReviews && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Inspeksi Ulasan & Bintang EO"
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
-        >
-          <div className="bg-[#121212] border border-[#2E2E2E] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="shrink-0 p-5 border-b border-[#242424] flex items-center justify-between gap-3 bg-[#161616]">
-              <div>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-[#FFD166] font-bold block">
-                  INSPEKSI ULASAN &amp; BINTANG // KHUSUS ADMIN
-                </span>
-                <h3 className="font-mono text-base font-bold text-white uppercase mt-0.5">
-                  Ulasan Event Organizer: {inspectingBandReviews.bandName}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setInspectingBandReviews(null)}
-                aria-label="Tutup dialog ulasan"
-                className="w-10 h-10 flex items-center justify-center rounded-full text-[#A0A0A0] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-5 overflow-y-auto space-y-4">
-              <p className="text-xs text-[#AAA] font-sans leading-relaxed">
-                Di bawah ini adalah data riil bintang (1.0 - 5.0) dan ulasan yang dikirimkan oleh akun Event Organizer (EO) yang telah memesan band ini. Pengunjung umum hanya melihat kata status performa, sedangkan data bintang riil ini hanya dapat dilihat oleh Administrator.
-              </p>
-
-              {inspectingBandReviews.reviews.length > 0 ? (
-                <div className="space-y-3">
-                  {inspectingBandReviews.reviews.map((rev) => {
-                    const tier = getRatingTierBadge(rev.rating)
-                    return (
-                      <div
-                        key={rev.id}
-                        className="bg-[#0A0A0A] border border-[#262626] p-4 rounded-xl space-y-2.5"
-                      >
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <div className="flex items-center gap-1.5 bg-[#181818] border border-[#FFD166]/40 px-2.5 py-1 rounded-lg">
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star
-                                key={s}
-                                className={`w-3.5 h-3.5 ${
-                                  s <= Math.round(rev.rating)
-                                    ? 'fill-[#FFD166] text-[#FFD166]'
-                                    : 'text-[#444]'
-                                }`}
-                              />
-                            ))}
-                            <span className="font-mono font-bold text-white text-xs ml-1">
-                              {Number(rev.rating).toFixed(1)} / 5.0
-                            </span>
-                          </div>
-
-                          <span className={`font-mono text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${tier.bgClass}`}>
-                            {tier.label}
-                          </span>
-                        </div>
-
-                        <p className="text-xs text-[#DDD] font-sans leading-relaxed bg-[#141414] p-3 rounded-lg border border-white/5">
-                          "{rev.reviewText}"
-                        </p>
-
-                        <div className="flex items-center justify-between text-[11px] font-mono text-[#777] pt-1">
-                          <span>EO: <strong className="text-[#BBB]">{rev.organizerEmail || 'EO Penyelenggara'}</strong></span>
-                          <span>Tgl Acara: <strong className="text-[#BBB]">{rev.eventDate || '-'}</strong></span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="bg-[#0A0A0A] border border-[#222] p-8 text-center rounded-xl space-y-2">
-                  <span className="text-2xl">⚡</span>
-                  <h4 className="font-mono text-sm font-bold text-white uppercase">Belum Ada Ulasan Pasca-Tampil</h4>
-                  <p className="text-xs text-[#888]">
-                    Belum ada Event Organizer yang menyelesaikan ulasan booking untuk musisi ini.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="shrink-0 p-4 border-t border-[#242424] flex justify-end bg-[#161616]">
-              <button
-                type="button"
-                onClick={() => setInspectingBandReviews(null)}
-                className="px-5 py-2 rounded-xl bg-[#222] hover:bg-[#333] text-white font-mono text-xs uppercase font-bold transition-colors cursor-pointer"
-              >
-                Tutup
               </button>
             </div>
           </div>

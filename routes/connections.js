@@ -11,7 +11,7 @@ const { verifyToken, requireBand } = require('../middleware/auth');
  */
 router.post('/', verifyToken, async (req, res) => {
   try {
-    const { bandProfileId, notes, connectionType, eventDate, eventName } = req.body;
+    const { bandProfileId, notes, connectionType, eventName } = req.body;
 
     if (!bandProfileId) {
       return res.status(400).json({
@@ -36,31 +36,28 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
-    // Record connection (inquiry stage - not yet a confirmed booking)
-    const initialStatus = connectionType === 'confirmed_booking' ? 'confirmed' : 'inquiry';
+    // Record connection (direct inquiry stage)
     const connection = await Connection.create({
       organizerUserId: req.user.id,
       bandProfileId: band.id,
       connectionType: connectionType || 'contact_view',
       notes: notes || null,
-      eventDate: eventDate || null,
       eventName: eventName || null,
-      status: initialStatus
+      status: 'inquiry'
     });
 
     // Notify band owner about incoming booking/inquiry (non-blocking)
     if (band.userId && String(band.userId) !== String(req.user.id)) {
       const eoLabel = req.user.email ? req.user.email.split('@')[0] : 'Event Organizer';
       const eventPart = eventName ? ` untuk "${String(eventName).trim()}"` : '';
-      const datePart = eventDate ? ` (${String(eventDate).trim()})` : '';
       Notification.create({
         userId: band.userId,
         notificationKey: `conn:${connection.id}`,
         type: 'booking_inquiry',
-        title: initialStatus === 'confirmed' ? 'Booking Panggung Masuk' : 'Inquiry Booking Baru',
-        message: `${eoLabel} menghubungi band Anda${eventPart}${datePart}.`,
+        title: 'Inquiry Booking Baru',
+        message: `${eoLabel} menghubungi band Anda${eventPart}.`,
         link: '/dashboard-band?tab=analytics',
-        badge: initialStatus === 'confirmed' ? 'BOOKING MASUK' : 'INQUIRY BARU',
+        badge: 'INQUIRY BARU',
       }).catch((err) => console.warn('Notice: Failed creating booking notification:', err.message));
     }
 

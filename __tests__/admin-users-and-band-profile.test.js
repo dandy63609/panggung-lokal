@@ -182,12 +182,7 @@ describe('Admin User Deletion (Band & EO) & New Band Profile Routing API', () =>
     expect(metricsBandUser.band_profile_id).toBe(bandProfileId);
     expect(metricsEoUser).toBeDefined();
 
-    // Admin deletes the Band user (even when reviews exist referencing the band)
-    await db.query(
-      "INSERT INTO reviews (band_profile_id, organizer_user_id, rating, review_text, event_date) VALUES ($1, $2, 5.0, 'Great set', '2026-12-01')",
-      [bandProfileId, eoUserId]
-    );
-
+    // Admin deletes the Band user cleanly with cascade cleanup
     const delBandRes = await request(app)
       .delete(`/api/admin/users/${bandUserId}`)
       .set('Authorization', `Bearer ${adminToken}`)

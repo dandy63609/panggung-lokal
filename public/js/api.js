@@ -259,26 +259,6 @@ async function apiCreateConnection(bandProfileId, notes = '') {
   return await res.json();
 }
 
-async function apiCreateAvailability(startDate, endDate, notes = '') {
-  const res = await fetch('/api/availability', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...AuthManager.getAuthHeaders()
-    },
-    body: JSON.stringify({ startDate, endDate, notes })
-  });
-  return await res.json();
-}
-
-async function apiDeleteAvailability(id) {
-  const res = await fetch(`/api/availability/${id}`, {
-    method: 'DELETE',
-    headers: AuthManager.getAuthHeaders()
-  });
-  return await res.json();
-}
-
 async function apiGetBandDashboard() {
   const res = await fetch('/api/dashboard/band', {
     headers: AuthManager.getAuthHeaders()
@@ -379,8 +359,6 @@ window.apiTrackPostWaClick = apiTrackPostWaClick;
 window.apiGetMyPostsPerformance = apiGetMyPostsPerformance;
 window.apiGetPlatformStats = apiGetPlatformStats;
 window.apiCreateConnection = apiCreateConnection;
-window.apiCreateAvailability = apiCreateAvailability;
-window.apiDeleteAvailability = apiDeleteAvailability;
 window.apiGetBandDashboard = apiGetBandDashboard;
 window.apiGetOrganizerDashboard = apiGetOrganizerDashboard;
 window.apiUpdateBandProfile = apiUpdateBandProfile;

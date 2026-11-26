@@ -251,7 +251,7 @@ class Notification {
         // Incoming inquiries / bookings for this band
         try {
           const connRes = await db.query(
-            `SELECT c.id, c.connection_type, c.event_name, c.event_date, c.notes, c.status, c.created_at, u.email as organizer_email
+            `SELECT c.id, c.connection_type, c.event_name, c.notes, c.status, c.created_at, u.email as organizer_email
              FROM connections c
              LEFT JOIN users u ON u.id = c.organizer_user_id
              WHERE c.band_profile_id = $1
@@ -262,13 +262,12 @@ class Notification {
           for (const row of connRes.rows) {
             const key = `conn:${row.id}`;
             const eventPart = row.event_name ? ` untuk "${row.event_name}"` : '';
-            const datePart = row.event_date ? ` (${row.event_date})` : '';
             const eoLabel = row.organizer_email ? row.organizer_email.split('@')[0] : 'Event Organizer';
             pushItem({
               id: key,
               type: 'booking_inquiry',
               title: row.status === 'confirmed' ? 'Booking Panggung Masuk' : 'Inquiry Booking Baru',
-              message: `${eoLabel} menghubungi band Anda${eventPart}${datePart}.`,
+              message: `${eoLabel} menghubungi band Anda${eventPart}.`,
               link: '/dashboard-band?tab=analytics',
               badge: row.status === 'confirmed' ? 'BOOKING MASUK' : 'INQUIRY BARU',
               isRead: readKeys.has(key),
@@ -308,70 +307,60 @@ class Notification {
         }
       }
     } else if ((accountType === 'organizer' || accountType === 'general') && hasNumericUserId) {
-      const todayStr = getTodayStr();
-
-      // Pending post-event review reminders
+      // Sent job broadcasts confirmation for EO
       try {
-        const pendingRes = await db.query(
-          `SELECT c.id, c.band_profile_id, c.event_date, c.event_name, c.created_at, bp.band_name, bp.slug
+        const sentBcRes = await db.query(
+          `SELECT id, event_date, perform_start_time, venue_location, recipient_band_count, created_at
+           FROM job_broadcasts
+           WHERE organizer_user_id = $1
+           ORDER BY created_at DESC
+           LIMIT 10`,
+          [parsedUserId]
+        );
+        for (const row of sentBcRes.rows) {
+          const key = `eo_broadcast:${row.id}`;
+          pushItem({
+            id: key,
+            type: 'job_broadcast',
+            title: `Broadcast Terkirim · ${row.venue_location}`,
+            message: `Undangan tampil tanggal ${row.event_date} (${row.perform_start_time} WIB) telah diteruskan ke ${row.recipient_band_count || 0} band terdaftar.`,
+            link: '/cari-band',
+            badge: 'BROADCAST AKTIF',
+            isRead: readKeys.has(key),
+            createdAt: row.created_at,
+          });
+        }
+      } catch (err) {
+        console.warn('Notice: Failed reading EO broadcasts for notifications:', err.message);
+      }
+
+      // Recent band inquiries made by this EO
+      try {
+        const eoConnRes = await db.query(
+          `SELECT c.id, c.band_profile_id, c.event_name, c.status, c.created_at, bp.band_name, bp.slug
            FROM connections c
            JOIN band_profiles bp ON bp.id = c.band_profile_id
            WHERE c.organizer_user_id = $1
-             AND c.event_date IS NOT NULL
-             AND c.event_date != ''
-             AND c.event_date <= $2
-             AND c.status = 'confirmed'
-             AND (c.is_reviewed IS NULL OR c.is_reviewed = FALSE)
-           ORDER BY c.event_date DESC
+           ORDER BY c.created_at DESC
            LIMIT 10`,
-          [parsedUserId, todayStr]
-        );
-        for (const row of pendingRes.rows) {
-          const key = `review_pending:${row.id}`;
-          pushItem({
-            id: key,
-            type: 'review_reminder',
-            title: `Pengingat Ulasan · ${row.band_name}`,
-            message: `Acara "${row.event_name || 'Live Stage'}" (${row.event_date}) telah selesai. Beri penilaian performa band sekarang.`,
-            link: `/band/${row.slug || row.band_profile_id}`,
-            badge: 'WAJIB ULAS',
-            isRead: readKeys.has(key),
-            createdAt: row.created_at,
-          });
-        }
-      } catch (err) {
-        console.warn('Notice: Failed reading pending reviews for notifications:', err.message);
-      }
-
-      // Confirmed band schedules linked to this EO
-      try {
-        const schedRes = await db.query(
-          `SELECT bs.id, bs.band_profile_id, bs.event_date, bs.start_time, bs.end_time, bs.event_name, bs.venue, bs.status, bs.created_at, bp.band_name, bp.slug
-           FROM band_schedules bs
-           JOIN band_profiles bp ON bp.id = bs.band_profile_id
-           WHERE bs.organizer_user_id = $1
-           ORDER BY bs.created_at DESC
-           LIMIT 12`,
           [parsedUserId]
         );
-        for (const row of schedRes.rows) {
-          const key = `sched:${row.id}`;
-          const isCancelled = row.status === 'cancelled';
+        for (const row of eoConnRes.rows) {
+          const key = `eo_conn:${row.id}`;
+          const eventPart = row.event_name ? ` untuk "${row.event_name}"` : '';
           pushItem({
             id: key,
-            type: isCancelled ? 'schedule_cancelled' : 'schedule_confirmed',
-            title: isCancelled
-              ? `Jadwal Dibatalkan · ${row.band_name}`
-              : `Jadwal Dikonfirmasi · ${row.band_name}`,
-            message: `${row.event_name} pada ${row.event_date} (${row.start_time} - ${row.end_time} WIB)${row.venue ? ` di ${row.venue}` : ''}.`,
-            link: `/band/${row.slug || row.band_profile_id}#jadwal-manggung`,
-            badge: isCancelled ? 'DIBATALKAN' : 'TERKONFIRMASI',
+            type: 'booking_inquiry',
+            title: `Inquiry ke ${row.band_name}`,
+            message: `Kontak WhatsApp manajemen ${row.band_name} telah dibuka${eventPart}.`,
+            link: `/band/${row.slug || row.band_profile_id}`,
+            badge: 'INQUIRY TERKIRIM',
             isRead: readKeys.has(key),
             createdAt: row.created_at,
           });
         }
       } catch (err) {
-        console.warn('Notice: Failed reading schedules for notifications:', err.message);
+        console.warn('Notice: Failed reading EO connections for notifications:', err.message);
       }
     } else if (accountType === 'admin') {
       // Pending reports for Admin

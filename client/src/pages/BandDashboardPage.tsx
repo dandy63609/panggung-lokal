@@ -21,11 +21,12 @@ import {
   Phone,
   Megaphone,
   Camera,
+  Clock,
   LogOut,
-  Calendar,
 } from 'lucide-react'
 import { authClient } from '../lib/auth'
 import { BAND_GENRE_OPTIONS, normalizeBandGenreSelection } from '../lib/genres'
+import { getProvinceForCity } from '../lib/cities'
 import {
   buildDashboardRiderItems,
   parsePostSlides,
@@ -38,11 +39,8 @@ import {
   YouTubeIcon,
   TikTokIcon,
 } from '../components/ui/SocialIcons'
-import { getRatingTierBadge } from '../lib/ratingHelpers'
 import { JobBroadcastsTab } from '../components/dashboard/JobBroadcastsTab'
 import { ManageAudioModal } from '../components/band/ManageAudioModal'
-import { BandScheduleCalendar } from '../components/band/BandScheduleCalendar'
-import { ManageScheduleModal } from '../components/band/ManageScheduleModal'
 import {
   UploadMediaModal,
   PostDetailModal,
@@ -51,7 +49,7 @@ import {
   type UploadedMediaItem,
   type EditProfileFormState,
 } from '../components/dashboard/BandDashboardModals'
-import type { BandDashboardData, BandPost, BandPostSlide, RiderItem, JobBroadcast, BandSchedule } from '../types'
+import type { BandDashboardData, BandPost, BandPostSlide, RiderItem, JobBroadcast } from '../types'
 import { formatRupiah } from '../lib/utils'
 
 export const BandDashboardPage: React.FC = () => {
@@ -62,10 +60,10 @@ export const BandDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [dashboardData, setDashboardData] = useState<BandDashboardData | null>(null)
-  const [activeTab, setActiveTab] = useState<'feed' | 'rider' | 'analytics' | 'broadcasts' | 'jadwal'>(() => {
+  const [activeTab, setActiveTab] = useState<'feed' | 'rider' | 'analytics' | 'broadcasts'>(() => {
     const params = new URLSearchParams(window.location.search)
     const tabParam = params.get('tab')
-    if (tabParam === 'rider' || tabParam === 'analytics' || tabParam === 'broadcasts' || tabParam === 'jadwal') {
+    if (tabParam === 'rider' || tabParam === 'analytics' || tabParam === 'broadcasts') {
       return tabParam
     }
     return 'feed'
@@ -74,13 +72,12 @@ export const BandDashboardPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const tabParam = params.get('tab')
-    if (tabParam === 'feed' || tabParam === 'rider' || tabParam === 'analytics' || tabParam === 'broadcasts' || tabParam === 'jadwal') {
+    if (tabParam === 'feed' || tabParam === 'rider' || tabParam === 'analytics' || tabParam === 'broadcasts') {
       setActiveTab(tabParam)
     }
   }, [location.search])
 
   // Modals state
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
   const [isAudioManageModalOpen, setIsAudioManageModalOpen] = useState(() => {
     const params = new URLSearchParams(window.location.search)
     return params.get('tab') === 'audio' || params.get('manageAudio') === 'true' || params.get('edit') === 'audio'
@@ -109,6 +106,7 @@ export const BandDashboardPage: React.FC = () => {
     bio: '',
     budgetMin: 0,
     budgetMax: 0,
+    setDuration: '',
     spotifyUrl: '',
     instagramHandle: '',
     youtubeUrl: '',
@@ -138,6 +136,7 @@ export const BandDashboardPage: React.FC = () => {
           bio: res.data.profile.bio || '',
           budgetMin: res.data.profile.budgetMin || 0,
           budgetMax: res.data.profile.budgetMax || 0,
+          setDuration: res.data.profile.setDuration || '',
           spotifyUrl: res.data.profile.spotifyUrl || '',
           instagramHandle: res.data.profile.instagramHandle || '',
           youtubeUrl: res.data.profile.youtubeUrl || '',
@@ -437,6 +436,7 @@ export const BandDashboardPage: React.FC = () => {
       bio: profile?.bio || '',
       budgetMin: profile?.budgetMin || 0,
       budgetMax: profile?.budgetMax || 0,
+      setDuration: profile?.setDuration || '',
       spotifyUrl: profile?.spotifyUrl || '',
       instagramHandle: profile?.instagramHandle || '',
       youtubeUrl: profile?.youtubeUrl || '',
@@ -472,16 +472,24 @@ export const BandDashboardPage: React.FC = () => {
       return
     }
 
+    const cleanCity = editForm.locationCity.trim()
+    if (!cleanCity) {
+      showToast('Kota / Kabupaten domisili wajib dipilih.', 'error')
+      return
+    }
+
     setEditSubmitting(true)
 
     const res = await authClient.updateBandProfile({
       bandName: cleanName,
       genre: editForm.genre.trim(),
-      locationCity: editForm.locationCity.trim(),
+      locationCity: cleanCity,
+      locationRegion: getProvinceForCity(cleanCity) || undefined,
       phone: cleanPhone,
       bio: editForm.bio.trim(),
       budgetMin: parsedBudgetMin,
       budgetMax: parsedBudgetMax,
+      setDuration: editForm.setDuration.trim(),
       spotifyUrl: editForm.spotifyUrl?.trim(),
       instagramHandle: editForm.instagramHandle?.trim(),
       youtubeUrl: editForm.youtubeUrl?.trim(),
@@ -782,7 +790,10 @@ export const BandDashboardPage: React.FC = () => {
                   <span className="flex items-center gap-1.5 text-[#D4D4D4]">
                     <MapPin className="w-3.5 h-3.5 text-[#E01E37]" />
                     {profile?.locationCity || 'Kota belum diatur'}
-                    {profile?.locationRegion ? `, ${profile.locationRegion}` : ''}
+                    {(() => {
+                      const region = profile?.locationRegion || getProvinceForCity(profile?.locationCity)
+                      return region ? `, ${region}` : ''
+                    })()}
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1.5 text-[#D4D4D4]">
@@ -899,41 +910,28 @@ export const BandDashboardPage: React.FC = () => {
 
             {/* Bottom Bar: 3 Metrics Columns & Pill Buttons */}
             <div className="border-t border-[#222222] mt-6 pt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-              {/* Left: 3 Metrics separated by vertical line dividers */}
+              {/* Left: Metrics separated by vertical line divider */}
               <div className="flex items-center gap-5 sm:gap-8 flex-wrap">
-                {/* Metric 1: Status Performa Kurasi EO */}
-                {(() => {
-                  const currentRating = Number(profile?.rating ?? profile?.ratingAverage ?? 2.5)
-                  const tierInfo = getRatingTierBadge(currentRating)
-                  return (
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`font-mono text-xs sm:text-sm font-bold uppercase tracking-wider px-3 py-1 rounded border ${tierInfo.bgClass}`}>
-                          {tierInfo.label}
-                        </span>
-                        {profile?.customTag && (
-                          <span className="font-mono text-xs sm:text-sm font-bold uppercase tracking-wider px-3 py-1 rounded border bg-[#00D9FF]/15 border-[#00D9FF] text-[#00D9FF] flex items-center gap-1">
-                            <span>✨</span>
-                            <span>{profile.customTag}</span>
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-1">
-                        status performa (kurasi eo)
-                      </span>
-                    </div>
-                  )
-                })()}
-
-                <div className="w-px h-8 bg-[#2A2A2A] hidden sm:block" />
-
-                {/* Metric 2: Profil Views */}
+                {/* Metric 1: Profil Views */}
                 <div>
                   <div className="text-white font-display text-xl sm:text-2xl tracking-wide">
                     {(stats?.totalViews ?? 0).toLocaleString('id-ID')}
                   </div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
                     tayangan
+                  </span>
+                </div>
+
+                <div className="w-px h-8 bg-[#2A2A2A] hidden sm:block" />
+
+                {/* Metric 2: Live Set Duration */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-white font-display text-xl sm:text-2xl tracking-wide">
+                    <Clock className="w-4 h-4 text-[#E01E37]" aria-hidden="true" />
+                    <span>{profile?.setDuration?.trim() || 'Belum diatur'}</span>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] block mt-0.5">
+                    durasi live set
                   </span>
                 </div>
 
@@ -963,21 +961,6 @@ export const BandDashboardPage: React.FC = () => {
                 >
                   <Settings className="w-3.5 h-3.5 text-[#A0A0A0]" />
                   <span>Edit Profil</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsScheduleModalOpen(true)}
-                  className="px-5 py-2.5 rounded-full bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#FFD166]/40 font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer"
-                  title="Input Jadwal Manggung Terkonfirmasi"
-                >
-                  <Calendar className="w-3.5 h-3.5 text-[#FFD166]" />
-                  <span>+ Input Jadwal</span>
-                  {dashboardData?.schedules?.length ? (
-                    <span className="px-1.5 py-0.5 rounded-full bg-[#FFD166]/20 text-[#FFD166] text-[10px] font-mono font-bold">
-                      {dashboardData.schedules.length}
-                    </span>
-                  ) : null}
                 </button>
 
                 <button
@@ -1033,28 +1016,6 @@ export const BandDashboardPage: React.FC = () => {
             <span>Galeri Karya</span>
             <span className="px-1.5 py-0.2 bg-[#222222] text-[#A0A0A0] text-[10px] shrink-0">
               {posts.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('jadwal')}
-            className={`px-3.5 sm:px-4 py-3 font-mono text-xs uppercase tracking-wider font-bold transition-all min-h-[44px] flex items-center justify-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'jadwal'
-                ? 'border-[#E01E37] text-white bg-[#141414]'
-                : 'border-transparent text-[#808080] hover:text-white hover:bg-[#111111]'
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5 text-[#FFD166] shrink-0" />
-            <span>Jadwal Manggung</span>
-            <span
-              className={`px-1.5 py-0.2 text-[10px] shrink-0 font-bold ${
-                (dashboardData?.schedules?.length || 0) > 0
-                  ? 'bg-[#E01E37] text-white'
-                  : 'bg-[#222222] text-[#A0A0A0]'
-              }`}
-            >
-              {dashboardData?.schedules?.length || 0}
             </span>
           </button>
 
@@ -1196,7 +1157,7 @@ export const BandDashboardPage: React.FC = () => {
                 <Music className="w-12 h-12 text-[#606060] mx-auto mb-3" />
                 <h3 className="font-display text-xl text-white mb-2">BELUM ADA MATERI TERUNGGAH</h3>
                 <p className="text-xs text-[#808080] font-sans max-w-md mx-auto mb-6">
-                  Tampilkan aksi panggung terbaik Anda agar kurator festival dan penyelenggara gigs tertarik mengajukan jadwal.
+                  Tampilkan aksi panggung terbaik Anda agar kurator festival dan penyelenggara gigs tertarik mengajukan penawaran panggung.
                 </p>
                 <button
                   type="button"
@@ -1354,43 +1315,6 @@ export const BandDashboardPage: React.FC = () => {
         )}
 
 
-        {/* Tab: Jadwal Manggung & Kalender */}
-        {activeTab === 'jadwal' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="font-display text-2xl tracking-wider text-white">
-                  KALENDER & JADWAL MANGGUNG TERKONFIRMASI
-                </h2>
-                <p className="text-xs text-[#808080] font-sans">
-                  Kelola tanggal manggung band Anda setelah mencapai kesepakatan dengan EO. Jadwal ini akan langsung tampil di halaman profil publik.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsScheduleModalOpen(true)}
-                className="px-5 py-2.5 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(224,30,55,0.4)] cursor-pointer self-start sm:self-auto"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ Input Jadwal Baru</span>
-              </button>
-            </div>
-
-            <BandScheduleCalendar
-              schedules={dashboardData?.schedules || []}
-              bandName={profile?.bandName || 'Band Anda'}
-              bandId={profile?.id}
-              isOwner={true}
-              onAddScheduleClick={() => setIsScheduleModalOpen(true)}
-              onScheduleDeleted={() => {
-                showToast('Jadwal berhasil dihapus')
-                fetchDashboard()
-              }}
-            />
-          </div>
-        )}
-
         {/* Tab 2: Technical Rider */}
         {activeTab === 'rider' && (
           <div className="space-y-6">
@@ -1519,7 +1443,6 @@ export const BandDashboardPage: React.FC = () => {
                     <tr>
                       <th className="py-3.5 px-4">PENYELENGGARA / EO</th>
                       <th className="py-3.5 px-4">JENIS EVENT</th>
-                      <th className="py-3.5 px-4">RENCANA TANGGAL</th>
                       <th className="py-3.5 px-4">WAKTU INQUIRY</th>
                       <th className="py-3.5 px-4">STATUS</th>
                     </tr>
@@ -1537,7 +1460,6 @@ export const BandDashboardPage: React.FC = () => {
                           : c.connectionType === 'whatsapp_click'
                             ? 'Inquiry WhatsApp'
                             : 'Live Music / Gig')
-                      const eventDateLabel = c.eventDate || c.event_date || 'Belum dijadwalkan'
                       const rawCreatedAt = c.createdAt || c.created_at
                       const inquiryDateLabel = rawCreatedAt
                         ? new Date(rawCreatedAt).toLocaleDateString('id-ID', {
@@ -1561,9 +1483,6 @@ export const BandDashboardPage: React.FC = () => {
                                 {c.notes}
                               </p>
                             )}
-                          </td>
-                          <td className="py-3.5 px-4 font-mono text-[#A0A0A0]">
-                            {eventDateLabel}
                           </td>
                           <td className="py-3.5 px-4 font-mono text-[#808080]">
                             {inquiryDateLabel}
@@ -1655,17 +1574,6 @@ export const BandDashboardPage: React.FC = () => {
         mediaFiles={dashboardData?.mediaFiles || []}
         bandName={profile?.bandName}
         onUpdated={fetchDashboard}
-      />
-
-      <ManageScheduleModal
-        isOpen={isScheduleModalOpen}
-        onClose={() => setIsScheduleModalOpen(false)}
-        onSuccess={() => {
-          showToast('Jadwal manggung berhasil dikonfirmasi dan dipublikasikan di kalender!')
-          fetchDashboard()
-        }}
-        defaultCity={profile?.locationCity}
-        recentInquiries={dashboardData?.recentConnections || []}
       />
     </div>
   )
