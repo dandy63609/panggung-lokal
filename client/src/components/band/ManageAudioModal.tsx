@@ -16,6 +16,7 @@ import {
   FileAudio,
 } from 'lucide-react'
 import { authClient } from '../../lib/auth'
+import { isSupportedExternalAudioUrl, parseAudioSource } from '../../lib/bandHelpers'
 import type { MediaFile } from '../../types'
 
 interface ManageAudioModalProps {
@@ -113,6 +114,12 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
       previewAudioRef.current.pause()
     }
 
+    const parsed = parseAudioSource(track.file_url)
+    if (parsed && (parsed.kind === 'spotify' || parsed.kind === 'youtube')) {
+      setPlayingTrackId(track.id)
+      return
+    }
+
     const audio = new Audio(track.file_url)
     previewAudioRef.current = audio
     audio.play().catch(() => {
@@ -205,8 +212,11 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
       }
     } else {
       const cleanUrl = audioUrlInput.trim()
-      if (!cleanUrl || !cleanUrl.startsWith('http')) {
-        showFeedback('Masukkan URL audio yang valid (diawali http:// atau https://).', 'error')
+      if (!isSupportedExternalAudioUrl(cleanUrl)) {
+        showFeedback(
+          'Masukkan tautan file audio langsung (.mp3/.wav/.m4a), link track Spotify, atau link video YouTube yang valid.',
+          'error'
+        )
         return
       }
       finalFileUrl = cleanUrl
@@ -312,10 +322,10 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
               <div className="p-6 bg-[#161616] border border-[#242424] rounded-xl text-center space-y-2">
                 <FileAudio className="w-10 h-10 text-[#555] mx-auto" />
                 <p className="text-xs text-[#999] font-sans">
-                  Belum ada audio custom. Profil band Anda saat ini memutar demo bawaan.
+                  Belum ada sampel audio diunggah untuk profil band Anda.
                 </p>
                 <p className="text-[11px] text-[#666] font-mono">
-                  Gunakan form di bawah untuk mengunggah lagu pertama band Anda!
+                  Unggah file MP3/WAV atau tempel link track Spotify / YouTube di bawah ini.
                 </p>
               </div>
             ) : (
@@ -324,18 +334,21 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
                   const isPlaying = playingTrackId === track.id
                   const isDeleting = deletingTrackId === track.id
                   const isEditing = editingTrackId === track.id
+                  const parsedSource = parseAudioSource(track.file_url)
+                  const isEmbed = parsedSource?.kind === 'spotify' || parsedSource?.kind === 'youtube'
 
                   return (
                     <div
                       key={track.id}
-                      className="p-3.5 bg-[#161616] border border-[#262626] hover:border-[#383838] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+                      className="p-3.5 bg-[#161616] border border-[#262626] hover:border-[#383838] rounded-xl space-y-3 transition-colors"
                     >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         {/* Play/Pause Button */}
                         <button
                           type="button"
                           onClick={() => handleTogglePlay(track)}
-                          aria-label={isPlaying ? 'Jeda sampel audio' : 'Putar sampel audio'}
+                          aria-label={isPlaying ? 'Jeda atau tutup sampel audio' : 'Putar sampel audio'}
                           className={`w-9 h-9 min-w-[36px] rounded-full flex items-center justify-center transition-all cursor-pointer ${
                             isPlaying
                               ? 'bg-[#E01E37] text-white shadow-[0_0_12px_rgba(224,30,55,0.6)]'
@@ -350,13 +363,18 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
                         </button>
 
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-0.5">
+                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                             <span className="font-mono text-[10px] text-[#E01E37] font-bold uppercase">
                               TRACK #{idx + 1}
                             </span>
                             {idx === 0 && (
                               <span className="px-1.5 py-0.2 bg-[#25D366]/20 text-[#25D366] font-mono text-[9px] font-bold uppercase rounded">
                                 UTAMA
+                              </span>
+                            )}
+                            {isEmbed && parsedSource && (
+                              <span className="px-1.5 py-0.2 bg-white/10 text-white/80 font-mono text-[9px] font-bold uppercase rounded">
+                                {parsedSource.providerLabel}
                               </span>
                             )}
                           </div>
@@ -430,6 +448,21 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
                           <span>Hapus</span>
                         </button>
                       </div>
+                      </div>
+
+                      {isPlaying && isEmbed && parsedSource && (
+                        <div className="w-full overflow-hidden rounded-xl bg-black border border-[#262626]">
+                          <iframe
+                            title={track.title || `Preview ${parsedSource.providerLabel}`}
+                            src={parsedSource.embedUrl}
+                            width="100%"
+                            height={parsedSource.height}
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            loading="lazy"
+                            className="block w-full border-0"
+                          />
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -534,16 +567,19 @@ export const ManageAudioModal: React.FC<ManageAudioModalProps> = ({
                   htmlFor="audio-external-url"
                   className="block font-mono text-[11px] font-bold uppercase tracking-wider text-[#A0A0A0]"
                 >
-                  URL Audio Eksternal (HTTP/HTTPS) *
+                  Link Audio / Spotify / YouTube (HTTPS) *
                 </label>
                 <input
                   id="audio-external-url"
                   type="url"
                   value={audioUrlInput}
                   onChange={(e) => setAudioUrlInput(e.target.value)}
-                  placeholder="https://domain.com/sample-lagu.mp3"
+                  placeholder="https://open.spotify.com/track/... atau https://domain.com/sample.mp3"
                   className="w-full bg-[#141414] border border-[#282828] focus:border-[#E01E37] rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder:text-[#555] focus:outline-none transition-colors"
                 />
+                <p className="text-[10px] text-[#777] font-sans">
+                  Mendukung file audio langsung (.mp3, .wav, .m4a), link track Spotify, atau link video YouTube. Untuk pemutaran instan 1 klik, unggah file MP3/WAV secara langsung.
+                </p>
               </div>
             )}
 

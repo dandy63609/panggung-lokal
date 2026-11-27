@@ -126,3 +126,112 @@ export function getBandProfileUrl(
   if (band.id) return `/band/${band.id}`
   return '/cari-band'
 }
+
+export type ParsedAudioSource =
+  | {
+      kind: 'spotify'
+      embedUrl: string
+      externalUrl: string
+      height: number
+      providerLabel: 'Spotify'
+    }
+  | {
+      kind: 'youtube'
+      embedUrl: string
+      externalUrl: string
+      height: number
+      providerLabel: 'YouTube'
+    }
+  | {
+      kind: 'audio'
+      src: string
+      externalUrl: string
+      providerLabel: 'Audio'
+    }
+
+const DIRECT_AUDIO_EXT_RE = /\.(mp3|wav|m4a|ogg|aac|flac|opus|webm)(\?|$)/i
+
+/**
+ * Parses a band's audio sample URL into a playable source:
+ * - Spotify track / album / playlist / artist / episode -> official Spotify embed iframe
+ * - YouTube / youtu.be / YouTube Music -> youtube-nocookie embed iframe
+ * - Direct audio file URL -> native HTML5 <audio>
+ */
+export function parseAudioSource(rawUrl?: string | null): ParsedAudioSource | null {
+  const trimmed = (rawUrl || '').trim()
+  if (!trimmed) return null
+
+  try {
+    const parsed = new URL(trimmed, 'https://reffband.studio')
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '')
+
+    if (host === 'open.spotify.com' || host === 'play.spotify.com') {
+      const segments = parsed.pathname.split('/').filter(Boolean)
+      const filtered = segments.filter((seg) => !/^intl-[a-z-]+$/i.test(seg) && seg !== 'embed')
+      const resourceType = (filtered[0] || '').toLowerCase()
+      const resourceId = filtered[1] || ''
+      const allowedTypes = new Set(['track', 'album', 'playlist', 'artist', 'episode'])
+      if (allowedTypes.has(resourceType) && /^[A-Za-z0-9]{10,40}$/.test(resourceId)) {
+        return {
+          kind: 'spotify',
+          embedUrl: `https://open.spotify.com/embed/${resourceType}/${resourceId}?utm_source=generator&theme=0`,
+          externalUrl: trimmed,
+          height: 152,
+          providerLabel: 'Spotify',
+        }
+      }
+    }
+
+    if (host === 'youtu.be' || host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
+      let videoId = ''
+      if (host === 'youtu.be') {
+        videoId = parsed.pathname.split('/').filter(Boolean)[0] || ''
+      } else if (parsed.pathname === '/watch') {
+        videoId = parsed.searchParams.get('v') || ''
+      } else {
+        const parts = parsed.pathname.split('/').filter(Boolean)
+        if ((parts[0] === 'embed' || parts[0] === 'shorts' || parts[0] === 'live') && parts[1]) {
+          videoId = parts[1]
+        }
+      }
+      if (/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
+        return {
+          kind: 'youtube',
+          embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`,
+          externalUrl: trimmed,
+          height: 200,
+          providerLabel: 'YouTube',
+        }
+      }
+    }
+  } catch {
+    // Relative path or non-standard URL falls through to direct audio handling
+  }
+
+  return {
+    kind: 'audio',
+    src: trimmed,
+    externalUrl: trimmed,
+    providerLabel: 'Audio',
+  }
+}
+
+export function isSupportedExternalAudioUrl(rawUrl?: string | null): boolean {
+  const trimmed = (rawUrl || '').trim()
+  if (!/^https?:\/\//i.test(trimmed)) return false
+
+  const parsed = parseAudioSource(trimmed)
+  if (!parsed) return false
+  if (parsed.kind === 'spotify' || parsed.kind === 'youtube') return true
+
+  try {
+    const urlObj = new URL(trimmed)
+    return (
+      DIRECT_AUDIO_EXT_RE.test(urlObj.pathname) ||
+      urlObj.pathname.includes('/storage/v1/object/public/') ||
+      urlObj.pathname.startsWith('/uploads/')
+    )
+  } catch {
+    return false
+  }
+}

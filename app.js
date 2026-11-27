@@ -25,7 +25,7 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       mediaSrc: ["'self'", "https:", "data:", "blob:"],
       connectSrc: ["'self'", "https://accounts.google.com", "https://*.supabase.co"],
-      frameSrc: ["'self'", "https://accounts.google.com"],
+      frameSrc: ["'self'", "https://accounts.google.com", "https://open.spotify.com", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
       upgradeInsecureRequests: isProduction ? [] : null
     },
   },

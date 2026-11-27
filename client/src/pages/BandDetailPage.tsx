@@ -23,6 +23,7 @@ import {
   Settings,
   X,
   Lock,
+  ExternalLink,
 } from 'lucide-react'
 import { BandCard } from '../components/ui/BandCard'
 import {
@@ -40,6 +41,7 @@ import {
   parsePostSlides,
   sanitizeExternalUrl,
   getBandProfileUrl,
+  parseAudioSource,
 } from '../lib/bandHelpers'
 import { formatRupiah } from '../lib/utils'
 import { getProvinceForCity } from '../lib/cities'
@@ -67,7 +69,8 @@ export const BandDetailPage: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false)
   const [audioCurrentTime, setAudioCurrentTime] = useState<number>(0)
-  const [audioDuration, setAudioDuration] = useState<number>(38)
+  const [audioDuration, setAudioDuration] = useState<number>(0)
+  const [audioError, setAudioError] = useState<string | null>(null)
   const [activeTrackIndex, setActiveTrackIndex] = useState<number>(0)
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authClient.getUser())
@@ -223,16 +226,33 @@ export const BandDetailPage: React.FC = () => {
   }, [audioTracks.length, activeTrackIndex])
 
   const currentAudioTrack = audioTracks.length > 0 ? (audioTracks[activeTrackIndex] || audioTracks[0]) : null
+  const currentAudioSource = useMemo(
+    () => parseAudioSource(currentAudioTrack?.file_url),
+    [currentAudioTrack?.file_url]
+  )
+  const isEmbedAudio =
+    currentAudioSource?.kind === 'spotify' || currentAudioSource?.kind === 'youtube'
 
   // Audio Playback Handlers
   const handleTogglePlayAudio = () => {
-    if (!audioRef.current || !currentAudioTrack?.file_url) return
+    if (!currentAudioTrack || !currentAudioSource) return
+    setAudioError(null)
+
+    if (isEmbedAudio) {
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+      setIsPlayingAudio((prev) => !prev)
+      return
+    }
+
+    if (!audioRef.current) return
     if (isPlayingAudio) {
       audioRef.current.pause()
       setIsPlayingAudio(false)
     } else {
-      if (!audioRef.current.src || audioRef.current.src === '' || audioRef.current.src.endsWith('/')) {
-        audioRef.current.src = currentAudioTrack.file_url
+      if (audioRef.current.src !== currentAudioSource.src) {
+        audioRef.current.src = currentAudioSource.src
       }
       const playPromise = audioRef.current.play()
       if (playPromise !== undefined) {
@@ -241,7 +261,8 @@ export const BandDetailPage: React.FC = () => {
             setIsPlayingAudio(true)
           })
           .catch(() => {
-            setIsPlayingAudio(true)
+            setIsPlayingAudio(false)
+            setAudioError('Gagal memutar berkas audio ini. Pastikan tautan audio valid.')
           })
       } else {
         setIsPlayingAudio(true)
@@ -249,32 +270,14 @@ export const BandDetailPage: React.FC = () => {
     }
   }
 
-  useEffect(() => {
-    let timer: number | null = null
-    if (isPlayingAudio) {
-      timer = window.setInterval(() => {
-        setAudioCurrentTime((prev) => {
-          if (prev >= audioDuration) {
-            setIsPlayingAudio(false)
-            return 0
-          }
-          return Math.min(audioDuration, prev + 1)
-        })
-      }, 1000)
-    }
-    return () => {
-      if (timer) clearInterval(timer)
-    }
-  }, [isPlayingAudio, audioDuration])
-
   const handleAudioTimeUpdate = () => {
-    if (audioRef.current && audioRef.current.currentTime > 0) {
+    if (audioRef.current && !isNaN(audioRef.current.currentTime)) {
       setAudioCurrentTime(audioRef.current.currentTime)
     }
   }
 
   const handleAudioLoadedMetadata = () => {
-    if (audioRef.current && audioRef.current.duration) {
+    if (audioRef.current && audioRef.current.duration && isFinite(audioRef.current.duration)) {
       setAudioDuration(audioRef.current.duration)
     }
   }
@@ -282,6 +285,11 @@ export const BandDetailPage: React.FC = () => {
   const handleAudioEnded = () => {
     setIsPlayingAudio(false)
     setAudioCurrentTime(0)
+  }
+
+  const handleAudioError = () => {
+    setIsPlayingAudio(false)
+    setAudioError('Berkas audio tidak dapat dimuat atau format tidak didukung.')
   }
 
   const handleAudioSeek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -827,20 +835,34 @@ export const BandDetailPage: React.FC = () => {
                     onClick={handleTogglePlayAudio}
                     className={`px-5 py-2.5 rounded-full font-mono text-xs uppercase font-bold tracking-wider min-h-[44px] flex items-center gap-2 transition-all cursor-pointer ${
                       isPlayingAudio
-                        ? 'bg-[#E01E37] text-white shadow-[0_0_20px_rgba(224,30,55,0.6)] animate-pulse'
+                        ? 'bg-[#E01E37] text-white shadow-[0_0_20px_rgba(224,30,55,0.6)]'
                         : 'bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333]'
                     }`}
-                    aria-label={isPlayingAudio ? 'Jeda sampel audio' : 'Putar sampel audio'}
+                    aria-label={isPlayingAudio ? 'Jeda atau tutup sampel audio' : 'Putar sampel audio'}
                   >
                     {isPlayingAudio ? (
-                      <>
-                        <Pause className="w-3.5 h-3.5 fill-white" />
-                        <span>Jeda Demo ({formatAudioTime(audioCurrentTime)})</span>
-                      </>
+                      isEmbedAudio ? (
+                        <>
+                          <X className="w-3.5 h-3.5" />
+                          <span>Tutup Pemutar {currentAudioSource?.providerLabel}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Pause className="w-3.5 h-3.5 fill-white" />
+                          <span>Jeda Demo ({formatAudioTime(audioCurrentTime)})</span>
+                        </>
+                      )
                     ) : (
                       <>
                         <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
-                        <span>Dengar Sampel Lagu</span>
+                        <span>
+                          Dengar Sampel Lagu
+                          {currentAudioSource?.kind === 'spotify'
+                            ? ' (Spotify)'
+                            : currentAudioSource?.kind === 'youtube'
+                              ? ' (YouTube)'
+                              : ''}
+                        </span>
                       </>
                     )}
                   </button>
@@ -852,9 +874,12 @@ export const BandDetailPage: React.FC = () => {
                     type="button"
                     onClick={() => {
                       const next = (activeTrackIndex + 1) % audioTracks.length
+                      if (audioRef.current) audioRef.current.pause()
                       setActiveTrackIndex(next)
                       setIsPlayingAudio(false)
                       setAudioCurrentTime(0)
+                      setAudioDuration(0)
+                      setAudioError(null)
                     }}
                     className="px-3 py-2 rounded-full bg-[#181818] hover:bg-[#252525] text-[#A0A0A0] hover:text-white border border-[#333] font-mono text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
                     title="Ganti ke potongan lagu berikutnya"
@@ -899,39 +924,78 @@ export const BandDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Floating Mini Player (Aktif ketika audio sedang diputar tanpa memakan tempat di halaman) */}
-        {isPlayingAudio && currentAudioTrack && (
+        {/* Audio playback error alert (honest feedback instead of fake silent playback) */}
+        {audioError && (
+          <div
+            role="alert"
+            className="mb-6 px-4 py-3 rounded-xl bg-[#2A1014] border border-[#E01E37]/40 text-[#FF8A9A] font-mono text-xs flex items-center justify-between gap-3"
+          >
+            <span>{audioError}</span>
+            <button
+              type="button"
+              onClick={() => setAudioError(null)}
+              className="text-white/70 hover:text-white cursor-pointer"
+              aria-label="Tutup pesan error audio"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Floating Mini Player (Direct Audio or Spotify / YouTube Embed) */}
+        {isPlayingAudio && currentAudioTrack && currentAudioSource && (
           <aside
             aria-label="Pemutar Audio Demo Melayang"
-            className="fixed bottom-5 right-5 left-5 sm:left-auto sm:w-[420px] z-50 bg-[#121212]/95 backdrop-blur-md border border-[#E01E37]/60 rounded-2xl p-4 shadow-[0_10px_35px_rgba(0,0,0,0.85)] flex flex-col gap-2.5 animate-in slide-in-from-bottom-5"
+            className="fixed bottom-5 right-5 left-5 sm:left-auto sm:w-[420px] z-50 bg-[#121212]/95 backdrop-blur-md border border-[#E01E37]/60 rounded-2xl p-4 shadow-[0_10px_35px_rgba(0,0,0,0.85)] flex flex-col gap-3 animate-in slide-in-from-bottom-5"
           >
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <button
-                  type="button"
-                  onClick={handleTogglePlayAudio}
-                  className="w-10 h-10 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(224,30,55,0.6)] cursor-pointer"
-                  aria-label="Jeda audio"
-                >
-                  <Pause className="w-4 h-4 fill-white" />
-                </button>
+                {!isEmbedAudio && (
+                  <button
+                    type="button"
+                    onClick={handleTogglePlayAudio}
+                    className="w-10 h-10 rounded-full bg-[#E01E37] hover:bg-[#C71B30] text-white flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(224,30,55,0.6)] cursor-pointer"
+                    aria-label="Jeda audio"
+                  >
+                    <Pause className="w-4 h-4 fill-white" />
+                  </button>
+                )}
                 <div className="min-w-0">
                   <span className="font-mono text-[9px] text-[#E01E37] uppercase font-bold block">
-                    MEMUTAR DEMO · TRACK 0{activeTrackIndex + 1}
+                    {currentAudioSource.kind === 'spotify'
+                      ? `SPOTIFY EMBED · TRACK 0${activeTrackIndex + 1}`
+                      : currentAudioSource.kind === 'youtube'
+                        ? `YOUTUBE EMBED · TRACK 0${activeTrackIndex + 1}`
+                        : `MEMUTAR DEMO · TRACK 0${activeTrackIndex + 1}`}
                   </span>
                   <p className="font-mono text-xs font-bold text-white truncate">
-                    {currentAudioTrack?.title || `${band.bandName} - Master Demo`}
+                    {currentAudioTrack.title || `${band.bandName} - Master Demo`}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                {isEmbedAudio && (
+                  <a
+                    href={currentAudioSource.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2 py-1 bg-[#222] hover:bg-[#333] text-white text-[10px] font-mono uppercase font-bold rounded flex items-center gap-1"
+                    title={`Buka di ${currentAudioSource.providerLabel}`}
+                  >
+                    <span>Buka</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
                 {audioTracks.length > 1 && (
                   <button
                     type="button"
                     onClick={() => {
                       const next = (activeTrackIndex + 1) % audioTracks.length
+                      if (audioRef.current) audioRef.current.pause()
                       setActiveTrackIndex(next)
+                      setAudioCurrentTime(0)
+                      setAudioDuration(0)
                     }}
                     className="px-2 py-1 bg-[#222] hover:bg-[#333] text-white text-[10px] font-mono uppercase font-bold rounded cursor-pointer"
                     title="Next Track"
@@ -953,41 +1017,57 @@ export const BandDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Progress Bar & Timer */}
-            <div className="space-y-1">
-              <div
-                onClick={handleAudioSeek}
-                className="w-full h-2 bg-[#222222] rounded-full overflow-hidden cursor-pointer relative"
-                role="slider"
-                aria-label="Progress pemutaran audio"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(audioProgressPercent)}
-              >
-                <div
-                  className="h-full bg-[#E01E37] transition-all duration-100"
-                  style={{ width: `${audioProgressPercent}%` }}
+            {currentAudioSource.kind === 'spotify' || currentAudioSource.kind === 'youtube' ? (
+              <div className="w-full overflow-hidden rounded-xl bg-black border border-[#242424]">
+                <iframe
+                  key={currentAudioSource.embedUrl}
+                  title={currentAudioTrack.title || `Sampel audio ${band.bandName}`}
+                  src={currentAudioSource.embedUrl}
+                  width="100%"
+                  height={currentAudioSource.height}
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  className="block w-full border-0"
                 />
               </div>
-              <div className="flex items-center justify-between font-mono text-[10px] text-[#707070]">
-                <span>{formatAudioTime(audioCurrentTime)}</span>
-                <span>{formatAudioTime(audioDuration || 38)}</span>
+            ) : (
+              /* Progress Bar & Timer for Direct Audio */
+              <div className="space-y-1">
+                <div
+                  onClick={handleAudioSeek}
+                  className="w-full h-2 bg-[#222222] rounded-full overflow-hidden cursor-pointer relative"
+                  role="slider"
+                  aria-label="Progress pemutaran audio"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(audioProgressPercent)}
+                >
+                  <div
+                    className="h-full bg-[#E01E37] transition-all duration-100"
+                    style={{ width: `${audioProgressPercent}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between font-mono text-[10px] text-[#707070]">
+                  <span>{formatAudioTime(audioCurrentTime)}</span>
+                  <span>{audioDuration > 0 ? formatAudioTime(audioDuration) : '--:--'}</span>
+                </div>
               </div>
-            </div>
+            )}
           </aside>
         )}
 
-        {/* Hidden Audio Element (only mounted when band uploaded audio) */}
-        {currentAudioTrack?.file_url && (
+        {/* Hidden Audio Element (only mounted for direct audio files, not Spotify/YouTube embeds) */}
+        {currentAudioSource?.kind === 'audio' && (
           <audio
             ref={audioRef}
-            src={currentAudioTrack.file_url}
+            src={currentAudioSource.src}
             onPlay={() => setIsPlayingAudio(true)}
             onPause={() => setIsPlayingAudio(false)}
             onTimeUpdate={handleAudioTimeUpdate}
             onLoadedMetadata={handleAudioLoadedMetadata}
             onEnded={handleAudioEnded}
-            preload="auto"
+            onError={handleAudioError}
+            preload="metadata"
           />
         )}
 

@@ -17,6 +17,7 @@ import {
   Check,
 } from 'lucide-react'
 import { authClient } from '../../lib/auth'
+import { isSupportedExternalAudioUrl, parseAudioSource } from '../../lib/bandHelpers'
 import type { MediaFile } from '../../types'
 
 interface AudioTracksTabProps {
@@ -61,6 +62,12 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
 
     if (activeAudioRef.current) {
       activeAudioRef.current.pause()
+    }
+
+    const parsed = parseAudioSource(track.file_url)
+    if (parsed && (parsed.kind === 'spotify' || parsed.kind === 'youtube')) {
+      setPlayingTrackId(track.id)
+      return
     }
 
     const audio = new Audio(track.file_url)
@@ -154,8 +161,11 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
       }
     } else {
       const cleanUrl = audioUrlInput.trim()
-      if (!cleanUrl || !cleanUrl.startsWith('http')) {
-        showToast('Masukkan URL audio yang valid (diawali http:// atau https://).', 'error')
+      if (!isSupportedExternalAudioUrl(cleanUrl)) {
+        showToast(
+          'Masukkan tautan file audio langsung (.mp3/.wav/.m4a), link track Spotify, atau link video YouTube yang valid.',
+          'error'
+        )
         return
       }
       finalFileUrl = cleanUrl
@@ -232,10 +242,10 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
           <FileAudio className="w-12 h-12 text-[#666] mx-auto" />
           <div className="space-y-1 max-w-md mx-auto">
             <h3 className="font-mono text-sm font-bold text-white uppercase">
-              Menggunakan Sampel Bawaan (Default Demo)
+              Belum Ada Sampel Audio
             </h3>
             <p className="text-xs text-[#808080] font-sans">
-              Profil publik band Anda saat ini memutar sampel instrumen default. Tambahkan potongan lagu asli band Anda agar Event Organizer lebih yakin untuk mengundang band Anda manggung!
+              Tambahkan potongan lagu asli band Anda (file MP3/WAV atau link Spotify / YouTube) agar Event Organizer dapat langsung mendengar karakter musik band Anda.
             </p>
           </div>
           <button
@@ -253,17 +263,20 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
             const isPlaying = playingTrackId === track.id
             const isDeleting = deletingId === track.id
             const isEditing = editingTrackId === track.id
+            const parsedSource = parseAudioSource(track.file_url)
+            const isEmbed = parsedSource?.kind === 'spotify' || parsedSource?.kind === 'youtube'
 
             return (
               <div
                 key={track.id}
-                className="bg-[#121212] border border-[#262626] hover:border-[#E01E37]/50 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
+                className="bg-[#121212] border border-[#262626] hover:border-[#E01E37]/50 rounded-xl p-4 sm:p-5 space-y-3 transition-all"
               >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <button
                     type="button"
                     onClick={() => handleTogglePlay(track)}
-                    aria-label={isPlaying ? 'Jeda preview audio' : 'Putar preview audio'}
+                    aria-label={isPlaying ? 'Jeda atau tutup preview audio' : 'Putar preview audio'}
                     className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
                       isPlaying
                         ? 'bg-[#E01E37] text-white shadow-[0_0_15px_rgba(224,30,55,0.5)]'
@@ -278,13 +291,18 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
                   </button>
 
                   <div className="min-w-0 space-y-0.5">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-[10px] text-[#E01E37] font-bold uppercase tracking-wider">
                         TRACK #{idx + 1}
                       </span>
                       {idx === 0 && (
                         <span className="px-1.5 py-0.2 bg-[#25D366]/20 text-[#25D366] font-mono text-[9px] font-bold uppercase tracking-wider rounded">
                           TRACK UTAMA DI PROFIL
+                        </span>
+                      )}
+                      {isEmbed && parsedSource && (
+                        <span className="px-1.5 py-0.2 bg-white/10 text-white/80 font-mono text-[9px] font-bold uppercase tracking-wider rounded">
+                          {parsedSource.providerLabel}
                         </span>
                       )}
                     </div>
@@ -369,6 +387,21 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
                     <span>Hapus</span>
                   </button>
                 </div>
+                </div>
+
+                {isPlaying && isEmbed && parsedSource && (
+                  <div className="w-full overflow-hidden rounded-xl bg-black border border-[#262626]">
+                    <iframe
+                      title={track.title || `Preview ${parsedSource.providerLabel}`}
+                      src={parsedSource.embedUrl}
+                      width="100%"
+                      height={parsedSource.height}
+                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                      loading="lazy"
+                      className="block w-full border-0"
+                    />
+                  </div>
+                )}
               </div>
             )
           })}
@@ -483,17 +516,17 @@ export const AudioTracksTab: React.FC<AudioTracksTabProps> = ({
               ) : (
                 <div className="space-y-1.5">
                   <label className="text-[#A0A0A0] uppercase tracking-wider block">
-                    URL Tautan Berkas Audio Langsung
+                    Link Audio Langsung / Spotify / YouTube
                   </label>
                   <input
                     type="url"
                     value={audioUrlInput}
                     onChange={(e) => setAudioUrlInput(e.target.value)}
-                    placeholder="https://example.com/audio/sample-track.mp3"
+                    placeholder="https://open.spotify.com/track/... atau https://example.com/sample.mp3"
                     className="w-full bg-[#1A1A1A] border border-[#2E2E2E] focus:border-[#E01E37] rounded px-3 py-2 text-white outline-none font-sans"
                   />
                   <p className="text-[10px] text-[#707070] font-sans">
-                    Pastikan tautan dapat diakses publik dan langsung mengarah ke berkas suara.
+                    Mendukung file audio langsung (.mp3/.wav/.m4a), link track Spotify, atau link video YouTube.
                   </p>
                 </div>
               )}
